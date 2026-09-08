@@ -97,8 +97,35 @@ expression becomes `{0}`, so bind it to a local first. After adding a message:
 **Contract first, always.** Edit `src/modules/*/*.prisma`, never
 `src/prisma/contract.prisma` — it is concatenated from the fragments. Then
 `prisma:emit` and read the `contract.json` diff: a moved `storageHash` means the
-database has to move too. `refs/db.json` pins the migration chain head; if it
-lags the database, a plan branches from the wrong base.
+database has to move too.
+
+**`db migrate` does not advance `migrations/app/refs/db.json`.** That file pins
+the chain head, and if it lags the database every later `migration plan`
+branches from a stale base and re-plans work already applied. Advance it to the
+applied migration's `to` hash — the **full** hash; a prefix makes `db verify`
+report a hash mismatch.
+
+**What PSL can and cannot say about indexes.** Composite btree, yes. `type:`
+from `btree`/`gin`/`hash`/`brin`, yes, but **lowercase only** — `"Gin"` is an
+unregistered index type. Per-column `sort:` and operator classes, no.
+Expression indexes parse and emit correct SQL —
+`@@index(expression: "title gin_trgm_ops", type: "gin", map: "…")` — **but do
+not use them**: introspection reads `(title gin_trgm_ops)` back as the plain
+column `title`, so contract and database can never agree and `db migrate` ends
+in "schema does not satisfy contract". The trigram indexes therefore live
+outside the contract, in `prisma/search-indexes/`, applied by
+`pnpm prisma:search-indexes`. `db verify` is not strict and tolerates them.
+
+**Every index exists for one query pattern**, measured on 200k skewed rows, and
+all of it is invisible on seed data. `(createdAt, id)` serves the default keyset
+order — the tuple comparison and the tiebreak both, which a single-column index
+cannot; the scan runs backwards because every column is DESC.
+`(status, createdAt, id)` serves a status filter with that order: 23 ms and a
+full scan without it, 7.8 ms and 511 rows read with it.
+`teamMember (teamId, name)` serves the batched relation fetch and its ordering
+in one scan: 13.8 ms with a disk sort, 0.29 ms without. Trigram GIN is the
+largest win — a rare search term goes from 140 ms and 200k rows filtered to
+0.3 ms.
 
 **`DEFAULT_ORDER_BY` is global** (`createdAt DESC`, then `id DESC`). Entries an
 entity cannot honour are skipped, not rejected. `orderBy` is the only sorting
