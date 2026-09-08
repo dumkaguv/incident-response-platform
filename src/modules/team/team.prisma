@@ -1,0 +1,35 @@
+// use prisma-next
+
+enum TeamRole {
+  LEAD
+  RESPONDER
+  OBSERVER
+}
+
+model Team {
+  id          String            @id @default(uuid())
+  name        String
+  slug        String            @unique
+  description String?
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
+
+  incidents Incident[]
+  members   TeamMember[]
+
+  @@index([name])
+}
+
+model TeamMember {
+  id        String            @id @default(uuid())
+  teamId    String
+  name      String
+  email     String            @unique
+  role      TeamRole          @default(RESPONDER)
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
+
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@index([teamId])
+}
