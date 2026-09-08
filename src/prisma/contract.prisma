@@ -27,7 +27,8 @@ model Incident {
 
   team        Team?              @relation(fields: [teamId], references: [id])
 
-  @@index([createdAt])
+  @@index([createdAt, id])
+  @@index([status, createdAt, id])
 }
 
 enum TeamRole {
@@ -61,5 +62,5 @@ model TeamMember {
 
   team Team @relation(fields: [teamId], references: [id])
 
-  @@index([teamId])
+  @@index([teamId, name])
 }

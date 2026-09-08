@@ -1,5 +1,7 @@
 // use prisma-next
 
+
+
 enum IncidentStatus {
   OPEN
   INVESTIGATING
@@ -27,5 +29,6 @@ model Incident {
 
   team        Team?              @relation(fields: [teamId], references: [id])
 
-  @@index([createdAt])
+  @@index([createdAt, id])
+  @@index([status, createdAt, id])
 }

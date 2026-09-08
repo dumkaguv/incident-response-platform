@@ -31,5 +31,5 @@ model TeamMember {
 
   team Team @relation(fields: [teamId], references: [id])
 
-  @@index([teamId])
+  @@index([teamId, name])
 }
