@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { numberSetting } from '@/common/utils'
+import { booleanSetting, numberSetting } from '@/common/utils'
 
 describe('numberSetting', () => {
   it('reads a numeric string', () => {
@@ -25,5 +25,26 @@ describe('numberSetting', () => {
   it('passes a number through', () => {
     expect(numberSetting(5, 30)).toBe(5)
     expect(numberSetting(0, 30)).toBe(0)
+  })
+})
+
+describe('booleanSetting', () => {
+  it('reads the usual truthy and falsy spellings', () => {
+    expect(booleanSetting('true', false)).toBe(true)
+    expect(booleanSetting('1', false)).toBe(true)
+    expect(booleanSetting('TRUE', false)).toBe(true)
+    expect(booleanSetting('false', true)).toBe(false)
+    expect(booleanSetting('0', true)).toBe(false)
+  })
+
+  it('falls back for empty, absent and unrecognised values', () => {
+    expect(booleanSetting('', true)).toBe(true)
+    expect(booleanSetting(undefined, true)).toBe(true)
+    expect(booleanSetting('maybe', false)).toBe(false)
+  })
+
+  it('passes a boolean through', () => {
+    expect(booleanSetting(true, false)).toBe(true)
+    expect(booleanSetting(false, true)).toBe(false)
   })
 })
