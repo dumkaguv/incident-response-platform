@@ -37,6 +37,7 @@ pnpm prisma:migrate       # apply it
 pnpm prisma:db-verify     # database matches the contract
 pnpm prisma:seed
 pnpm i18n:extract / i18n:compile / i18n:verify
+pnpm bundle               # build, then esbuild it to one file
 ```
 
 ## Structure
@@ -100,32 +101,36 @@ expression becomes `{0}`, so bind it to a local first. After adding a message:
 database has to move too.
 
 **`db migrate` does not advance `migrations/app/refs/db.json`.** That file pins
-the chain head, and if it lags the database every later `migration plan`
-branches from a stale base and re-plans work already applied. Advance it to the
-applied migration's `to` hash — the **full** hash; a prefix makes `db verify`
-report a hash mismatch.
+the chain head; a stale ref makes every later `migration plan` branch from the
+wrong base. Advance it to the applied migration's `to` hash — the **full** hash,
+since a prefix reads as a hash mismatch.
 
-**What PSL can and cannot say about indexes.** Composite btree, yes. `type:`
-from `btree`/`gin`/`hash`/`brin`, yes, but **lowercase only** — `"Gin"` is an
-unregistered index type. Per-column `sort:` and operator classes, no.
-Expression indexes parse and emit correct SQL —
+**What PSL can and cannot say about indexes.** Composite btree yes; `type:` from
+`btree`/`gin`/`hash`/`brin` yes, but **lowercase only**; per-column `sort:` and
+operator classes no. Expression indexes parse and emit correct SQL —
 `@@index(expression: "title gin_trgm_ops", type: "gin", map: "…")` — **but do
-not use them**: introspection reads `(title gin_trgm_ops)` back as the plain
-column `title`, so contract and database can never agree and `db migrate` ends
-in "schema does not satisfy contract". The trigram indexes therefore live
-outside the contract, in `prisma/search-indexes/`, applied by
-`pnpm prisma:search-indexes`. `db verify` is not strict and tolerates them.
+not use them**: introspection reads the opclass back as a plain column, so
+contract and database never agree and `db migrate` always ends in "schema does
+not satisfy contract". The trigram indexes therefore live outside the contract,
+in `prisma/search-indexes/`; `db verify` is not strict and tolerates them.
 
-**Every index exists for one query pattern**, measured on 200k skewed rows, and
-all of it is invisible on seed data. `(createdAt, id)` serves the default keyset
-order — the tuple comparison and the tiebreak both, which a single-column index
-cannot; the scan runs backwards because every column is DESC.
-`(status, createdAt, id)` serves a status filter with that order: 23 ms and a
-full scan without it, 7.8 ms and 511 rows read with it.
-`teamMember (teamId, name)` serves the batched relation fetch and its ordering
-in one scan: 13.8 ms with a disk sort, 0.29 ms without. Trigram GIN is the
-largest win — a rare search term goes from 140 ms and 200k rows filtered to
-0.3 ms.
+**Every index exists for one query pattern**, measured on 200k skewed rows and
+invisible on seed data. `(createdAt, id)` serves the default keyset order — the
+tuple comparison and the tiebreak both, scanned backwards since every column is
+DESC. `(status, createdAt, id)` serves a status filter with that order: 23 ms
+and a full scan without it, 7.8 ms with. `teamMember (teamId, name)` serves the
+batched relation fetch and its ordering in one scan: 13.8 ms against 0.29 ms.
+Trigram GIN is the largest win — a rare term goes from 140 ms to 0.3 ms.
+
+**The bundle is built from `dist`, not `src`.** SWC has already emitted the
+decorator metadata by then, so esbuild never has to understand decorators.
+`keepNames` is mandatory — the code-first schema is built from class names.
+Imports that cannot be resolved are externalised automatically by a plugin and
+printed, so a new dependency needs no change here; a genuinely missing one shows
+up in that list. Anything reached through Nest's runtime package loader cannot
+work in a bundle, which is why `ServeStaticModule` is registered only when its
+directory exists. Bundling is also what makes startup fast: 1.1 s against 4.2 s
+unbundled.
 
 **`DEFAULT_ORDER_BY` is global** (`createdAt DESC`, then `id DESC`). Entries an
 entity cannot honour are skipped, not rejected. `orderBy` is the only sorting

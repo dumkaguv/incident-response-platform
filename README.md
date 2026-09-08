@@ -34,6 +34,7 @@ GraphiQL is served at `http://localhost:$PORT/graphql` in development.
 
 ```bash
 pnpm dev / start / build / prod
+pnpm bundle                          # one-file build for the container image
 pnpm typecheck                       # TypeScript 7
 pnpm format / format:check
 pnpm lint / lint:check
