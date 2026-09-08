@@ -8,13 +8,15 @@ import { APP_GUARD } from '@nestjs/core'
 import { ThrottlerModule } from '@nestjs/throttler'
 import type { ThrottlerModuleOptions } from '@nestjs/throttler'
 
+import { numberSetting } from '@/common/utils'
+
 import { GqlThrottlerGuard } from './gql-throttler.guard'
 import { HttpThrottlerMiddleware } from './http-throttler.middleware'
 import { BLOCK_DURATION, THROTTLE_TIERS } from './throttler.constants'
 
 function tiers(config: ConfigService): ThrottlerModuleOptions {
   function limit(name: string, fallback: number): number {
-    return config.get<number>(`THROTTLE_${name}_LIMIT`) ?? fallback
+    return numberSetting(config.get(`THROTTLE_${name}_LIMIT`), fallback)
   }
 
   return {

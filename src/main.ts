@@ -5,6 +5,8 @@ import compression from 'compression'
 import helmet from 'helmet'
 import type { Express } from 'express'
 
+import { numberSetting } from '@/common/utils'
+
 import { AppModule } from './app/app.module'
 
 async function bootstrap(): Promise<void> {
@@ -39,7 +41,7 @@ async function bootstrap(): Promise<void> {
     })
   )
 
-  const port = config.get<string>('PORT') ?? 3000
+  const port = numberSetting(config.get('PORT'), 3000)
 
   await app.listen(port)
 

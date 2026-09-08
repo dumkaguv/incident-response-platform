@@ -8,6 +8,8 @@ import { ConfigService } from '@nestjs/config'
 import { ThrottlerStorage } from '@nestjs/throttler'
 import type { NextFunction, Request, Response } from 'express'
 
+import { numberSetting } from '@/common/utils'
+
 import { clientTracker } from './client-tracker'
 import { HTTP_BLOCK_DURATION, HTTP_TIER } from './throttler.constants'
 
@@ -19,7 +21,10 @@ export class HttpThrottlerMiddleware implements NestMiddleware {
     @Inject(ThrottlerStorage) private readonly storage: ThrottlerStorage,
     config: ConfigService
   ) {
-    this.limit = config.get<number>('THROTTLE_HTTP_LIMIT') ?? HTTP_TIER.limit
+    this.limit = numberSetting(
+      config.get('THROTTLE_HTTP_LIMIT'),
+      HTTP_TIER.limit
+    )
   }
 
   public async use(
