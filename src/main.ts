@@ -1,32 +1,22 @@
-import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common'
+import { ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { NestFactory, Reflector } from '@nestjs/core'
-
+import { NestFactory } from '@nestjs/core'
 import compression from 'compression'
-import cookieParser from 'cookie-parser'
-import { Request, Response } from 'express'
 import helmet from 'helmet'
+import type { Express } from 'express'
 
 import { AppModule } from './app/app.module'
 
-import { API_GLOBAL_PREFIX } from './common/constants'
-import { AllExceptionsFilter } from './common/filters'
-import { ResponseInterceptor } from './common/interceptors'
-import { setupSwagger } from './common/utils'
-
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule)
   const config = app.get(ConfigService)
+  const trustProxy = config.get<string>('TRUST_PROXY')
 
-  app.setGlobalPrefix(API_GLOBAL_PREFIX)
+  if (trustProxy) {
+    const express = app.getHttpAdapter().getInstance() as Express
 
-  app.useGlobalInterceptors(app.get(ResponseInterceptor))
-
-  app.useGlobalFilters(app.get(AllExceptionsFilter))
-
-  setupSwagger(app)
-
-  app.use(cookieParser())
+    express.set('trust proxy', trustProxy)
+  }
 
   app.use(
     helmet({
@@ -42,38 +32,18 @@ async function bootstrap() {
     })
   )
 
-  app.enableCors({
-    origin: config.getOrThrow<string>('FRONT_URL'),
-    credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  })
-
-  app.useGlobalInterceptors(
-    new ClassSerializerInterceptor(app.get(Reflector), {
-      excludeExtraneousValues: true
-    })
-  )
-
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: false,
       transform: true
     })
   )
 
-  app
-    .getHttpAdapter()
-    .get('/', (_req: Request, res: Response) =>
-      res.redirect(`/${API_GLOBAL_PREFIX}`)
-    )
+  const port = config.get<string>('PORT') ?? 3000
 
-  await app.listen(config.get<string>('PORT') ?? 3000)
+  await app.listen(port)
 
-  console.warn(
-    `Server started on url http://localhost:${config.get<string>('PORT') ?? 3000}`
-  )
+  console.warn(`GraphQL endpoint: http://localhost:${port}/graphql`)
 }
 
 void bootstrap()

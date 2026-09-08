@@ -1,0 +1,375 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input CreateIncidentInput {
+  description: String
+  severity: IncidentSeverity!
+  title: String!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input DateTimeFilter {
+  """eq"""
+  eq: DateTime
+
+  """gt"""
+  gt: DateTime
+
+  """gte"""
+  gte: DateTime
+
+  """in"""
+  in: [DateTime!]
+
+  """is"""
+  is: FilterIs
+
+  """lt"""
+  lt: DateTime
+
+  """lte"""
+  lte: DateTime
+
+  """ne"""
+  ne: DateTime
+
+  """neq"""
+  neq: DateTime
+
+  """nin"""
+  nin: [DateTime!]
+}
+
+"""Exact SQL null checks"""
+enum FilterIs {
+  NOT_NULL
+  NULL
+}
+
+input IdFilter {
+  """eq"""
+  eq: ID
+
+  """gt"""
+  gt: ID
+
+  """gte"""
+  gte: ID
+
+  """in"""
+  in: [ID!]
+
+  """is"""
+  is: FilterIs
+
+  """lt"""
+  lt: ID
+
+  """lte"""
+  lte: ID
+
+  """ne"""
+  ne: ID
+
+  """neq"""
+  neq: ID
+
+  """nin"""
+  nin: [ID!]
+}
+
+type Incident {
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  resolvedAt: DateTime
+  severity: IncidentSeverity!
+  status: IncidentStatus!
+
+  """Owning team; batched per request, never one query per row"""
+  team: Team
+  teamId: ID
+  title: String!
+  updatedAt: DateTime!
+}
+
+type IncidentConnection {
+  """Records with their keyset cursors"""
+  edges: [IncidentEdge!]!
+
+  """Records of the current page"""
+  nodes: [Incident!]!
+
+  """Cursors and page availability"""
+  pageInfo: PageInfo!
+
+  """Total matching records; computed only when selected"""
+  totalCount: Int!
+}
+
+type IncidentEdge {
+  cursor: String!
+  node: Incident!
+}
+
+input IncidentFilter {
+  and: [IncidentFilter!]
+  createdAt: DateTimeFilter
+  description: StringFilter
+  id: IdFilter
+  not: IncidentFilter
+  or: [IncidentFilter!]
+  resolvedAt: DateTimeFilter
+  severity: IncidentSeverityFilter
+  status: IncidentStatusFilter
+  team: Incident_teamFilter
+  title: StringFilter
+  updatedAt: DateTimeFilter
+}
+
+input IncidentOrderBy {
+  createdAt: OrderByDirection
+  description: OrderByDirection
+  id: OrderByDirection
+  resolvedAt: OrderByDirection
+  severity: OrderByDirection
+  status: OrderByDirection
+  team: Incident_teamOrderBy
+  title: OrderByDirection
+  updatedAt: OrderByDirection
+}
+
+"""Business impact of an incident"""
+enum IncidentSeverity {
+  CRITICAL
+  HIGH
+  LOW
+  MEDIUM
+}
+
+input IncidentSeverityFilter {
+  """eq"""
+  eq: IncidentSeverity
+
+  """in"""
+  in: [IncidentSeverity!]
+
+  """is"""
+  is: FilterIs
+
+  """ne"""
+  ne: IncidentSeverity
+
+  """neq"""
+  neq: IncidentSeverity
+
+  """nin"""
+  nin: [IncidentSeverity!]
+}
+
+"""Lifecycle status of an incident"""
+enum IncidentStatus {
+  CLOSED
+  INVESTIGATING
+  OPEN
+  RESOLVED
+}
+
+input IncidentStatusFilter {
+  """eq"""
+  eq: IncidentStatus
+
+  """in"""
+  in: [IncidentStatus!]
+
+  """is"""
+  is: FilterIs
+
+  """ne"""
+  ne: IncidentStatus
+
+  """neq"""
+  neq: IncidentStatus
+
+  """nin"""
+  nin: [IncidentStatus!]
+}
+
+input Incident_teamFilter {
+  and: [Incident_teamFilter!]
+  createdAt: DateTimeFilter
+  description: StringFilter
+  id: IdFilter
+  name: StringFilter
+  not: Incident_teamFilter
+  or: [Incident_teamFilter!]
+  slug: StringFilter
+}
+
+input Incident_teamOrderBy {
+  createdAt: OrderByDirection
+  description: OrderByDirection
+  id: OrderByDirection
+  name: OrderByDirection
+  slug: OrderByDirection
+}
+
+type Mutation {
+  createIncident(input: CreateIncidentInput!): Incident!
+
+  """Deletes the incident and returns its last state"""
+  deleteIncident(id: ID!): Incident!
+
+  """Marks the incident RESOLVED and stamps resolvedAt"""
+  resolveIncident(id: ID!): Incident!
+  updateIncident(id: ID!, input: UpdateIncidentInput!): Incident!
+}
+
+"""Sort direction and null placement"""
+enum OrderByDirection {
+  ASC
+  AscNullsFirst
+  AscNullsLast
+  DESC
+  DescNullsFirst
+  DescNullsLast
+}
+
+"""Relay-style pagination metadata"""
+type PageInfo {
+  """
+  Cursor of the last node on this page; pass as `after` to get the next page
+  """
+  endCursor: String
+
+  """Whether more records exist after endCursor"""
+  hasNextPage: Boolean!
+
+  """
+  Whether more records exist before startCursor; inferred from the cursor on forward pages
+  """
+  hasPreviousPage: Boolean!
+
+  """Cursor of the first node on this page"""
+  startCursor: String
+}
+
+type Query {
+  """Single incident by id"""
+  incident(id: ID!): Incident!
+
+  """
+  Keyset-paginated incidents with recursive filters, search and orderBy (edges, nodes, pageInfo, totalCount)
+  """
+  incidents(
+    """
+    Continue after pageInfo.endCursor with the same filter, search and orderBy
+    """
+    after: String
+
+    """
+    Continue before pageInfo.startCursor with the same filter, search and orderBy
+    """
+    before: String
+
+    """Typed filters with nested and/or/not groups"""
+    filter: IncidentFilter
+
+    """Forward page size; defaults to 10, max 100"""
+    first: Int
+
+    """Backward page size, max 100"""
+    last: Int
+
+    """One scalar path per entry; array order defines precedence"""
+    orderBy: [IncidentOrderBy!]
+
+    """Case-insensitive search across: title, description, team.name"""
+    search: String
+  ): IncidentConnection!
+}
+
+input StringFilter {
+  """contains (case-insensitive)"""
+  contains: String
+
+  """endsWith (case-insensitive)"""
+  endsWith: String
+
+  """eq"""
+  eq: String
+
+  """gt"""
+  gt: String
+
+  """gte"""
+  gte: String
+
+  """in"""
+  in: [String!]
+
+  """is"""
+  is: FilterIs
+
+  """lt"""
+  lt: String
+
+  """lte"""
+  lte: String
+
+  """ne"""
+  ne: String
+
+  """neq"""
+  neq: String
+
+  """nin"""
+  nin: [String!]
+
+  """startsWith (case-insensitive)"""
+  startsWith: String
+}
+
+type Team {
+  createdAt: DateTime!
+  description: String
+  id: ID!
+
+  """Incidents owned by the team; one batched query per request"""
+  incidents: [Incident!]!
+
+  """Members on call for the team; one batched query per request"""
+  members: [TeamMember!]!
+  name: String!
+  slug: String!
+  updatedAt: DateTime!
+}
+
+type TeamMember {
+  createdAt: DateTime!
+  email: String!
+  id: ID!
+  name: String!
+  role: TeamRole!
+  teamId: ID!
+  updatedAt: DateTime!
+}
+
+"""What a member is expected to do during an incident"""
+enum TeamRole {
+  LEAD
+  OBSERVER
+  RESPONDER
+}
+
+input UpdateIncidentInput {
+  description: String
+  severity: IncidentSeverity
+  status: IncidentStatus
+  title: String
+}

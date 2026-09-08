@@ -1,0 +1,35 @@
+spectaql:
+  targetDir: ./docs/api
+  displayAllServers: true
+
+introspection:
+  schemaFile: ./schema.gql
+  queryNameStrategy: capitalizeFirst
+  fieldExpansionDepth: 2
+
+info:
+  title: Incident Response Platform API
+  description: |
+    GraphQL API of the incident response platform.
+
+    List queries support typed recursive filters (`filter`, `and`/`or`/`not`),
+    nested multi-column sorting (`orderBy`) and case-insensitive search (`search`).
+    Static definitions can expose composite fields and relation paths.
+    The legacy `sort` argument remains available for scalar fields.
+    Cursor pagination:
+    (`first`/`after` or `last`/`before`, response is `edges` + `nodes` + `pageInfo` + `totalCount`).
+    Cursors contain every ordering value and are bound to the resource, filter,
+    search and ordering. Restart pagination when these change.
+    The `totalCount` counter is computed lazily — the COUNT
+    query runs only when the field is selected.
+
+    Errors carry a stable code in `extensions.code`:
+    `NOT_FOUND`, `CONFLICT`, `BAD_USER_INPUT`, `INTERNAL_SERVER_ERROR`.
+  contact:
+    name: API team
+  x-hidePoweredBy: true
+
+servers:
+  - url: http://localhost:3001/graphql
+    description: Local dev
+    production: false
