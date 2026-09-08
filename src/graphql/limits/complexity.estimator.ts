@@ -29,8 +29,19 @@ function pageSize(args: Record<string, unknown>): number {
   return typeof requested === 'number' ? requested : DEFAULT_FIRST
 }
 
+function isIntrospection(
+  type: GraphQLCompositeType,
+  fieldName: string
+): boolean {
+  return fieldName.startsWith('__') || getNamedType(type).name.startsWith('__')
+}
+
 export function shapeComplexity(options: ComplexityEstimatorArgs): number {
   const { type, field, args, childComplexity } = options
+
+  if (isIntrospection(type, field.name)) {
+    return childComplexity
+  }
 
   if (isConnection(field.type)) {
     return pageSize(args) * childComplexity

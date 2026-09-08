@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
+import { getIntrospectionQuery } from 'graphql'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
@@ -7,6 +8,8 @@ import { IncidentRepositoryInterface } from '@/modules/incident/repositories/inc
 import { PrismaService } from '@/prisma/prisma.service'
 
 import { AppModule } from '../src/app/app.module'
+
+type Server = Parameters<typeof request>[0]
 
 describe('GraphQL API (e2e)', () => {
   let app: INestApplication
@@ -387,6 +390,16 @@ describe('GraphQL API (e2e)', () => {
     expect(response.body.errors[0].message).toMatch(
       /^Query depth \d+ exceeds the limit of \d+$/
     )
+  })
+
+  it('lets the introspection query through the limits', async () => {
+    const response = await request(app.getHttpServer() as Server)
+      .post('/graphql')
+      .send({ query: getIntrospectionQuery({ descriptions: true }) })
+      .expect(200)
+
+    expect(response.body.errors).toBeUndefined()
+    expect(response.body.data.__schema.types.length).toBeGreaterThan(10)
   })
 
   it('rejects a cyclic query that outgrows the complexity budget', async () => {
