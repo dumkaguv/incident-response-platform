@@ -13,16 +13,12 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm fetch
 FROM fetched AS build
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --offline --ignore-scripts
-RUN pnpm build
+RUN pnpm bundle
 
-FROM fetched AS runtime-deps
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --offline --prod --ignore-scripts
-
-FROM base AS runtime
+FROM gcr.io/distroless/nodejs24-debian12:nonroot AS runtime
 ENV NODE_ENV=production
 ENV PORT=3000
-COPY --from=runtime-deps --chown=node:node /app/node_modules ./node_modules
-COPY --from=build --chown=node:node /app/dist ./dist
-USER node
+WORKDIR /app
+COPY --from=build /app/bundle/main.mjs ./main.mjs
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+CMD ["main.mjs"]

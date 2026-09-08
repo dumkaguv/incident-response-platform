@@ -1,6 +1,7 @@
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { Module } from '@nestjs/common'
+import { type DynamicModule, Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { ServeStaticModule } from '@nestjs/serve-static'
 
@@ -10,13 +11,22 @@ import { IncidentModule } from '@/modules/incident/incident.module'
 import { PrismaModule } from '@/prisma/prisma.module'
 import { ThrottlerConfigModule } from '@/throttler'
 
+const DOCS_ROOT = join(process.cwd(), 'docs', 'api')
+
+function apiDocs(): DynamicModule[] {
+  if (!existsSync(DOCS_ROOT)) {
+    return []
+  }
+
+  return [
+    ServeStaticModule.forRoot({ rootPath: DOCS_ROOT, serveRoot: '/docs' })
+  ]
+}
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
-    ServeStaticModule.forRoot({
-      rootPath: join(process.cwd(), 'docs', 'api'),
-      serveRoot: '/docs'
-    }),
+    ...apiDocs(),
     I18nModule,
     PrismaModule,
     ThrottlerConfigModule,
