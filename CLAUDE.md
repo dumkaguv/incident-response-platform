@@ -45,11 +45,13 @@ pnpm bundle               # build, then esbuild it to one file
 ```bash
 src/
   app/          root module
-  common/       pagination + query core, errors, is-dev
-  graphql/      driver config, dataloaders, filters, scalars, query limits
-  i18n/         I18nService, locales, generated catalogs (committed)
-  prisma/       generated contract + db/query/enum/where adapters
-  throttler/    two-layer rate limiting
+  common/       leaf utilities: errors, isDev, env readers
+  core/         machinery every feature runs on
+    graphql/    driver config, dataloaders, filters, scalars, query limits
+    i18n/       I18nService, locales, generated catalogs (committed)
+    pagination/ the query engine: spec, filters, order, cursors, connection
+    prisma/     generated contract + db/query/enum/where adapters
+    throttler/  two-layer rate limiting
   modules/<feature>/
     <feature>.prisma          schema fragment — edit here
     <feature>.module.ts
@@ -100,43 +102,57 @@ expression becomes `{0}`, so bind it to a local first. After adding a message:
 `prisma:emit` and read the `contract.json` diff: a moved `storageHash` means the
 database has to move too.
 
-**`db migrate` does not advance `migrations/app/refs/db.json`.** That file pins
-the chain head; a stale ref makes every later `migration plan` branch from the
-wrong base. Advance it to the applied migration's `to` hash — the **full** hash,
-since a prefix reads as a hash mismatch.
+**`db migrate` does not advance `migrations/app/refs/db.json`.** A stale ref
+makes every later `migration plan` branch from the wrong base. Advance it to the
+applied migration's `to` hash — the **full** one; a prefix reads as a mismatch.
+
+**Physical names are snake_case, model names are not** — `@map`/`@@map` on every
+column and table, so the database reads `created_at`, `team_id`, `team_member`.
+**Prisma Next cannot rename**: the planner emits zero operations for a name
+change and the DSL has no `renameColumn`/`renameTable`, so `@map` only reaches a
+database created with those names — changing one later means squashing to a new
+baseline and recreating the database. A baseline is planned by deleting
+`refs/db.json` outright; a database is fresh only once `prisma_contract` is
+dropped too, since that schema holds the marker.
+
+**Migrations run from `--target migrate`**, never the app image: the tooling is
+1 GB minimum (610 MB of it `alchemy`/`workerd` via the Prisma CLI) against
+213 MB for the runtime. A deployed database uses the manual `migrate` workflow.
+
+**Introspection is exempt from the cost limit** — it nests lists inside lists,
+so the fanout multiplier priced GraphiQL's schema fetch at 617 005 and broke the
+explorer; an e2e test covers it. `GRAPHIQL` decides whether the explorer and
+introspection are on; they used to hang off `NODE_ENV`, so a deploy that never
+set it served an open schema and leaked error details by accident.
 
 **What PSL can and cannot say about indexes.** Composite btree yes; `type:` from
-`btree`/`gin`/`hash`/`brin` yes, but **lowercase only**; per-column `sort:` and
-operator classes no. Expression indexes parse and emit correct SQL —
-`@@index(expression: "title gin_trgm_ops", type: "gin", map: "…")` — **but do
-not use them**: introspection reads the opclass back as a plain column, so
-contract and database never agree and `db migrate` always ends in "schema does
-not satisfy contract". The trigram indexes therefore live outside the contract,
-in `prisma/search-indexes/`; `db verify` is not strict and tolerates them.
+`btree`/`gin`/`hash`/`brin` yes, **lowercase only**; per-column `sort:` and
+operator classes no. Expression indexes parse and emit correct SQL but **must
+not be used**: introspection reads the opclass back as a plain column, so
+contract and database never agree. Trigram indexes therefore live outside the
+contract, in `prisma/search-indexes/`; `db verify` tolerates them.
 
 **Every index exists for one query pattern**, measured on 200k skewed rows and
-invisible on seed data. `(createdAt, id)` serves the default keyset order — the
-tuple comparison and the tiebreak both, scanned backwards since every column is
-DESC. `(status, createdAt, id)` serves a status filter with that order: 23 ms
-and a full scan without it, 7.8 ms with. `teamMember (teamId, name)` serves the
-batched relation fetch and its ordering in one scan: 13.8 ms against 0.29 ms.
-Trigram GIN is the largest win — a rare term goes from 140 ms to 0.3 ms.
+invisible on seed data: `(createdAt, id)` for the default keyset order, scanned
+backwards since all columns are DESC; `(status, createdAt, id)` for a status
+filter under that order, 23 ms without it against 7.8 ms with;
+`team_member (team_id, name)` for the batched relation fetch and its ordering in
+one scan, 13.8 ms against 0.29 ms; trigram GIN for search, 140 ms against
+0.3 ms on a rare term.
 
-**The bundle is built from `dist`, not `src`.** SWC has already emitted the
-decorator metadata by then, so esbuild never has to understand decorators.
-`keepNames` is mandatory — the code-first schema is built from class names.
-Imports that cannot be resolved are externalised automatically by a plugin and
-printed, so a new dependency needs no change here; a genuinely missing one shows
-up in that list. Anything reached through Nest's runtime package loader cannot
-work in a bundle, which is why `ServeStaticModule` is registered only when its
-directory exists. Bundling is also what makes startup fast: 1.1 s against 4.2 s
-unbundled.
+**The bundle is built from `dist`, not `src`** — SWC has already emitted the
+decorator metadata, so esbuild never handles decorators. `keepNames` is
+mandatory: the code-first schema is built from class names. Unresolvable imports
+are externalised automatically and printed, so a new dependency needs no change.
+Anything reached through Nest's runtime package loader cannot work bundled,
+which is why `ServeStaticModule` registers only when its directory exists.
+Startup drops from 4.2 s to 1.1 s.
 
-**`DEFAULT_ORDER_BY` is global** (`createdAt DESC`, then `id DESC`). Entries an
+**`DEFAULT_ORDER_BY` is global** (`createdAt DESC`, then `id DESC`); entries an
 entity cannot honour are skipped, not rejected. `orderBy` is the only sorting
-argument and each array element carries exactly one path — `[{ createdAt:
-'DESC' }, { id: 'DESC' }]`, never `[{ createdAt: 'DESC', id: 'DESC' }]`. The
-unique tiebreaker is appended automatically.
+argument and each element carries exactly one path — `[{ createdAt: 'DESC' }, {
+id: 'DESC' }]`, never `[{ createdAt: 'DESC', id: 'DESC' }]`. The unique
+tiebreaker is appended automatically.
 
 **The ORM lane cannot order through a relation** — a relation accessor exposes
 only `some`/`every`/`none`. `listConnection` switches to a two-phase SQL-lane

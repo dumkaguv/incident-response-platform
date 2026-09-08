@@ -22,7 +22,7 @@ import {
 import { WriteThrottle } from '@/core/throttler'
 import { TeamObject } from '@/modules/team/models/team.model'
 import { TeamRepositoryInterface } from '@/modules/team/repositories/team.repository.interface'
-import type { Connection } from '@/common/pagination'
+import type { Connection } from '@/core/pagination'
 import type { Team } from '@/modules/team/types/team.types'
 
 import {

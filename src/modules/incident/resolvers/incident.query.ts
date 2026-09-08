@@ -1,4 +1,4 @@
-import type { QueryDefinition } from '@/common/pagination'
+import type { QueryDefinition } from '@/core/pagination'
 
 import { IncidentSeverity, IncidentStatus } from '../types/incident.types'
 

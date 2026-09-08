@@ -1,4 +1,4 @@
-import type { Connection, QuerySpec } from '@/common/pagination'
+import type { Connection, QuerySpec } from '@/core/pagination'
 
 import type {
   IncidentCreateData,

@@ -24,6 +24,7 @@ docker compose up -d          # PostgreSQL on :55432
 cp .env.example .env          # set DATABASE_URL and PORT
 pnpm install                  # also emits the Prisma contract
 pnpm prisma:migrate           # apply migrations
+pnpm prisma:search-indexes    # trigram indexes for search
 pnpm prisma:seed              # 4 teams, 10 incidents, 8 members
 pnpm dev
 ```
@@ -43,6 +44,7 @@ pnpm test:e2e                        # against a real database
 pnpm test:query:integration
 pnpm prisma:emit                     # schema fragments -> contract
 pnpm prisma:migrate-plan / migrate / migrate-status / db-verify / seed
+pnpm prisma:search-indexes           # trigram indexes for search
 pnpm i18n:extract / i18n:compile / i18n:verify
 pnpm docs:api                        # static schema docs via spectaql
 ```
@@ -54,6 +56,11 @@ code (`src/modules/incident/incident.prisma`); a build step concatenates them
 into one contract, and Prisma emits typed metadata from that. Migrations are
 planned from the diff between the contract and the database, so a schema change
 that needs a migration cannot be applied by accident.
+
+`src` has four parts: `app` for the root module, `common` for leaf utilities
+(errors, environment readers),
+`core` for the machinery every feature runs on — GraphQL, Prisma, i18n,
+pagination, rate limiting — and `modules` for the features.
 
 A feature module is four thin layers:
 
