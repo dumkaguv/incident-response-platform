@@ -41,6 +41,7 @@
     "prisma:db-verify": "prisma db verify",
     "prisma:migrate-plan": "prisma migration plan",
     "prisma:migrate": "prisma db migrate",
+    "prisma:search-indexes": "node --import ./tools/swc/register.mjs prisma/search-indexes/index.ts",
     "prisma:migrate-status": "prisma migration status",
     "prisma:seed": "node --import ./tools/swc/register.mjs prisma/seed/index.ts"
   },
