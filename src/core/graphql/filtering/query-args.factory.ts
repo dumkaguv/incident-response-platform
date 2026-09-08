@@ -2,15 +2,15 @@ import { ArgsType, Field, InputType, registerEnumType } from '@nestjs/graphql'
 import { IsOptional, MaxLength } from 'class-validator'
 import type { Type } from '@nestjs/common'
 
-import { CursorPaginationArgs } from '@/common/pagination/cursor-pagination.args'
-import { normalizeQuery } from '@/common/pagination/utils/normalize-query'
+import { CursorPaginationArgs } from '@/core/pagination/cursor-pagination.args'
+import { normalizeQuery } from '@/core/pagination/utils/normalize-query'
 import {
   type QueryDefinition,
   type QueryFields,
   validateQueryDefinition
-} from '@/common/pagination/utils/query-definition'
-import { ORDER_DIRECTIONS } from '@/common/pagination/utils/query-order'
-import type { QuerySpec } from '@/common/pagination/utils/query-spec'
+} from '@/core/pagination/utils/query-definition'
+import { ORDER_DIRECTIONS } from '@/core/pagination/utils/query-order'
+import type { QuerySpec } from '@/core/pagination/utils/query-spec'
 
 import { scalarFilterInputFor } from './filter.inputs'
 

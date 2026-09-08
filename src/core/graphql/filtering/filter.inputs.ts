@@ -9,8 +9,8 @@ import {
 import type { Type } from '@nestjs/common'
 import type { GraphQLScalarType } from 'graphql'
 
-import { operatorsFor } from '@/common/pagination/utils/query-filter'
-import type { ScalarQueryField } from '@/common/pagination/utils/query-definition'
+import { operatorsFor } from '@/core/pagination/utils/query-filter'
+import type { ScalarQueryField } from '@/core/pagination/utils/query-definition'
 
 import { DateTimeScalar } from '../scalars/date-time.scalar'
 

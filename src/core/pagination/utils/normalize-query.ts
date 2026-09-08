@@ -1,8 +1,8 @@
+import { BadUserInputError } from '@/common/utils/errors'
 import {
   DEFAULT_FIRST,
   MAX_FIRST
-} from '@/common/pagination/pagination.constants'
-import { BadUserInputError } from '@/common/utils/errors'
+} from '@/core/pagination/pagination.constants'
 
 import { decodeCursor, queryFingerprint } from './query-cursor'
 import { type QueryDefinition, isProvided } from './query-definition'

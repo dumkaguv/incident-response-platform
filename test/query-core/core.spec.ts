@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { Connection } from '@/common/pagination/connection'
-import { normalizeQuery } from '@/common/pagination/utils/normalize-query'
+import { Connection } from '@/core/pagination/connection'
+import { normalizeQuery } from '@/core/pagination/utils/normalize-query'
 import {
   decodeCursor,
   encodeCursor
-} from '@/common/pagination/utils/query-cursor'
-import { validateQueryDefinition } from '@/common/pagination/utils/query-definition'
+} from '@/core/pagination/utils/query-cursor'
+import { validateQueryDefinition } from '@/core/pagination/utils/query-definition'
 import { specToPrisma } from '@/core/prisma/utils/spec-to-prisma'
 
 import { fixtureQuery } from './fixtures/query-definition'

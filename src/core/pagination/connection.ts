@@ -1,11 +1,11 @@
-import { encodeCursor } from '@/common/pagination/utils/query-cursor'
-import type { QuerySpec } from '@/common/pagination/utils/query-spec'
+import { encodeCursor } from '@/core/pagination/utils/query-cursor'
+import type { QuerySpec } from '@/core/pagination/utils/query-spec'
 
 export {
   decodeCursor,
   encodeCursor,
   InvalidCursorError
-} from '@/common/pagination/utils/query-cursor'
+} from '@/core/pagination/utils/query-cursor'
 
 export type PageInfo = {
   hasNextPage: boolean

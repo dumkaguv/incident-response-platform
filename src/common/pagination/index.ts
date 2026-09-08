@@ -1,5 +1,5 @@
-export * from './connection'
-export * from './connection.factory'
-export * from './cursor-pagination.args'
-export * from './page-info.model'
-export * from './pagination.constants'
+export { Connected } from '@/core/pagination/connection.factory'
+
+export type { Connection } from '@/core/pagination/connection'
+export type { QueryDefinition } from '@/core/pagination/utils/query-definition'
+export type { QuerySpec } from '@/core/pagination/utils/query-spec'

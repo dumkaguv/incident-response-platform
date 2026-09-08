@@ -5,7 +5,7 @@ import {
 } from '@prisma/orm-postgres/relational-core/ast'
 
 import { BadUserInputError } from '@/common/utils'
-import type { SortClause } from '@/common/pagination/utils/query-spec'
+import type { SortClause } from '@/core/pagination/utils/query-spec'
 
 import contractJson from '../contract.json' with { type: 'json' }
 

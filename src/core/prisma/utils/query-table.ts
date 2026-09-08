@@ -1,5 +1,5 @@
-import { Connection } from '@/common/pagination'
-import type { QuerySpec } from '@/common/pagination/utils/query-spec'
+import { Connection } from '@/core/pagination'
+import type { QuerySpec } from '@/core/pagination/utils/query-spec'
 
 import type { FieldOutputTypes } from '../contract'
 

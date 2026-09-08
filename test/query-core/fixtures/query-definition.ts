@@ -1,4 +1,4 @@
-import type { QueryDefinition } from '@/common/pagination/utils/query-definition'
+import type { QueryDefinition } from '@/core/pagination/utils/query-definition'
 
 export const fixtureQuery: QueryDefinition = {
   name: 'QueryFixture',

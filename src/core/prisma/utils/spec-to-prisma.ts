@@ -1,12 +1,12 @@
-import { keysetFilter } from '@/common/pagination/utils/query-cursor'
-import { group } from '@/common/pagination/utils/query-filter'
 import { BadUserInputError } from '@/common/utils/errors'
+import { keysetFilter } from '@/core/pagination/utils/query-cursor'
+import { group } from '@/core/pagination/utils/query-filter'
 import type {
   FilterNode,
   FilterOperator,
   QuerySpec,
   SortClause
-} from '@/common/pagination/utils/query-spec'
+} from '@/core/pagination/utils/query-spec'
 
 export type PrismaQueryArgs = {
   where: Record<string, unknown>

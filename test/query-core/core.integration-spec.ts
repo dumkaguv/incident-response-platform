@@ -6,16 +6,16 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { Client } from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { Connection } from '@/common/pagination/connection'
+import { Connection } from '@/core/pagination/connection'
 import {
   type QueryInput,
   normalizeQuery
-} from '@/common/pagination/utils/normalize-query'
+} from '@/core/pagination/utils/normalize-query'
 import {
   type PrismaQueryArgs,
   specToPrisma
 } from '@/core/prisma/utils/spec-to-prisma'
-import type { OrderByInput } from '@/common/pagination/utils/query-definition'
+import type { OrderByInput } from '@/core/pagination/utils/query-definition'
 
 import { fixtureQuery } from './fixtures/query-definition'
 

@@ -2,8 +2,7 @@ import { msg } from '@lingui/core/macro'
 import { Injectable } from '@nestjs/common'
 
 import { ConflictError, NotFoundError } from '@/common/utils'
-import type { Connection } from '@/common/pagination'
-import type { QuerySpec } from '@/common/pagination/utils/query-spec'
+import type { Connection,QuerySpec } from '@/common/pagination'
 
 import { IncidentRepositoryInterface } from '../repositories/incident.repository.interface'
 import { type Incident, IncidentStatus } from '../types/incident.types'

@@ -7,7 +7,7 @@ import {
 import type { GraphQLCompositeType, GraphQLOutputType } from 'graphql'
 import type { ComplexityEstimatorArgs } from 'graphql-query-complexity'
 
-import { DEFAULT_FIRST } from '@/common/pagination'
+import { DEFAULT_FIRST } from '@/core/pagination'
 
 import { UNBOUNDED_LIST_FANOUT } from './query-limits.constants'
 

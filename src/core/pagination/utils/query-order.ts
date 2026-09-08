@@ -1,5 +1,5 @@
-import { DEFAULT_ORDER_BY } from '@/common/pagination/pagination.constants'
 import { BadUserInputError } from '@/common/utils/errors'
+import { DEFAULT_ORDER_BY } from '@/core/pagination/pagination.constants'
 
 import { type OrderDirection, ORDER_DIRECTIONS } from './order-direction'
 import {
