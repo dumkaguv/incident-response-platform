@@ -1,0 +1,71 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "none",
+  "tabWidth": 2,
+  "printWidth": 80,
+  "sortPackageJson": false,
+  "sortImports": {
+    "groups": [
+      "builtin",
+      {
+        "newlinesBetween": false
+      },
+      "type-builtin",
+      "external",
+      {
+        "newlinesBetween": false
+      },
+      "type-external",
+      [
+        "internal",
+        "subpath"
+      ],
+      {
+        "newlinesBetween": false
+      },
+      [
+        "type-internal",
+        "type-subpath"
+      ],
+      "parent",
+      {
+        "newlinesBetween": false
+      },
+      "type-parent",
+      [
+        "sibling",
+        "index"
+      ],
+      {
+        "newlinesBetween": false
+      },
+      [
+        "type-sibling",
+        "type-index"
+      ],
+      "style",
+      "unknown"
+    ],
+    "internalPattern": [
+      "@/",
+      "~/"
+    ],
+    "newlinesBetween": true,
+    "ignoreCase": true,
+    "order": "asc",
+    "sortSideEffects": false
+  },
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "coverage",
+    "pnpm-lock.yaml",
+    "schema.gql",
+    "docs",
+    "src/i18n/generated",
+    "src/prisma/contract.json",
+    "src/prisma/contract.d.ts"
+  ]
+}

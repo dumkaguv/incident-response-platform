@@ -1,0 +1,266 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "import", "oxc"],
+  "jsPlugins": [
+    { "name": "regexp", "specifier": "eslint-plugin-regexp" },
+    { "name": "stylistic", "specifier": "@stylistic/eslint-plugin" },
+    { "name": "tseslint", "specifier": "@typescript-eslint/eslint-plugin" }
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "node": true,
+    "es2024": true
+  },
+  "options": {
+    "typeAware": true
+  },
+  "ignorePatterns": [
+    "dist",
+    "coverage",
+    "docs",
+    "src/i18n/generated",
+    "tools/swc/register.mjs"
+  ],
+  "rules": {
+    "no-else-return": "warn",
+    "no-extra-boolean-cast": "error",
+    "eqeqeq": "error",
+    "no-debugger": "error",
+    "no-console": [
+      "warn",
+      {
+        "allow": ["warn", "error"]
+      }
+    ],
+    "no-undef": "off",
+    "no-empty-function": "off",
+    "no-useless-concat": "error",
+    "no-useless-return": "error",
+    "no-nested-ternary": "error",
+    "no-unneeded-ternary": "error",
+    "no-lonely-if": "error",
+    "curly": ["error", "all"],
+    "arrow-body-style": ["error", "as-needed"],
+    "func-style": ["error", "declaration"],
+    "prefer-arrow-callback": "error",
+    "require-await": "off",
+    "no-var": "error",
+    "prefer-const": "error",
+    "prefer-rest-params": "error",
+    "prefer-spread": "error",
+    "no-unused-vars": [
+      "error",
+      {
+        "vars": "all",
+        "varsIgnorePattern": "^_",
+        "args": "after-used",
+        "argsIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "regex": "^(\\./)*(\\.\\./){2,}",
+            "message": "Do not use 2+ parent relative imports. Use @/alias instead."
+          }
+        ]
+      }
+    ],
+    "typescript/explicit-member-accessibility": [
+      "error",
+      {
+        "accessibility": "explicit",
+        "overrides": {
+          "constructors": "no-public"
+        }
+      }
+    ],
+    "typescript/no-useless-constructor": "error",
+    "typescript/no-extraneous-class": [
+      "error",
+      {
+        "allowWithDecorator": true
+      }
+    ],
+    "typescript/prefer-readonly": "error",
+    "typescript/no-unused-vars": "off",
+    "typescript/no-empty-function": [
+      "error",
+      {
+        "allow": []
+      }
+    ],
+    "typescript/array-type": "error",
+    "typescript/consistent-type-definitions": ["error", "type"],
+    "typescript/no-import-type-side-effects": "error",
+    "typescript/no-explicit-any": "warn",
+    "typescript/no-non-null-assertion": "warn",
+    "typescript/no-empty-object-type": "off",
+    "typescript/prefer-optional-chain": "error",
+    "typescript/no-unsafe-enum-comparison": "error",
+    "typescript/return-await": ["error", "in-try-catch"],
+    "typescript/no-redundant-type-constituents": "error",
+    "typescript/require-await": "error",
+    "typescript/no-unnecessary-template-expression": "error",
+    "typescript/no-misused-promises": [
+      "error",
+      {
+        "checksVoidReturn": {
+          "attributes": false
+        }
+      }
+    ],
+    "typescript/no-floating-promises": [
+      "error",
+      {
+        "ignoreVoid": true,
+        "ignoreIIFE": true
+      }
+    ],
+    "typescript/await-thenable": "error",
+    "typescript/unbound-method": "off",
+    "typescript/restrict-template-expressions": [
+      "error",
+      {
+        "allowNumber": true,
+        "allowBoolean": true,
+        "allowNullish": true
+      }
+    ],
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-array-constructor": "error",
+    "typescript/no-array-delete": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/no-duplicate-enum-values": "error",
+    "typescript/no-duplicate-type-constituents": "error",
+    "typescript/no-extra-non-null-assertion": "error",
+    "typescript/no-for-in-array": "error",
+    "typescript/no-implied-eval": "error",
+    "typescript/no-misused-new": "error",
+    "typescript/no-namespace": "error",
+    "typescript/no-non-null-asserted-optional-chain": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/no-this-alias": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-unnecessary-type-constraint": "error",
+    "typescript/no-unsafe-declaration-merging": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "typescript/no-unsafe-unary-minus": "error",
+    "typescript/no-unused-expressions": "error",
+    "typescript/no-wrapper-object-types": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-as-const": "error",
+    "typescript/prefer-namespace-keyword": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/restrict-plus-operands": "error",
+    "typescript/triple-slash-reference": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+    "unicorn/filename-case": [
+      "error",
+      {
+        "cases": {
+          "kebabCase": true,
+          "camelCase": true,
+          "pascalCase": true
+        }
+      }
+    ],
+    "import/no-duplicates": ["error"],
+    "import/no-named-as-default": "warn",
+    "import/no-named-as-default-member": "warn",
+    "import/first": "error",
+    "import/newline-after-import": "error",
+    "import/no-cycle": [
+      "error",
+      {
+        "maxDepth": 2
+      }
+    ],
+    "regexp/no-dupe-characters-character-class": "error",
+    "regexp/no-empty-character-class": "error",
+    "regexp/no-obscure-range": "error",
+    "regexp/no-useless-assertions": "error",
+    "regexp/prefer-quantifier": "error",
+    "regexp/no-super-linear-backtracking": "error",
+    "tseslint/member-ordering": "error",
+    "stylistic/padding-line-between-statements": [
+      "error",
+      { "blankLine": "always", "prev": "*", "next": "return" },
+      { "blankLine": "always", "prev": ["const", "let", "var"], "next": "*" },
+      {
+        "blankLine": "any",
+        "prev": ["const", "let", "var"],
+        "next": ["const", "let", "var"]
+      },
+      { "blankLine": "always", "prev": "directive", "next": "*" },
+      { "blankLine": "any", "prev": "directive", "next": "directive" },
+      { "blankLine": "always", "prev": ["case", "default"], "next": "*" },
+      { "blankLine": "always", "prev": "import", "next": "*" },
+      { "blankLine": "any", "prev": "import", "next": "import" },
+      { "blankLine": "always", "prev": "if", "next": "*" }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.spec.ts",
+        "**/*.spec.js",
+        "**/*.test.ts",
+        "**/*.test.js",
+        "test/**/*.ts",
+        "test/**/*.js"
+      ],
+      "rules": {
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/unbound-method": "off",
+        "typescript/no-floating-promises": "off",
+        "typescript/no-misused-promises": "off"
+      }
+    },
+    {
+      "files": [
+        "**/*.dto.ts",
+        "**/*.object.ts",
+        "**/*.inputs.ts",
+        "**/*.args.ts",
+        "**/*.page.ts",
+        "**/*.connection.ts",
+        "**/*.model.ts",
+        "**/*.meta.ts"
+      ],
+      "rules": {
+        "typescript/explicit-member-accessibility": "off",
+        "tseslint/member-ordering": "off"
+      }
+    },
+    {
+      "files": ["prisma/**/*.ts", "prisma/**/*.js"],
+      "rules": {
+        "typescript/no-unsafe-assignment": "off",
+        "typescript/no-unsafe-argument": "off",
+        "typescript/no-unsafe-member-access": "off",
+        "typescript/no-unsafe-call": "off",
+        "typescript/no-unsafe-return": "off",
+        "typescript/unbound-method": "off",
+        "typescript/no-floating-promises": "off",
+        "typescript/no-misused-promises": "off",
+        "typescript/return-await": "off",
+        "typescript/explicit-member-accessibility": "off",
+        "func-style": "off"
+      }
+    }
+  ]
+}
