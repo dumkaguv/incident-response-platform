@@ -2,11 +2,57 @@ name: CI
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
   pull_request:
-    branches: ['main']
+    branches: ["main"]
+
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres?schema=public' }}
 
 jobs:
+  commitlint:
+    name: Commit messages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint commit messages
+        env:
+          BEFORE: ${{ github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${BASE:-}" ]; then
+            echo "Linting $BASE..$HEAD"
+            pnpm commitlint --from "$BASE" --to "$HEAD" --verbose
+          elif [ -n "${BEFORE:-}" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            echo "Linting $BEFORE..${{ github.sha }}"
+            pnpm commitlint --from "$BEFORE" --to "${{ github.sha }}" --verbose
+          else
+            echo "No range available, linting the head commit only"
+            pnpm commitlint --last --verbose
+          fi
+
   checks:
     name: Checks (format, lint, typecheck)
     runs-on: ubuntu-latest
@@ -15,28 +61,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: 'npm'
+          node-version: 24
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: npm ci
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres?schema=public' }}
+        run: pnpm install --frozen-lockfile
 
-      - name: Prettier check
-        run: npm run format:check
+      - name: oxfmt check
+        run: pnpm format:check
 
-      - name: ESLint check
-        run: npm run lint:check
+      - name: Lint check (oxlint)
+        run: pnpm lint:check
 
       - name: TypeScript typecheck
-        run: npm run typecheck
+        run: pnpm typecheck
+
+      - name: i18n catalogs up to date
+        run: pnpm i18n:verify
 
   test:
-    name: Tests
+    name: Unit tests
     runs-on: ubuntu-latest
     needs: checks
 
@@ -44,19 +96,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: 'npm'
+          node-version: 24
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: npm ci
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres?schema=public' }}
+        run: pnpm install --frozen-lockfile
 
-      - name: Run tests
-        run: npm test
+      - name: Run unit tests
+        run: pnpm test
 
   build:
     name: Build
@@ -67,16 +122,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: 'npm'
+          node-version: 24
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: npm ci
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres?schema=public' }}
+        run: pnpm install --frozen-lockfile
 
       - name: Build app
-        run: npm run build
+        run: pnpm build
