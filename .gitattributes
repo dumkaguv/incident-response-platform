@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+pnpm-lock.yaml linguist-generated
+schema.gql linguist-generated
+src/i18n/generated/** linguist-generated
+src/prisma/contract.json linguist-generated
+src/prisma/contract.d.ts linguist-generated
+src/prisma/contract.prisma linguist-generated
