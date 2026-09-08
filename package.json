@@ -9,9 +9,9 @@
   "scripts": {
     "start": "node --import ./tools/swc/register.mjs src/main.ts",
     "dev": "node --watch --import ./tools/swc/register.mjs src/main.ts",
-    "build": "pnpm typecheck && swc src -d dist --delete-dir-on-start",
+    "build": "pnpm typecheck && swc src -d dist --delete-dir-on-start --copy-files --strip-leading-paths",
     "debug": "node --inspect --watch --import ./tools/swc/register.mjs src/main.ts",
-    "prod": "node dist/src/main.js",
+    "prod": "node dist/main.js",
     "format": "oxfmt --write src test prisma prisma.config.ts tools lingui.config.ts vitest.config.ts",
     "format:check": "oxfmt --check src test prisma prisma.config.ts tools lingui.config.ts vitest.config.ts",
     "lint": "oxlint --fix --max-warnings 0 src test prisma prisma.config.ts tools lingui.config.ts vitest.config.ts",
