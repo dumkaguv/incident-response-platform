@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../.temp/query-test-client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum FixturePriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model QueryOrganization {
+  id     String        @id
+  name   String?
+  people QueryPerson[]
+}
+
+model QueryPerson {
+  id             String             @id
+  name           String?
+  email          String
+  organizationId String?
+  organization   QueryOrganization? @relation(fields: [organizationId], references: [id])
+  records        QueryRecord[]
+}
+
+model QueryRecord {
+  id           String          @id
+  title        String
+  secret       String
+  rank         Int?
+  active       Boolean
+  priority     FixturePriority
+  createdAt    DateTime
+  locationCity String?
+  assigneeId   String?
+  assignee     QueryPerson?     @relation(fields: [assigneeId], references: [id])
+  comments     QueryComment[]
+}
+
+model QueryComment {
+  id       String      @id
+  body     String
+  flagged  Boolean
+  recordId String
+  record   QueryRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+}
