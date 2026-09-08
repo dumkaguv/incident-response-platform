@@ -1,0 +1,538 @@
+[
+  {
+    "id": "schema.public",
+    "label": "Create schema \"public\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create schema \"public\"",
+        "sql": "CREATE SCHEMA IF NOT EXISTS \"public\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.incident",
+    "label": "Create table \"incident\"",
+    "summary": "Creates table \"incident\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "incident"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"incident\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"incident\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"incident\"",
+        "sql": "CREATE TABLE \"public\".\"incident\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"id\" text NOT NULL,\n  \"resolved_at\" timestamptz,\n  \"severity\" text NOT NULL,\n  \"status\" text DEFAULT 'OPEN' NOT NULL,\n  \"team_id\" text,\n  \"title\" text NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"incident_severity_check_5e5a5e80\" CHECK (\"severity\" IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),\n  CONSTRAINT \"incident_status_check_c5e65004\" CHECK (\"status\" IN ('OPEN', 'INVESTIGATING', 'RESOLVED', 'CLOSED'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"incident\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"incident\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.team",
+    "label": "Create table \"team\"",
+    "summary": "Creates table \"team\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "team"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"team\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"team\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"team\"",
+        "sql": "CREATE TABLE \"public\".\"team\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text,\n  \"id\" text NOT NULL,\n  \"name\" text NOT NULL,\n  \"slug\" text NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"team\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"team\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.team_member",
+    "label": "Create table \"team_member\"",
+    "summary": "Creates table \"team_member\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "team_member"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"team_member\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"team_member\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"team_member\"",
+        "sql": "CREATE TABLE \"public\".\"team_member\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"id\" text NOT NULL,\n  \"name\" text NOT NULL,\n  \"role\" text DEFAULT 'RESPONDER' NOT NULL,\n  \"team_id\" text NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"team_member_role_check_dc5d4b4d\" CHECK (\"role\" IN ('LEAD', 'RESPONDER', 'OBSERVER'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"team_member\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"team_member\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.team.team_slug_key",
+    "label": "Add unique constraint on \"team\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "team_slug_key",
+        "table": "team"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"team_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "team_slug_key",
+          "public",
+          "\"public\".\"team\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"team_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"team\" ADD CONSTRAINT \"team_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"team_slug_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "team_slug_key",
+          "public",
+          "\"public\".\"team\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.team_member.team_member_email_key",
+    "label": "Add unique constraint on \"team_member\" (email)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "team_member_email_key",
+        "table": "team_member"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"team_member_email_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "team_member_email_key",
+          "public",
+          "\"public\".\"team_member\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"team_member_email_key\"",
+        "sql": "ALTER TABLE \"public\".\"team_member\" ADD CONSTRAINT \"team_member_email_key\" UNIQUE (\"email\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"team_member_email_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "team_member_email_key",
+          "public",
+          "\"public\".\"team_member\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.incident.incident_created_at_id_idx_d7da240a",
+    "label": "Create index \"incident_created_at_id_idx_d7da240a\" on \"incident\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "incident_created_at_id_idx_d7da240a",
+        "table": "incident"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"incident_created_at_id_idx_d7da240a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"incident_created_at_id_idx_d7da240a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"incident_created_at_id_idx_d7da240a\"",
+        "sql": "CREATE INDEX \"incident_created_at_id_idx_d7da240a\" ON \"public\".\"incident\" (\"created_at\", \"id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"incident_created_at_id_idx_d7da240a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"incident_created_at_id_idx_d7da240a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.incident.incident_status_created_at_id_idx_4ee1ea67",
+    "label": "Create index \"incident_status_created_at_id_idx_4ee1ea67\" on \"incident\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "incident_status_created_at_id_idx_4ee1ea67",
+        "table": "incident"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"incident_status_created_at_id_idx_4ee1ea67\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"incident_status_created_at_id_idx_4ee1ea67\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"incident_status_created_at_id_idx_4ee1ea67\"",
+        "sql": "CREATE INDEX \"incident_status_created_at_id_idx_4ee1ea67\" ON \"public\".\"incident\" (\"status\", \"created_at\", \"id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"incident_status_created_at_id_idx_4ee1ea67\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"incident_status_created_at_id_idx_4ee1ea67\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.incident.incident_team_id_idx_d177da93",
+    "label": "Create index \"incident_team_id_idx_d177da93\" on \"incident\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "incident_team_id_idx_d177da93",
+        "table": "incident"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"incident_team_id_idx_d177da93\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"incident_team_id_idx_d177da93\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"incident_team_id_idx_d177da93\"",
+        "sql": "CREATE INDEX \"incident_team_id_idx_d177da93\" ON \"public\".\"incident\" (\"team_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"incident_team_id_idx_d177da93\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"incident_team_id_idx_d177da93\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.team.team_name_idx_ce87e6ba",
+    "label": "Create index \"team_name_idx_ce87e6ba\" on \"team\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "team_name_idx_ce87e6ba",
+        "table": "team"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"team_name_idx_ce87e6ba\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"team_name_idx_ce87e6ba\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"team_name_idx_ce87e6ba\"",
+        "sql": "CREATE INDEX \"team_name_idx_ce87e6ba\" ON \"public\".\"team\" (\"name\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"team_name_idx_ce87e6ba\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"team_name_idx_ce87e6ba\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.team_member.team_member_team_id_idx_d177da93",
+    "label": "Create index \"team_member_team_id_idx_d177da93\" on \"team_member\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "team_member_team_id_idx_d177da93",
+        "table": "team_member"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"team_member_team_id_idx_d177da93\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"team_member_team_id_idx_d177da93\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"team_member_team_id_idx_d177da93\"",
+        "sql": "CREATE INDEX \"team_member_team_id_idx_d177da93\" ON \"public\".\"team_member\" (\"team_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"team_member_team_id_idx_d177da93\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"team_member_team_id_idx_d177da93\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.team_member.team_member_team_id_name_idx_9c5707a1",
+    "label": "Create index \"team_member_team_id_name_idx_9c5707a1\" on \"team_member\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "team_member_team_id_name_idx_9c5707a1",
+        "table": "team_member"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"team_member_team_id_name_idx_9c5707a1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"team_member_team_id_name_idx_9c5707a1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"team_member_team_id_name_idx_9c5707a1\"",
+        "sql": "CREATE INDEX \"team_member_team_id_name_idx_9c5707a1\" ON \"public\".\"team_member\" (\"team_id\", \"name\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"team_member_team_id_name_idx_9c5707a1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"team_member_team_id_name_idx_9c5707a1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.incident.incident_team_id_fkey",
+    "label": "Add foreign key \"incident_team_id_fkey\" on \"incident\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "incident_team_id_fkey",
+        "table": "incident"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"incident_team_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "incident_team_id_fkey",
+          "public",
+          "\"public\".\"incident\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"incident_team_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"incident\"\nADD CONSTRAINT \"incident_team_id_fkey\"\nFOREIGN KEY (\"team_id\")\nREFERENCES \"public\".\"team\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"incident_team_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "incident_team_id_fkey",
+          "public",
+          "\"public\".\"incident\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.team_member.team_member_team_id_fkey",
+    "label": "Add foreign key \"team_member_team_id_fkey\" on \"team_member\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "team_member_team_id_fkey",
+        "table": "team_member"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"team_member_team_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "team_member_team_id_fkey",
+          "public",
+          "\"public\".\"team_member\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"team_member_team_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"team_member\"\nADD CONSTRAINT \"team_member_team_id_fkey\"\nFOREIGN KEY (\"team_id\")\nREFERENCES \"public\".\"team\" (\"id\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"team_member_team_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "team_member_team_id_fkey",
+          "public",
+          "\"public\".\"team_member\""
+        ]
+      }
+    ]
+  }
+]

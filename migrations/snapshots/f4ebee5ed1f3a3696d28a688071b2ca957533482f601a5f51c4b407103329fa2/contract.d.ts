@@ -33,9 +33,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'740f4f429d491c237ff79c9eb3dd58ce8875f3688334b18670b2c68d139351ea'>;
+  StorageHashBase<'f4ebee5ed1f3a3696d28a688071b2ca957533482f601a5f51c4b407103329fa2'>;
 export type ExecutionHash =
-  ExecutionHashBase<'b84e42df6882ab18466aaf3d0a5b4da7f1ea4d1b3cbcbbf5d1ef187fcac91393'>;
+  ExecutionHashBase<'0339d8b0980ccb2f4137efd5cf6c44b37bf4e52bdafb82150a3c61f0e0961f63'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -306,64 +306,64 @@ export type FieldInputTypes = {
 export type StorageColumnTypes = {
   readonly public: {
     readonly incident: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly created_at: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly description: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
-      readonly resolvedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly resolved_at: CodecTypes['pg/timestamptz-string@1']['output'] | null;
       readonly severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
       readonly status: 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'CLOSED';
-      readonly teamId: CodecTypes['pg/text@1']['output'] | null;
+      readonly team_id: CodecTypes['pg/text@1']['output'] | null;
       readonly title: CodecTypes['pg/text@1']['output'];
-      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly updated_at: CodecTypes['pg/timestamptz-string@1']['output'];
     };
     readonly team: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly created_at: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly description: CodecTypes['pg/text@1']['output'] | null;
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly slug: CodecTypes['pg/text@1']['output'];
-      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly updated_at: CodecTypes['pg/timestamptz-string@1']['output'];
     };
-    readonly teamMember: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+    readonly team_member: {
+      readonly created_at: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly email: CodecTypes['pg/text@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly role: 'LEAD' | 'RESPONDER' | 'OBSERVER';
-      readonly teamId: CodecTypes['pg/text@1']['output'];
-      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly team_id: CodecTypes['pg/text@1']['output'];
+      readonly updated_at: CodecTypes['pg/timestamptz-string@1']['output'];
     };
   };
 };
 export type StorageColumnInputTypes = {
   readonly public: {
     readonly incident: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly created_at: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly description: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
-      readonly resolvedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly resolved_at: CodecTypes['pg/timestamptz-string@1']['input'] | null;
       readonly severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
       readonly status: 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'CLOSED';
-      readonly teamId: CodecTypes['pg/text@1']['input'] | null;
+      readonly team_id: CodecTypes['pg/text@1']['input'] | null;
       readonly title: CodecTypes['pg/text@1']['input'];
-      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly updated_at: CodecTypes['pg/timestamptz-string@1']['input'];
     };
     readonly team: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly created_at: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly description: CodecTypes['pg/text@1']['input'] | null;
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly slug: CodecTypes['pg/text@1']['input'];
-      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly updated_at: CodecTypes['pg/timestamptz-string@1']['input'];
     };
-    readonly teamMember: {
-      readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+    readonly team_member: {
+      readonly created_at: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly email: CodecTypes['pg/text@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly role: 'LEAD' | 'RESPONDER' | 'OBSERVER';
-      readonly teamId: CodecTypes['pg/text@1']['input'];
-      readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly team_id: CodecTypes['pg/text@1']['input'];
+      readonly updated_at: CodecTypes['pg/timestamptz-string@1']['input'];
     };
   };
 };
@@ -416,23 +416,23 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
-                readonly createdAt: {
+                readonly created_at: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: false;
                   readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
                 };
-                readonly updatedAt: {
+                readonly updated_at: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: false;
                 };
-                readonly resolvedAt: {
+                readonly resolved_at: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: true;
                 };
-                readonly teamId: {
+                readonly team_id: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
@@ -442,15 +442,21 @@ type ContractBase = Omit<
               uniques: readonly [];
               indexes: readonly [
                 {
-                  readonly name: 'incident_createdAt_idx_9575dbd7';
-                  readonly prefix: 'incident_createdAt_idx';
-                  readonly columns: readonly ['createdAt'];
+                  readonly name: 'incident_created_at_id_idx_d7da240a';
+                  readonly prefix: 'incident_created_at_id_idx';
+                  readonly columns: readonly ['created_at', 'id'];
                   readonly unique: false;
                 },
                 {
-                  readonly name: 'incident_teamId_idx_f2b72ab3';
-                  readonly prefix: 'incident_teamId_idx';
-                  readonly columns: readonly ['teamId'];
+                  readonly name: 'incident_status_created_at_id_idx_4ee1ea67';
+                  readonly prefix: 'incident_status_created_at_id_idx';
+                  readonly columns: readonly ['status', 'created_at', 'id'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'incident_team_id_idx_d177da93';
+                  readonly prefix: 'incident_team_id_idx';
+                  readonly columns: readonly ['team_id'];
                   readonly unique: false;
                 },
               ];
@@ -459,7 +465,7 @@ type ContractBase = Omit<
                   readonly source: {
                     readonly namespaceId: 'public' & NamespaceId;
                     readonly tableName: 'incident';
-                    readonly columns: readonly ['teamId'];
+                    readonly columns: readonly ['team_id'];
                   };
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
@@ -491,13 +497,13 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
                 };
-                readonly createdAt: {
+                readonly created_at: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: false;
                   readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
                 };
-                readonly updatedAt: {
+                readonly updated_at: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: false;
@@ -515,14 +521,14 @@ type ContractBase = Omit<
               ];
               foreignKeys: readonly [];
             };
-            readonly teamMember: {
+            readonly team_member: {
               columns: {
                 readonly id: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
                 };
-                readonly teamId: {
+                readonly team_id: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
@@ -546,13 +552,13 @@ type ContractBase = Omit<
                     readonly value: DefaultLiteralValue<'pg/text@1', 'RESPONDER'>;
                   };
                 };
-                readonly createdAt: {
+                readonly created_at: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: false;
                   readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
                 };
-                readonly updatedAt: {
+                readonly updated_at: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
                   readonly nullable: false;
@@ -562,9 +568,15 @@ type ContractBase = Omit<
               uniques: readonly [{ readonly columns: readonly ['email'] }];
               indexes: readonly [
                 {
-                  readonly name: 'teamMember_teamId_idx_f2b72ab3';
-                  readonly prefix: 'teamMember_teamId_idx';
-                  readonly columns: readonly ['teamId'];
+                  readonly name: 'team_member_team_id_name_idx_9c5707a1';
+                  readonly prefix: 'team_member_team_id_name_idx';
+                  readonly columns: readonly ['team_id', 'name'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'team_member_team_id_idx_d177da93';
+                  readonly prefix: 'team_member_team_id_idx';
+                  readonly columns: readonly ['team_id'];
                   readonly unique: false;
                 },
               ];
@@ -572,8 +584,8 @@ type ContractBase = Omit<
                 {
                   readonly source: {
                     readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'teamMember';
-                    readonly columns: readonly ['teamId'];
+                    readonly tableName: 'team_member';
+                    readonly columns: readonly ['team_id'];
                   };
                   readonly target: {
                     readonly namespaceId: 'public' & NamespaceId;
@@ -610,7 +622,7 @@ type ContractBase = Omit<
   readonly roots: {
     readonly incident: { readonly namespace: 'public' & NamespaceId; readonly model: 'Incident' };
     readonly team: { readonly namespace: 'public' & NamespaceId; readonly model: 'Team' };
-    readonly teamMember: {
+    readonly team_member: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'TeamMember';
     };
@@ -686,10 +698,10 @@ type ContractBase = Omit<
                 readonly description: { readonly column: 'description' };
                 readonly status: { readonly column: 'status' };
                 readonly severity: { readonly column: 'severity' };
-                readonly createdAt: { readonly column: 'createdAt' };
-                readonly updatedAt: { readonly column: 'updatedAt' };
-                readonly resolvedAt: { readonly column: 'resolvedAt' };
-                readonly teamId: { readonly column: 'teamId' };
+                readonly createdAt: { readonly column: 'created_at' };
+                readonly updatedAt: { readonly column: 'updated_at' };
+                readonly resolvedAt: { readonly column: 'resolved_at' };
+                readonly teamId: { readonly column: 'team_id' };
               };
             };
           };
@@ -758,8 +770,8 @@ type ContractBase = Omit<
                 readonly name: { readonly column: 'name' };
                 readonly slug: { readonly column: 'slug' };
                 readonly description: { readonly column: 'description' };
-                readonly createdAt: { readonly column: 'createdAt' };
-                readonly updatedAt: { readonly column: 'updatedAt' };
+                readonly createdAt: { readonly column: 'created_at' };
+                readonly updatedAt: { readonly column: 'updated_at' };
               };
             };
           };
@@ -811,16 +823,16 @@ type ContractBase = Omit<
               };
             };
             readonly storage: {
-              readonly table: 'teamMember';
+              readonly table: 'team_member';
               readonly namespaceId: 'public';
               readonly fields: {
                 readonly id: { readonly column: 'id' };
-                readonly teamId: { readonly column: 'teamId' };
+                readonly teamId: { readonly column: 'team_id' };
                 readonly name: { readonly column: 'name' };
                 readonly email: { readonly column: 'email' };
                 readonly role: { readonly column: 'role' };
-                readonly createdAt: { readonly column: 'createdAt' };
-                readonly updatedAt: { readonly column: 'updatedAt' };
+                readonly createdAt: { readonly column: 'created_at' };
+                readonly updatedAt: { readonly column: 'updated_at' };
               };
             };
           };
@@ -891,7 +903,7 @@ type ContractBase = Omit<
           readonly ref: {
             readonly namespace: 'public';
             readonly table: 'incident';
-            readonly column: 'updatedAt';
+            readonly column: 'updated_at';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'timestampNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'timestampNow' };
@@ -908,7 +920,7 @@ type ContractBase = Omit<
           readonly ref: {
             readonly namespace: 'public';
             readonly table: 'team';
-            readonly column: 'updatedAt';
+            readonly column: 'updated_at';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'timestampNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'timestampNow' };
@@ -916,7 +928,7 @@ type ContractBase = Omit<
         {
           readonly ref: {
             readonly namespace: 'public';
-            readonly table: 'teamMember';
+            readonly table: 'team_member';
             readonly column: 'id';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'uuidv4' };
@@ -924,8 +936,8 @@ type ContractBase = Omit<
         {
           readonly ref: {
             readonly namespace: 'public';
-            readonly table: 'teamMember';
-            readonly column: 'updatedAt';
+            readonly table: 'team_member';
+            readonly column: 'updated_at';
           };
           readonly onCreate: { readonly kind: 'generator'; readonly id: 'timestampNow' };
           readonly onUpdate: { readonly kind: 'generator'; readonly id: 'timestampNow' };

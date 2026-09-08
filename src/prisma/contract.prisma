@@ -20,15 +20,16 @@ model Incident {
   description String?
   status      IncidentStatus     @default(OPEN)
   severity    IncidentSeverity
-  createdAt   TimestamptzString  @default(now())
-  updatedAt   temporal.updatedAtString()
-  resolvedAt  TimestamptzString?
-  teamId      String?
+  createdAt   TimestamptzString  @default(now()) @map("created_at")
+  updatedAt   temporal.updatedAtString()         @map("updated_at")
+  resolvedAt  TimestamptzString?                 @map("resolved_at")
+  teamId      String?                            @map("team_id")
 
   team        Team?              @relation(fields: [teamId], references: [id])
 
   @@index([createdAt, id])
   @@index([status, createdAt, id])
+  @@map("incident")
 }
 
 enum TeamRole {
@@ -42,25 +43,27 @@ model Team {
   name        String
   slug        String            @unique
   description String?
-  createdAt   TimestamptzString @default(now())
-  updatedAt   temporal.updatedAtString()
+  createdAt   TimestamptzString @default(now()) @map("created_at")
+  updatedAt   temporal.updatedAtString()        @map("updated_at")
 
   incidents Incident[]
   members   TeamMember[]
 
   @@index([name])
+  @@map("team")
 }
 
 model TeamMember {
   id        String            @id @default(uuid())
-  teamId    String
+  teamId    String            @map("team_id")
   name      String
   email     String            @unique
   role      TeamRole          @default(RESPONDER)
-  createdAt TimestamptzString @default(now())
-  updatedAt temporal.updatedAtString()
+  createdAt TimestamptzString @default(now()) @map("created_at")
+  updatedAt temporal.updatedAtString()        @map("updated_at")
 
   team Team @relation(fields: [teamId], references: [id])
 
   @@index([teamId, name])
+  @@map("team_member")
 }

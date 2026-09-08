@@ -12,7 +12,7 @@
       "model": "Team",
       "namespace": "public"
     },
-    "teamMember": {
+    "team_member": {
       "model": "TeamMember",
       "namespace": "public"
     }
@@ -180,7 +180,7 @@
             "storage": {
               "fields": {
                 "createdAt": {
-                  "column": "createdAt"
+                  "column": "created_at"
                 },
                 "description": {
                   "column": "description"
@@ -189,7 +189,7 @@
                   "column": "id"
                 },
                 "resolvedAt": {
-                  "column": "resolvedAt"
+                  "column": "resolved_at"
                 },
                 "severity": {
                   "column": "severity"
@@ -198,13 +198,13 @@
                   "column": "status"
                 },
                 "teamId": {
-                  "column": "teamId"
+                  "column": "team_id"
                 },
                 "title": {
                   "column": "title"
                 },
                 "updatedAt": {
-                  "column": "updatedAt"
+                  "column": "updated_at"
                 }
               },
               "namespaceId": "public",
@@ -291,7 +291,7 @@
             "storage": {
               "fields": {
                 "createdAt": {
-                  "column": "createdAt"
+                  "column": "created_at"
                 },
                 "description": {
                   "column": "description"
@@ -306,7 +306,7 @@
                   "column": "slug"
                 },
                 "updatedAt": {
-                  "column": "updatedAt"
+                  "column": "updated_at"
                 }
               },
               "namespaceId": "public",
@@ -391,7 +391,7 @@
             "storage": {
               "fields": {
                 "createdAt": {
-                  "column": "createdAt"
+                  "column": "created_at"
                 },
                 "email": {
                   "column": "email"
@@ -406,14 +406,14 @@
                   "column": "role"
                 },
                 "teamId": {
-                  "column": "teamId"
+                  "column": "team_id"
                 },
                 "updatedAt": {
-                  "column": "updatedAt"
+                  "column": "updated_at"
                 }
               },
               "namespaceId": "public",
-              "table": "teamMember"
+              "table": "team_member"
             }
           }
         }
@@ -439,7 +439,7 @@
                 }
               ],
               "columns": {
-                "createdAt": {
+                "created_at": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
                     "expression": "now()",
@@ -458,7 +458,7 @@
                   "nativeType": "text",
                   "nullable": false
                 },
-                "resolvedAt": {
+                "resolved_at": {
                   "codecId": "pg/timestamptz-string@1",
                   "nativeType": "timestamptz",
                   "nullable": true
@@ -489,7 +489,7 @@
                     "plane": "storage"
                   }
                 },
-                "teamId": {
+                "team_id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
@@ -499,7 +499,7 @@
                   "nativeType": "text",
                   "nullable": false
                 },
-                "updatedAt": {
+                "updated_at": {
                   "codecId": "pg/timestamptz-string@1",
                   "nativeType": "timestamptz",
                   "nullable": false
@@ -509,7 +509,7 @@
                 {
                   "source": {
                     "columns": [
-                      "teamId"
+                      "team_id"
                     ],
                     "namespaceId": "public",
                     "tableName": "incident"
@@ -526,29 +526,29 @@
               "indexes": [
                 {
                   "columns": [
-                    "createdAt",
+                    "created_at",
                     "id"
                   ],
-                  "name": "incident_createdAt_id_idx_3855cff1",
-                  "prefix": "incident_createdAt_id_idx",
+                  "name": "incident_created_at_id_idx_d7da240a",
+                  "prefix": "incident_created_at_id_idx",
                   "unique": false
                 },
                 {
                   "columns": [
                     "status",
-                    "createdAt",
+                    "created_at",
                     "id"
                   ],
-                  "name": "incident_status_createdAt_id_idx_ffb42ad8",
-                  "prefix": "incident_status_createdAt_id_idx",
+                  "name": "incident_status_created_at_id_idx_4ee1ea67",
+                  "prefix": "incident_status_created_at_id_idx",
                   "unique": false
                 },
                 {
                   "columns": [
-                    "teamId"
+                    "team_id"
                   ],
-                  "name": "incident_teamId_idx_f2b72ab3",
-                  "prefix": "incident_teamId_idx",
+                  "name": "incident_team_id_idx_d177da93",
+                  "prefix": "incident_team_id_idx",
                   "unique": false
                 }
               ],
@@ -561,7 +561,7 @@
             },
             "team": {
               "columns": {
-                "createdAt": {
+                "created_at": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
                     "expression": "now()",
@@ -590,7 +590,7 @@
                   "nativeType": "text",
                   "nullable": false
                 },
-                "updatedAt": {
+                "updated_at": {
                   "codecId": "pg/timestamptz-string@1",
                   "nativeType": "timestamptz",
                   "nullable": false
@@ -620,16 +620,16 @@
                 }
               ]
             },
-            "teamMember": {
+            "team_member": {
               "checks": [
                 {
                   "expression": "\"role\" IN ('LEAD', 'RESPONDER', 'OBSERVER')",
-                  "name": "teamMember_role_check_dc5d4b4d",
-                  "prefix": "teamMember_role_check"
+                  "name": "team_member_role_check_dc5d4b4d",
+                  "prefix": "team_member_role_check"
                 }
               ],
               "columns": {
-                "createdAt": {
+                "created_at": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
                     "expression": "now()",
@@ -668,12 +668,12 @@
                     "plane": "storage"
                   }
                 },
-                "teamId": {
+                "team_id": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false
                 },
-                "updatedAt": {
+                "updated_at": {
                   "codecId": "pg/timestamptz-string@1",
                   "nativeType": "timestamptz",
                   "nullable": false
@@ -683,10 +683,10 @@
                 {
                   "source": {
                     "columns": [
-                      "teamId"
+                      "team_id"
                     ],
                     "namespaceId": "public",
-                    "tableName": "teamMember"
+                    "tableName": "team_member"
                   },
                   "target": {
                     "columns": [
@@ -700,19 +700,19 @@
               "indexes": [
                 {
                   "columns": [
-                    "teamId"
+                    "team_id"
                   ],
-                  "name": "teamMember_teamId_idx_f2b72ab3",
-                  "prefix": "teamMember_teamId_idx",
+                  "name": "team_member_team_id_idx_d177da93",
+                  "prefix": "team_member_team_id_idx",
                   "unique": false
                 },
                 {
                   "columns": [
-                    "teamId",
+                    "team_id",
                     "name"
                   ],
-                  "name": "teamMember_teamId_name_idx_89659443",
-                  "prefix": "teamMember_teamId_name_idx",
+                  "name": "team_member_team_id_name_idx_9c5707a1",
+                  "prefix": "team_member_team_id_name_idx",
                   "unique": false
                 }
               ],
@@ -763,10 +763,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "229fd6de9dc4965a0f6fda3244596b2c9cf481ecb11407386d7530763018dbaa"
+    "storageHash": "f4ebee5ed1f3a3696d28a688071b2ca957533482f601a5f51c4b407103329fa2"
   },
   "execution": {
-    "executionHash": "b84e42df6882ab18466aaf3d0a5b4da7f1ea4d1b3cbcbbf5d1ef187fcac91393",
+    "executionHash": "0339d8b0980ccb2f4137efd5cf6c44b37bf4e52bdafb82150a3c61f0e0961f63",
     "mutations": {
       "defaults": [
         {
@@ -790,7 +790,7 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updatedAt",
+            "column": "updated_at",
             "namespace": "public",
             "table": "incident"
           }
@@ -816,7 +816,7 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updatedAt",
+            "column": "updated_at",
             "namespace": "public",
             "table": "team"
           }
@@ -829,7 +829,7 @@
           "ref": {
             "column": "id",
             "namespace": "public",
-            "table": "teamMember"
+            "table": "team_member"
           }
         },
         {
@@ -842,9 +842,9 @@
             "kind": "generator"
           },
           "ref": {
-            "column": "updatedAt",
+            "column": "updated_at",
             "namespace": "public",
-            "table": "teamMember"
+            "table": "team_member"
           }
         }
       ]

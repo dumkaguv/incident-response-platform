@@ -1,7 +1,5 @@
 // use prisma-next
 
-
-
 enum IncidentStatus {
   OPEN
   INVESTIGATING
@@ -22,13 +20,14 @@ model Incident {
   description String?
   status      IncidentStatus     @default(OPEN)
   severity    IncidentSeverity
-  createdAt   TimestamptzString  @default(now())
-  updatedAt   temporal.updatedAtString()
-  resolvedAt  TimestamptzString?
-  teamId      String?
+  createdAt   TimestamptzString  @default(now()) @map("created_at")
+  updatedAt   temporal.updatedAtString()         @map("updated_at")
+  resolvedAt  TimestamptzString?                 @map("resolved_at")
+  teamId      String?                            @map("team_id")
 
   team        Team?              @relation(fields: [teamId], references: [id])
 
   @@index([createdAt, id])
   @@index([status, createdAt, id])
+  @@map("incident")
 }
