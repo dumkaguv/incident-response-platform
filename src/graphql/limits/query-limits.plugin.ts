@@ -1,11 +1,7 @@
 import { Plugin } from '@nestjs/apollo'
 import { GraphQLSchemaHost } from '@nestjs/graphql'
 import { GraphQLError } from 'graphql'
-import {
-  fieldExtensionsEstimator,
-  getComplexity,
-  simpleEstimator
-} from 'graphql-query-complexity'
+import { getComplexity } from 'graphql-query-complexity'
 import type {
   ApolloServerPlugin,
   BaseContext,
@@ -15,6 +11,7 @@ import type { GraphQLSchema } from 'graphql'
 
 import { BadUserInputError } from '@/common/utils'
 
+import { shapeComplexity } from './complexity.estimator'
 import { queryDepth } from './query-depth'
 import { MAX_QUERY_COMPLEXITY, MAX_QUERY_DEPTH } from './query-limits.constants'
 
@@ -47,10 +44,7 @@ function guardLimits(
         operationName: request.operationName,
         query: document,
         variables: request.variables,
-        estimators: [
-          fieldExtensionsEstimator(),
-          simpleEstimator({ defaultComplexity: 1 })
-        ]
+        estimators: [shapeComplexity]
       })
 
       if (complexity > MAX_QUERY_COMPLEXITY) {

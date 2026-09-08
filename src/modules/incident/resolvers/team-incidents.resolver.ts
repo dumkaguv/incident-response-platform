@@ -1,11 +1,7 @@
 import { Context, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql'
 import type { GraphQLResolveInfo } from 'graphql'
 
-import {
-  type GqlContext,
-  UNBOUNDED_LIST_FANOUT,
-  loadRelations
-} from '@/graphql'
+import { type GqlContext, loadRelations } from '@/graphql'
 import { TeamObject } from '@/modules/team/models/team.model'
 import type { Team } from '@/modules/team/types/team.types'
 
@@ -18,8 +14,7 @@ export class TeamIncidentsResolver {
   constructor(private readonly repository: IncidentRepositoryInterface) {}
 
   @ResolveField(() => [IncidentObject], {
-    description: 'Incidents owned by the team; one batched query per request',
-    complexity: ({ childComplexity }) => UNBOUNDED_LIST_FANOUT * childComplexity
+    description: 'Incidents owned by the team; one batched query per request'
   })
   public incidents(
     @Parent() team: Team,

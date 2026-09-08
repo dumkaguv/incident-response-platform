@@ -12,7 +12,6 @@ import {
 } from '@nestjs/graphql'
 import type { GraphQLResolveInfo } from 'graphql'
 
-import { DEFAULT_FIRST } from '@/common/pagination'
 import {
   type GqlContext,
   QueryArgsFor,
@@ -39,12 +38,6 @@ import { incidentQuery } from './incident.query'
 @ArgsType()
 export class IncidentQueryArgs extends QueryArgsFor(incidentQuery) {}
 
-function pageSize(args: Record<string, unknown>): number {
-  const requested = args.first ?? args.last
-
-  return typeof requested === 'number' ? requested : DEFAULT_FIRST
-}
-
 @Resolver(() => IncidentObject)
 export class IncidentResolver {
   constructor(
@@ -68,8 +61,7 @@ export class IncidentResolver {
 
   @Query(() => IncidentConnection, {
     description:
-      'Keyset-paginated incidents with recursive filters, search and orderBy (edges, nodes, pageInfo, totalCount)',
-    complexity: ({ args, childComplexity }) => pageSize(args) * childComplexity
+      'Keyset-paginated incidents with recursive filters, search and orderBy (edges, nodes, pageInfo, totalCount)'
   })
   public incidents(
     @Args() args: IncidentQueryArgs,
