@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { GraphQLResolveInfo } from 'graphql'
 
-import { getLoader, loadRelation, loadRelations } from '@/graphql'
-import type { GqlContext } from '@/graphql'
+import { getLoader, loadRelation, loadRelations } from '@/core/graphql'
+import type { GqlContext } from '@/core/graphql'
 
 type Row = { id: string; teamId: string | null; title: string }
 

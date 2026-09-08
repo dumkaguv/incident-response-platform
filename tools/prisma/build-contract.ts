@@ -2,7 +2,7 @@ import { glob, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 
 const FRAGMENTS = 'src/modules/*/*.prisma'
-const CONTRACT = 'src/prisma/contract.prisma'
+const CONTRACT = 'src/core/prisma/contract.prisma'
 const DIALECT = '// use prisma-next'
 
 async function fragmentPaths(): Promise<string[]> {

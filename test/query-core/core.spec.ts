@@ -7,7 +7,7 @@ import {
   encodeCursor
 } from '@/common/pagination/utils/query-cursor'
 import { validateQueryDefinition } from '@/common/pagination/utils/query-definition'
-import { specToPrisma } from '@/prisma/utils/spec-to-prisma'
+import { specToPrisma } from '@/core/prisma/utils/spec-to-prisma'
 
 import { fixtureQuery } from './fixtures/query-definition'
 

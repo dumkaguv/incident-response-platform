@@ -1,8 +1,8 @@
 import { Test } from '@nestjs/testing'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { I18N_CATALOGS, I18nService } from '@/i18n/i18n.service'
-import type { AppLocale } from '@/i18n/locales.constant'
+import { I18N_CATALOGS, I18nService } from '@/core/i18n/i18n.service'
+import type { AppLocale } from '@/core/i18n/locales.constant'
 
 const catalogs = {
   en: {

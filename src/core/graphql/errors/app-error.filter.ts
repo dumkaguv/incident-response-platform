@@ -3,7 +3,7 @@ import { type GqlExceptionFilter, GqlArgumentsHost } from '@nestjs/graphql'
 import { GraphQLError } from 'graphql'
 
 import { AppError } from '@/common/utils'
-import { I18nService } from '@/i18n'
+import { I18nService } from '@/core/i18n'
 
 import type { GqlContext } from '../graphql-context'
 

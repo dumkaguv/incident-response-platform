@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { createDb } from '@/prisma/utils/db'
+import { createDb } from '@/core/prisma/utils/db'
 
 import { seedIncidents } from './incidents'
 import { seedMembers } from './members'

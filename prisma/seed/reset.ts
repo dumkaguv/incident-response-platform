@@ -1,5 +1,5 @@
-import contractJson from '@/prisma/contract.json' with { type: 'json' }
-import type { Db } from '@/prisma/utils/db'
+import contractJson from '@/core/prisma/contract.json' with { type: 'json' }
+import type { Db } from '@/core/prisma/utils/db'
 
 type Relation = { cardinality: string; to: { model: string } }
 type Model = { relations?: Record<string, Relation> }

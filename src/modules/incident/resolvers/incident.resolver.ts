@@ -18,10 +18,10 @@ import {
   UNBOUNDED_LIST_FANOUT,
   connectionSelection,
   loadRelation
-} from '@/graphql'
+} from '@/core/graphql'
+import { WriteThrottle } from '@/core/throttler'
 import { TeamObject } from '@/modules/team/models/team.model'
 import { TeamRepositoryInterface } from '@/modules/team/repositories/team.repository.interface'
-import { WriteThrottle } from '@/throttler'
 import type { Connection } from '@/common/pagination'
 import type { Team } from '@/modules/team/types/team.types'
 

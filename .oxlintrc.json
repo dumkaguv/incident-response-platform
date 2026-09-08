@@ -20,7 +20,7 @@
     "dist",
     "coverage",
     "docs",
-    "src/i18n/generated",
+    "src/core/i18n/generated",
     "tools/swc/register.mjs"
   ],
   "rules": {

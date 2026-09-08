@@ -29,7 +29,7 @@
     "docs:api:dev": "spectaql --develop --port 4400 spectaql-config.yml",
     "i18n:extract": "node node_modules/@lingui/cli/dist/lingui.js extract --clean --overwrite",
     "i18n:compile": "node node_modules/@lingui/cli/dist/lingui.js compile --typescript",
-    "i18n:verify": "pnpm i18n:extract && pnpm i18n:compile && git diff --exit-code -- src/i18n/catalogs src/i18n/generated",
+    "i18n:verify": "pnpm i18n:extract && pnpm i18n:compile && git diff --exit-code HEAD -- src/core/i18n/catalogs src/core/i18n/generated",
     "postinstall": "pnpm prisma:emit",
     "prepare": "husky",
     "lint-staged": "lint-staged",

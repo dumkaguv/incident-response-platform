@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common'
 
-import { PrismaService } from '@/prisma/prisma.service'
-import { listConnection } from '@/prisma/utils/query-table'
+import { PrismaService } from '@/core/prisma/prisma.service'
+import { listConnection } from '@/core/prisma/utils/query-table'
 import type { Connection } from '@/common/pagination'
 import type { QuerySpec } from '@/common/pagination/utils/query-spec'
-import type { Db } from '@/prisma/utils/db'
+import type { Db } from '@/core/prisma/utils/db'
 
 import type {
   IncidentCreateData,

@@ -64,8 +64,8 @@
     "pnpm-lock.yaml",
     "schema.gql",
     "docs",
-    "src/i18n/generated",
-    "src/prisma/contract.json",
-    "src/prisma/contract.d.ts"
+    "src/core/i18n/generated",
+    "src/core/prisma/contract.json",
+    "src/core/prisma/contract.d.ts"
   ]
 }

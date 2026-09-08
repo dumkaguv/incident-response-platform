@@ -14,7 +14,7 @@ import {
 import {
   type PrismaQueryArgs,
   specToPrisma
-} from '@/prisma/utils/spec-to-prisma'
+} from '@/core/prisma/utils/spec-to-prisma'
 import type { OrderByInput } from '@/common/pagination/utils/query-definition'
 
 import { fixtureQuery } from './fixtures/query-definition'

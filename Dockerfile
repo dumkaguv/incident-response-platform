@@ -15,6 +15,10 @@ COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --offline --ignore-scripts
 RUN pnpm bundle
 
+FROM build AS migrate
+ENV NODE_ENV=production
+CMD ["sh", "-c", "pnpm prisma:migrate && pnpm prisma:search-indexes && pnpm prisma:db-verify"]
+
 FROM gcr.io/distroless/nodejs24-debian12:nonroot AS runtime
 ENV NODE_ENV=production
 ENV PORT=3000

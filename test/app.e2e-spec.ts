@@ -4,8 +4,8 @@ import { getIntrospectionQuery } from 'graphql'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { PrismaService } from '@/core/prisma/prisma.service'
 import { IncidentRepositoryInterface } from '@/modules/incident/repositories/incident.repository.interface'
-import { PrismaService } from '@/prisma/prisma.service'
 
 import { AppModule } from '../src/app/app.module'
 

@@ -1,7 +1,7 @@
 import { Context, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql'
 import type { GraphQLResolveInfo } from 'graphql'
 
-import { type GqlContext, loadRelations } from '@/graphql'
+import { type GqlContext, loadRelations } from '@/core/graphql'
 import { TeamObject } from '@/modules/team/models/team.model'
 import type { Team } from '@/modules/team/types/team.types'
 

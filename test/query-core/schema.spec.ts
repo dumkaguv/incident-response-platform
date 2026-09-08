@@ -10,7 +10,7 @@ import { Test } from '@nestjs/testing'
 import { type GraphQLSchema, parse, printSchema, validate } from 'graphql'
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { QueryArgsFor } from '@/graphql/filtering/query-args.factory'
+import { QueryArgsFor } from '@/core/graphql/filtering/query-args.factory'
 
 import { fixtureQuery } from './fixtures/query-definition'
 

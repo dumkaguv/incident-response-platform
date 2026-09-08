@@ -1,4 +1,4 @@
-import type { Db } from '@/prisma/utils/db'
+import type { Db } from '@/core/prisma/utils/db'
 
 import { teamSeeds } from './teams.data'
 

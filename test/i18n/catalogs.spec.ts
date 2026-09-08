@@ -6,14 +6,14 @@ import { Test } from '@nestjs/testing'
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { CatalogType } from '@lingui/conf'
 
-import { messages as enMessages } from '@/i18n/generated/en'
-import { messages as roMessages } from '@/i18n/generated/ro'
-import { messages as ruMessages } from '@/i18n/generated/ru'
-import { I18nModule } from '@/i18n/i18n.module'
-import { I18nService } from '@/i18n/i18n.service'
-import { APP_LOCALES, SOURCE_LOCALE } from '@/i18n/locales.constant'
+import { messages as enMessages } from '@/core/i18n/generated/en'
+import { messages as roMessages } from '@/core/i18n/generated/ro'
+import { messages as ruMessages } from '@/core/i18n/generated/ru'
+import { I18nModule } from '@/core/i18n/i18n.module'
+import { I18nService } from '@/core/i18n/i18n.service'
+import { APP_LOCALES, SOURCE_LOCALE } from '@/core/i18n/locales.constant'
 
-const CATALOG_DIR = 'src/i18n/catalogs'
+const CATALOG_DIR = 'src/core/i18n/catalogs'
 
 const TRANSLATED_LOCALES = APP_LOCALES.filter(
   (locale) => locale !== SOURCE_LOCALE
@@ -66,7 +66,7 @@ describe('i18n catalogs', () => {
   })
 
   it.for([...APP_LOCALES])(
-    'has %s compiled into src/i18n/generated',
+    'has %s compiled into src/core/i18n/generated',
     (locale) => {
       const uncompiled = sourceIds.filter((id) => !(id in compiled[locale]))
 

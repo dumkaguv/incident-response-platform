@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
 
-import { type AppLocale, resolveLocale } from '@/i18n'
+import { type AppLocale, resolveLocale } from '@/core/i18n'
 
 export type GqlContext = {
   req: Request

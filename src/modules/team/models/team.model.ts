@@ -1,6 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql'
 
-import { DateTimeScalar } from '@/graphql'
+import { DateTimeScalar } from '@/core/graphql'
 
 import type { Team } from '../types/team.types'
 

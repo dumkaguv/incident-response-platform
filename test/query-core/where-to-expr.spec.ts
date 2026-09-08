@@ -1,14 +1,14 @@
 import postgres from '@prisma/orm-postgres/runtime'
 import { describe, expect, it } from 'vitest'
 
-import contractJson from '@/prisma/contract.json' with { type: 'json' }
+import contractJson from '@/core/prisma/contract.json' with { type: 'json' }
 import {
   type FieldBag,
   orderPlanToSteps,
   orderSelector,
   whereToExpr
-} from '@/prisma/utils/where-to-expr'
-import type { Contract } from '@/prisma/contract'
+} from '@/core/prisma/utils/where-to-expr'
+import type { Contract } from '@/core/prisma/contract'
 
 const db = postgres<Contract>({
   contractJson,

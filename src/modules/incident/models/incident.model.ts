@@ -1,7 +1,7 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql'
 
 import { Connected } from '@/common/pagination'
-import { DateTimeScalar, registerQueryEnum } from '@/graphql'
+import { DateTimeScalar, registerQueryEnum } from '@/core/graphql'
 
 import {
   type Incident,

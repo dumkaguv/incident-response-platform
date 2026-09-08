@@ -1,5 +1,5 @@
-import { contractEnum } from '@/prisma/utils/enums'
-import type { FieldOutputTypes } from '@/prisma/contract'
+import { contractEnum } from '@/core/prisma/utils/enums'
+import type { FieldOutputTypes } from '@/core/prisma/contract'
 
 export type Incident = FieldOutputTypes['public']['Incident']
 

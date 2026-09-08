@@ -5,7 +5,7 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: @lingui/cli\n"
-"Language: en\n"
+"Language: ro\n"
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: \n"
@@ -15,12 +15,12 @@ msgstr ""
 
 #: src/modules/incident/services/incident.service.ts
 msgid "Incident \"{id}\" is already resolved"
-msgstr "Incident \"{id}\" is already resolved"
+msgstr "Incidentul „{id}” este deja rezolvat"
 
 #: src/modules/incident/services/incident.service.ts
 msgid "Incident \"{id}\" was not found"
-msgstr "Incident \"{id}\" was not found"
+msgstr "Incidentul „{id}” nu a fost găsit"
 
-#: src/throttler/gql-throttler.guard.ts
+#: src/core/throttler/gql-throttler.guard.ts
 msgid "Rate limit reached, retry in {seconds} seconds"
-msgstr "Rate limit reached, retry in {seconds} seconds"
+msgstr "Limita de cereri a fost atinsă, reîncercați în {seconds} s"

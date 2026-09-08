@@ -4,9 +4,9 @@ import { beforeAll, describe, expect, it } from 'vitest'
 import type { ArgumentsHost } from '@nestjs/common'
 
 import { ConflictError, NotFoundError } from '@/common/utils'
-import { AppErrorFilter } from '@/graphql'
-import { type AppLocale, I18nModule } from '@/i18n'
-import { resolveLocale } from '@/i18n/resolve-locale'
+import { AppErrorFilter } from '@/core/graphql'
+import { type AppLocale, I18nModule } from '@/core/i18n'
+import { resolveLocale } from '@/core/i18n/resolve-locale'
 
 function hostWithLocale(locale: AppLocale): ArgumentsHost {
   return {

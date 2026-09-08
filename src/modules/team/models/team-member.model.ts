@@ -1,6 +1,6 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql'
 
-import { DateTimeScalar, registerQueryEnum } from '@/graphql'
+import { DateTimeScalar, registerQueryEnum } from '@/core/graphql'
 
 import { type TeamMember, TeamRole } from '../types/team.types'
 

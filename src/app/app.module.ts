@@ -5,11 +5,11 @@ import { type DynamicModule, Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { ServeStaticModule } from '@nestjs/serve-static'
 
-import { GraphqlConfigModule } from '@/graphql'
-import { I18nModule } from '@/i18n'
+import { GraphqlConfigModule } from '@/core/graphql'
+import { I18nModule } from '@/core/i18n'
+import { PrismaModule } from '@/core/prisma/prisma.module'
+import { ThrottlerConfigModule } from '@/core/throttler'
 import { IncidentModule } from '@/modules/incident/incident.module'
-import { PrismaModule } from '@/prisma/prisma.module'
-import { ThrottlerConfigModule } from '@/throttler'
 
 const DOCS_ROOT = join(process.cwd(), 'docs', 'api')
 

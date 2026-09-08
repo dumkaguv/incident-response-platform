@@ -6,7 +6,7 @@ import {
 } from 'graphql'
 import { describe, expect, it } from 'vitest'
 
-import { connectionSelection } from '@/graphql/selection'
+import { connectionSelection } from '@/core/graphql/selection'
 
 function infoFor(query: string): GraphQLResolveInfo {
   const document = parse(query)

@@ -1,7 +1,7 @@
 import { parse } from 'graphql'
 import { describe, expect, it } from 'vitest'
 
-import { queryDepth } from '@/graphql'
+import { queryDepth } from '@/core/graphql'
 
 function depth(query: string, operationName?: string): number {
   return queryDepth(parse(query), operationName)
