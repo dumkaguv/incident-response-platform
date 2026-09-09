@@ -5,6 +5,7 @@ import {
 } from '@prisma/orm-postgres/relational-core/ast'
 
 import { BadUserInputError } from '@/common/utils'
+import { fieldIsNullable } from '@/core/pagination/utils/query-definition'
 import type { SortClause } from '@/core/pagination/utils/query-spec'
 
 import contractJson from '../contract.json' with { type: 'json' }
@@ -108,6 +109,7 @@ export type OrderStep = {
   table: string
   column: string
   direction: 'asc' | 'desc'
+  expression: 'column' | 'isNull'
 }
 
 const models = contractJson.domain.namespaces.public
@@ -132,14 +134,6 @@ function columnOf(model: string, field: string): string {
 
 export function tableOf(model: string): string {
   return modelMeta(model).storage.table
-}
-
-export function fieldForColumn(model: string, column: string): string {
-  const entry = Object.entries(modelMeta(model).storage.fields).find(
-    ([, storage]) => storage.column === column
-  )
-
-  return entry?.[0] ?? column
 }
 
 export function modelFields(model: string): string[] {
@@ -192,8 +186,18 @@ function joinStep(model: string, name: string): JoinStep {
   }
 }
 
-export function hasRelationSort(sort: readonly SortClause[]): boolean {
-  return sort.some((clause) => clause.field.relations.length > 0)
+function defaultNulls(direction: 'asc' | 'desc'): 'first' | 'last' {
+  return direction === 'asc' ? 'last' : 'first'
+}
+
+export function requiresSqlLane(sort: readonly SortClause[]): boolean {
+  return sort.some(
+    (clause) =>
+      clause.field.relations.length > 0 ||
+      (fieldIsNullable(clause.field) &&
+        clause.nulls !==
+          defaultNulls(clause.direction === 'ASC' ? 'asc' : 'desc'))
+  )
 }
 
 export function relationNames(
@@ -237,35 +241,39 @@ export function relationNames(
   return [...names]
 }
 
-function defaultNulls(direction: 'asc' | 'desc'): 'first' | 'last' {
-  return direction === 'asc' ? 'last' : 'first'
-}
-
 export function orderSteps(
   model: string,
   sort: readonly SortClause[],
   backward: boolean
 ): OrderStep[] {
-  return sort.map((clause) => {
+  const steps: OrderStep[] = []
+
+  for (const clause of sort) {
     const ascending = (clause.direction === 'ASC') !== backward
     const direction = ascending ? 'asc' : 'desc'
     const nulls = (clause.nulls === 'last') !== backward ? 'last' : 'first'
-
-    if (clause.field.scalar.nullable && nulls !== defaultNulls(direction)) {
-      throw new BadUserInputError(
-        `Prisma Next cannot place NULLs ${nulls} for ${direction.toUpperCase()} ordering on "${clause.field.name}"; ` +
-          `only PostgreSQL's default (NULLS ${defaultNulls(direction).toUpperCase()}) is available`
-      )
-    }
-
-    let current = model
+    let owner = model
 
     for (const relation of clause.field.relations) {
-      current = relationMeta(current, relation.field).to.model
+      owner = relationMeta(owner, relation.field).to.model
     }
 
-    return { table: tableOf(current), column: clause.field.column, direction }
-  })
+    const table = tableOf(owner)
+    const column = columnOf(owner, clause.field.column)
+
+    if (fieldIsNullable(clause.field) && nulls !== defaultNulls(direction)) {
+      steps.push({
+        table,
+        column,
+        direction: nulls === 'first' ? 'desc' : 'asc',
+        expression: 'isNull'
+      })
+    }
+
+    steps.push({ table, column, direction, expression: 'column' })
+  }
+
+  return steps
 }
 
 function fieldOps(expr: unknown, fns: SqlFns): Record<string, unknown> {
@@ -373,9 +381,14 @@ export async function selectOrderedIds(
     )
 
   for (const step of options.order) {
-    query = query.orderBy((scope) => scope[step.table][step.column], {
-      direction: step.direction
-    })
+    query = query.orderBy(
+      (scope) => {
+        const column = scope[step.table][step.column]
+
+        return step.expression === 'isNull' ? nullCheck(column, false) : column
+      },
+      { direction: step.direction }
+    )
   }
 
   const plan = query.limit(options.take).build()

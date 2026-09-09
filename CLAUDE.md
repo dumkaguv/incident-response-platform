@@ -154,11 +154,24 @@ argument and each element carries exactly one path — `[{ createdAt: 'DESC' }, 
 id: 'DESC' }]`, never `[{ createdAt: 'DESC', id: 'DESC' }]`. The unique
 tiebreaker is appended automatically.
 
-**The ORM lane cannot order through a relation** — a relation accessor exposes
-only `some`/`every`/`none`. `listConnection` switches to a two-phase SQL-lane
-query for that case; to-many relations there throw. NULLS placement other than
-PostgreSQL's own default also throws. Both fail loudly because losing either
-corrupts keyset pagination.
+**The ORM lane can express neither a relation order nor a NULLS placement.** A
+relation accessor exposes only `some`/`every`/`none`, and `OrderByItem` carries
+`(expr, dir)` with no NULLS clause, so `ORDER BY … NULLS FIRST/LAST` is
+unreachable there. `requiresSqlLane` sends both cases to the two-phase SQL lane
+instead — `selectOrderedIds` joins, orders and returns keys, then the rows are
+re-read through the ORM. To-many relations still throw. A placement other than
+PostgreSQL's own default (`ASC`→LAST, `DESC`→FIRST) is emitted there as a
+leading `(<column> IS NULL)` key: `DESC` ranks NULLs first, `ASC` ranks them
+last. `keysetFilter` already spells out the matching NULL branches, so both
+pages and cursors agree.
+
+**`orderSteps` addresses physical columns, `ResolvedQueryField.column` does
+not.** A query definition's `column` is the *model field* name — what the ORM
+lane, `include`, and `encodeCursor` all read — so the SQL lane has to translate
+it through the contract (`created_at`, not `createdAt`). Feeding a field name to
+`scope[table][column]` yields `undefined`, and the builder then fails deep
+inside `resolveOrderBy` with `Cannot read properties of undefined (reading
+'buildAst')`.
 
 **`@Field(() => DateTimeScalar)`, never `@Field(() => Date)`.** The contract
 returns timestamps as ISO strings and `GraphQLISODateTime.serialize` returns

@@ -5,13 +5,12 @@ import type { FieldOutputTypes } from '../contract'
 
 import {
   type SqlLaneClient,
-  fieldForColumn,
-  hasRelationSort,
   modelFields,
   primaryKeyOf,
   relationLocalFields,
   relationNames,
   orderSteps,
+  requiresSqlLane,
   selectOrderedIds
 } from './relation-query'
 import { specToPrisma } from './spec-to-prisma'
@@ -72,7 +71,7 @@ export function projectionFor(
 
   for (const clause of spec.sort) {
     if (!clause.field.relations.length) {
-      fields.add(fieldForColumn(model, clause.field.column))
+      fields.add(clause.field.column)
     }
   }
 
@@ -110,7 +109,7 @@ async function listDirect(
   return query.limit(take).all()
 }
 
-async function listThroughRelations(
+async function listThroughSqlLane(
   db: Db,
   model: ModelName,
   spec: QuerySpec,
@@ -154,8 +153,8 @@ export async function listConnection<M extends ModelName>(
 ): Promise<Connection<RowOf<M>>> {
   const { args, countWhere } = specToPrisma(spec)
   const fields = projectionFor(model, spec, requested)
-  const rows = hasRelationSort(spec.sort)
-    ? await listThroughRelations(db, model, spec, args.where, args.take, fields)
+  const rows = requiresSqlLane(spec.sort)
+    ? await listThroughSqlLane(db, model, spec, args.where, args.take, fields)
     : await listDirect(
         project(tableOf(db, model), fields),
         args.where,

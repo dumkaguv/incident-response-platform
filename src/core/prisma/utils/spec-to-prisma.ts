@@ -1,4 +1,3 @@
-import { BadUserInputError } from '@/common/utils/errors'
 import { keysetFilter } from '@/core/pagination/utils/query-cursor'
 import { group } from '@/core/pagination/utils/query-filter'
 import type {
@@ -76,17 +75,6 @@ function orderToPrisma(
   const ascending = (clause.direction === 'ASC') !== backward
   const nullsLast = (clause.nulls === 'last') !== backward
   const direction = ascending ? 'asc' : 'desc'
-
-  if (
-    !clause.field.scalar.nullable &&
-    clause.field.relations.some((relation) => relation.nullable) &&
-    nullsLast !== ascending
-  ) {
-    throw new BadUserInputError(
-      `Prisma cannot customize null placement for non-null field "${clause.field.name}" through an optional relation; use ASC or DESC`
-    )
-  }
-
   const scalarOrder = clause.field.scalar.nullable
     ? { sort: direction, nulls: nullsLast ? 'last' : 'first' }
     : direction

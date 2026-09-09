@@ -47,6 +47,13 @@ export type ResolvedQueryField = {
   relations: RelationStep[]
 }
 
+export function fieldIsNullable(field: ResolvedQueryField): boolean {
+  return (
+    Boolean(field.scalar.nullable) ||
+    field.relations.some((relation) => relation.nullable)
+  )
+}
+
 export function isQueryObject(
   value: unknown
 ): value is Record<string, unknown> {

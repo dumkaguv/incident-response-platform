@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 
 import { BadUserInputError } from '@/common/utils/errors'
 
-import { isQueryObject } from './query-definition'
+import { fieldIsNullable, isQueryObject } from './query-definition'
 import {
   group,
   negate,
@@ -115,9 +115,7 @@ export function decodeCursor(
       validateScalarValue(
         {
           ...sort[index].field.scalar,
-          nullable:
-            sort[index].field.scalar.nullable ||
-            sort[index].field.relations.some((relation) => relation.nullable)
+          nullable: fieldIsNullable(sort[index].field)
         },
         value
       )
