@@ -205,6 +205,7 @@ input Incident_teamFilter {
   createdAt: DateTimeFilter
   description: StringFilter
   id: IdFilter
+  members: Incident_team_membersRelationFilter
   name: StringFilter
   not: Incident_teamFilter
   or: [Incident_teamFilter!]
@@ -217,6 +218,22 @@ input Incident_teamOrderBy {
   id: OrderByDirection
   name: OrderByDirection
   slug: OrderByDirection
+}
+
+input Incident_team_membersFilter {
+  and: [Incident_team_membersFilter!]
+  email: StringFilter
+  id: IdFilter
+  name: StringFilter
+  not: Incident_team_membersFilter
+  or: [Incident_team_membersFilter!]
+  role: TeamRoleFilter
+}
+
+input Incident_team_membersRelationFilter {
+  every: Incident_team_membersFilter
+  none: Incident_team_membersFilter
+  some: Incident_team_membersFilter
 }
 
 type Mutation {
@@ -289,7 +306,9 @@ type Query {
     """One scalar path per entry; array order defines precedence"""
     orderBy: [IncidentOrderBy!]
 
-    """Case-insensitive search across: title, description, team.name"""
+    """
+    Case-insensitive search across: title, description, team.name, team.members.name
+    """
     search: String
   ): IncidentConnection!
 }
@@ -365,6 +384,26 @@ enum TeamRole {
   LEAD
   OBSERVER
   RESPONDER
+}
+
+input TeamRoleFilter {
+  """eq"""
+  eq: TeamRole
+
+  """in"""
+  in: [TeamRole!]
+
+  """is"""
+  is: FilterIs
+
+  """ne"""
+  ne: TeamRole
+
+  """neq"""
+  neq: TeamRole
+
+  """nin"""
+  nin: [TeamRole!]
 }
 
 input UpdateIncidentInput {

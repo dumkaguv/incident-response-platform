@@ -21,7 +21,7 @@ describe('selectOrderedIds', () => {
       selectOrderedIds(client, 'Team', {
         where: {},
         order: [],
-        relations: ['members'],
+        paths: [['members']],
         take: 10
       })
     ).rejects.toThrow(

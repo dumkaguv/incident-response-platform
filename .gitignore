@@ -42,8 +42,14 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
-# generated API docs (pnpm docs:api)
-/docs/api
+# generated API docs (pnpm docs:api) and local design notes
+/docs
+
+# subagent-driven-development scratch
+/.superpowers
+
+# vitest json reporter output
+/.vitest
 
 # temp directory
 .temp

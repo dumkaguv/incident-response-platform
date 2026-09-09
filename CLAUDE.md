@@ -159,11 +159,24 @@ relation accessor exposes only `some`/`every`/`none`, and `OrderByItem` carries
 `(expr, dir)` with no NULLS clause, so `ORDER BY … NULLS FIRST/LAST` is
 unreachable there. `requiresSqlLane` sends both cases to the two-phase SQL lane
 instead — `selectOrderedIds` joins, orders and returns keys, then the rows are
-re-read through the ORM. To-many relations still throw. A placement other than
-PostgreSQL's own default (`ASC`→LAST, `DESC`→FIRST) is emitted there as a
-leading `(<column> IS NULL)` key: `DESC` ranks NULLs first, `ASC` ranks them
-last. `keysetFilter` already spells out the matching NULL branches, so both
-pages and cursors agree.
+re-read through the ORM. A placement other than PostgreSQL's own default
+(`ASC`→LAST, `DESC`→FIRST) is emitted there as a leading `(<column> IS NULL)`
+key: `DESC` ranks NULLs first, `ASC` ranks them last. `keysetFilter` already
+spells out the matching NULL branches, so both pages and cursors agree.
+
+**The SQL lane addresses tables by path, not by name.** `collectJoinPaths`
+returns every to-one prefix a sort and a where tree reach, shortest first, and
+each is joined under an alias derived from the path — `j_team`,
+`j_team_owner` — so two relations onto one table cannot collide. A to-many hop
+is never joined: joining one multiplies rows and destroys keyset pagination.
+`sqlFieldBag` builds it as a correlated subquery instead, keyed `x_<path>` and
+correlated with a raw `ColumnRef` to the parent's alias: `some` is `EXISTS`,
+`none` is `NOT EXISTS`, `every` is `NOT EXISTS (… AND NOT p)` — which is why
+`every` is true for a parent with no children. Because the alias comes from the
+absolute path, a relation reached inside a subquery is unique without extra
+bookkeeping. **Ordering through a to-many is still refused** — a parent has many
+children, so there is no single value to sort by; `buildOrderInput` omits it
+from the schema and `orderSteps` throws if it is reached anyway.
 
 **`orderSteps` addresses physical columns, `ResolvedQueryField.column` does
 not.** A query definition's `column` is the *model field* name — what the ORM

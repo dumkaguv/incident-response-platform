@@ -1,5 +1,7 @@
 import {
   AndExpr,
+  ColumnRef,
+  ExistsExpr,
   NotExpr,
   NullCheckExpr
 } from '@prisma/orm-postgres/relational-core/ast'
@@ -9,6 +11,7 @@ import { fieldIsNullable } from '@/core/pagination/utils/query-definition'
 import type { SortClause } from '@/core/pagination/utils/query-spec'
 
 import {
+  type RelationMeta,
   columnOf,
   isToMany,
   primaryKeyOf,
@@ -17,6 +20,12 @@ import {
   storageFields,
   tableOf
 } from './contract-meta'
+import {
+  type RelationPath,
+  existsAlias,
+  joinAlias,
+  scopeKey
+} from './relation-path'
 import {
   type Combinators,
   type Expr,
@@ -82,6 +91,7 @@ type SqlQuery = {
 }
 
 type SqlTable = {
+  as(alias: string): SqlTable
   outerLeftJoin(
     other: SqlTable,
     on: (scope: SqlScope, fns: SqlFns) => Expr
@@ -89,16 +99,16 @@ type SqlTable = {
   select(build: (scope: SqlScope) => Record<string, unknown>): SqlQuery
 }
 
+export type SqlTables = Record<string, SqlTable>
+
 export type SqlLaneClient = {
-  sql: { public: Record<string, SqlTable> }
+  sql: { public: SqlTables }
   runtime(): { query(plan: unknown): AsyncIterable<Record<string, unknown>> }
 }
 
-export type JoinStep = {
-  relation: string
-  source: string
-  table: string
-  columns: [string, string][]
+export type SqlLaneContext = {
+  tables: SqlTables
+  joined: ReadonlySet<string>
 }
 
 export type OrderStep = {
@@ -108,25 +118,7 @@ export type OrderStep = {
   expression: 'column' | 'isNull'
 }
 
-function joinStep(model: string, name: string): JoinStep {
-  const relation = relationMeta(model, name)
-
-  if (isToMany(relation)) {
-    throw new BadUserInputError(
-      `Filtering through the to-many relation "${name}" is not supported`
-    )
-  }
-
-  return {
-    relation: name,
-    source: tableOf(model),
-    table: tableOf(relation.to.model),
-    columns: relation.on.localFields.map((local, index) => [
-      columnOf(model, local),
-      columnOf(relation.to.model, relation.on.targetFields[index])
-    ])
-  }
-}
+type Quantifier = 'some' | 'none' | 'every'
 
 function defaultNulls(direction: 'asc' | 'desc'): 'first' | 'last' {
   return direction === 'asc' ? 'last' : 'first'
@@ -142,58 +134,19 @@ export function requiresSqlLane(sort: readonly SortClause[]): boolean {
   )
 }
 
-export function relationNames(
-  model: string,
-  sort: readonly SortClause[],
-  where: Record<string, unknown>
-): string[] {
-  const names = new Set<string>()
-
-  for (const clause of sort) {
-    for (const relation of clause.field.relations) {
-      names.add(relation.field)
-    }
-  }
-
-  const declared = new Set(Object.keys(relationsOf(model)))
-
-  function walk(node: Record<string, unknown>): void {
-    for (const [key, value] of Object.entries(node)) {
-      if (declared.has(key)) {
-        names.add(key)
-        continue
-      }
-
-      if (Array.isArray(value)) {
-        for (const child of value) {
-          walk(child as Record<string, unknown>)
-        }
-
-        continue
-      }
-
-      if (key === 'NOT' && value !== null && typeof value === 'object') {
-        walk(value as Record<string, unknown>)
-      }
-    }
-  }
-
-  walk(where)
-
-  return [...names]
-}
-
 export function orderSteps(
   model: string,
   sort: readonly SortClause[],
   backward: boolean
 ): OrderStep[] {
+  const rootTable = tableOf(model)
   const steps: OrderStep[] = []
 
   for (const clause of sort) {
     const ascending = (clause.direction === 'ASC') !== backward
     const direction = ascending ? 'asc' : 'desc'
     const nulls = (clause.nulls === 'last') !== backward ? 'last' : 'first'
+    const path: string[] = []
     let owner = model
 
     for (const relation of clause.field.relations) {
@@ -205,10 +158,11 @@ export function orderSteps(
         )
       }
 
+      path.push(relation.field)
       owner = meta.to.model
     }
 
-    const table = tableOf(owner)
+    const table = scopeKey(rootTable, path)
     const column = columnOf(owner, clause.field.column)
 
     if (fieldIsNullable(clause.field) && nulls !== defaultNulls(direction)) {
@@ -243,27 +197,115 @@ function fieldOps(expr: unknown, fns: SqlFns): Record<string, unknown> {
   }
 }
 
+function existsThrough(
+  parentModel: string,
+  parentKey: string,
+  path: RelationPath,
+  name: string,
+  relation: RelationMeta,
+  build: (fields: FieldBag) => Expr,
+  ctx: SqlLaneContext,
+  quantifier: Quantifier
+): Expr {
+  const childPath = [...path, name]
+  const childModel = relation.to.model
+  const childKey = existsAlias(childPath)
+  const key = primaryKeyOf(childModel)
+
+  function subqueryAst(): never {
+    const query = ctx.tables[tableOf(childModel)]
+      .as(childKey)
+      .select((scope) => ({ [key.column]: scope[childKey][key.column] }))
+      .where((scope, fns) => {
+        const combinators = sqlCombinators(fns)
+        const matched = build(
+          sqlFieldBag(childModel, childPath, childKey, scope, fns, ctx)
+        )
+
+        return combinators.and([
+          ...relation.on.localFields.map((local, index) =>
+            fns.eq(
+              scope[childKey][
+                columnOf(childModel, relation.on.targetFields[index])
+              ],
+              {
+                buildAst: () =>
+                  ColumnRef.of(parentKey, columnOf(parentModel, local))
+              }
+            )
+          ),
+          quantifier === 'every' ? combinators.not(matched) : matched
+        ])
+      })
+
+    return (query.build() as { ast: never }).ast
+  }
+
+  return {
+    buildAst: () =>
+      quantifier === 'some'
+        ? ExistsExpr.exists(subqueryAst())
+        : ExistsExpr.notExists(subqueryAst())
+  } as unknown as Expr
+}
+
 export function sqlFieldBag(
   model: string,
+  path: RelationPath,
+  key: string,
   scope: SqlScope,
   fns: SqlFns,
-  joined: ReadonlySet<string>
+  ctx: SqlLaneContext
 ): FieldBag {
-  const table = tableOf(model)
   const bag: Record<string, unknown> = {}
 
   for (const [field, storage] of Object.entries(storageFields(model))) {
-    bag[field] = fieldOps(scope[table][storage.column], fns)
+    bag[field] = fieldOps(scope[key][storage.column], fns)
   }
 
   for (const [name, relation] of Object.entries(relationsOf(model))) {
-    if (!joined.has(name)) {
+    const next = [...path, name]
+
+    if (isToMany(relation)) {
+      function through(
+        quantifier: Quantifier
+      ): (build: (fields: FieldBag) => Expr) => Expr {
+        return (build) =>
+          existsThrough(
+            model,
+            key,
+            path,
+            name,
+            relation,
+            build,
+            ctx,
+            quantifier
+          )
+      }
+
+      bag[name] = {
+        some: through('some'),
+        none: through('none'),
+        every: through('every')
+      }
+
       continue
     }
 
-    const target = sqlFieldBag(relation.to.model, scope, fns, joined)
-    const anchor =
-      scope[tableOf(relation.to.model)][primaryKeyOf(relation.to.model).column]
+    if (!ctx.joined.has(next.join('.'))) {
+      continue
+    }
+
+    const childKey = joinAlias(next)
+    const target = sqlFieldBag(
+      relation.to.model,
+      next,
+      childKey,
+      scope,
+      fns,
+      ctx
+    )
+    const anchor = scope[childKey][primaryKeyOf(relation.to.model).column]
     const combinators = sqlCombinators(fns)
 
     function present(build: (fields: FieldBag) => Expr): Expr {
@@ -293,38 +335,74 @@ export function sqlFieldBag(
   return bag
 }
 
-export async function selectOrderedIds(
-  client: SqlLaneClient,
+function applyJoins(
+  tables: SqlTables,
   model: string,
-  options: {
-    where: Record<string, unknown>
-    order: OrderStep[]
-    relations: string[]
-    take: number
-  }
-): Promise<unknown[]> {
-  const key = primaryKeyOf(model)
-  const tables = client.sql.public
-  const joined = new Set(options.relations)
-  let source: SqlTable = tables[tableOf(model)]
+  paths: RelationPath[]
+): SqlTable {
+  const rootTable = tableOf(model)
+  let source: SqlTable = tables[rootTable]
 
-  for (const name of options.relations) {
-    const join = joinStep(model, name)
+  for (const path of paths) {
+    const parentPath = path.slice(0, -1)
+    const name = path[path.length - 1]
+    let owner = model
 
-    source = source.outerLeftJoin(tables[join.table], (scope, fns) =>
+    for (const step of parentPath) {
+      owner = relationMeta(owner, step).to.model
+    }
+
+    const relation = relationMeta(owner, name)
+
+    if (isToMany(relation)) {
+      throw new BadUserInputError(
+        `Filtering through the to-many relation "${name}" is not supported`
+      )
+    }
+
+    const parentKey = scopeKey(rootTable, parentPath)
+    const childKey = joinAlias(path)
+    const child = tables[tableOf(relation.to.model)].as(childKey)
+
+    source = source.outerLeftJoin(child, (scope, fns) =>
       fns.and(
-        ...join.columns.map(([local, target]) =>
-          fns.eq(scope[join.source][local], scope[join.table][target])
+        ...relation.on.localFields.map((local, index) =>
+          fns.eq(
+            scope[parentKey][columnOf(owner, local)],
+            scope[childKey][
+              columnOf(relation.to.model, relation.on.targetFields[index])
+            ]
+          )
         )
       )
     )
   }
 
-  let query = source
-    .select((scope) => ({ [key.column]: scope[tableOf(model)][key.column] }))
+  return source
+}
+
+export function buildOrderedIdQuery(
+  tables: SqlTables,
+  model: string,
+  options: {
+    where: Record<string, unknown>
+    order: OrderStep[]
+    paths: RelationPath[]
+    take: number
+  }
+): SqlQuery {
+  const key = primaryKeyOf(model)
+  const rootTable = tableOf(model)
+  const ctx: SqlLaneContext = {
+    tables,
+    joined: new Set(options.paths.map((path) => path.join('.')))
+  }
+
+  let query = applyJoins(tables, model, options.paths)
+    .select((scope) => ({ [key.column]: scope[rootTable][key.column] }))
     .where((scope, fns) =>
       whereToExpr(
-        sqlFieldBag(model, scope, fns, joined),
+        sqlFieldBag(model, [], rootTable, scope, fns, ctx),
         options.where,
         sqlCombinators(fns)
       )
@@ -341,7 +419,21 @@ export async function selectOrderedIds(
     )
   }
 
-  const plan = query.limit(options.take).build()
+  return query.limit(options.take)
+}
+
+export async function selectOrderedIds(
+  client: SqlLaneClient,
+  model: string,
+  options: {
+    where: Record<string, unknown>
+    order: OrderStep[]
+    paths: RelationPath[]
+    take: number
+  }
+): Promise<unknown[]> {
+  const key = primaryKeyOf(model)
+  const plan = buildOrderedIdQuery(client.sql.public, model, options).build()
   const ids: unknown[] = []
 
   for await (const row of client.runtime().query(plan)) {

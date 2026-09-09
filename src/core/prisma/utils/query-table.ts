@@ -4,9 +4,9 @@ import type { QuerySpec } from '@/core/pagination/utils/query-spec'
 import type { FieldOutputTypes } from '../contract'
 
 import { modelFields, primaryKeyOf, relationLocalFields } from './contract-meta'
+import { collectJoinPaths } from './relation-path'
 import {
   type SqlLaneClient,
-  relationNames,
   orderSteps,
   requiresSqlLane,
   selectOrderedIds
@@ -115,13 +115,13 @@ async function listThroughSqlLane(
   take: number,
   fields: string[] | undefined
 ): Promise<Row[]> {
-  const relations = relationNames(model, spec.sort, where)
+  const paths = collectJoinPaths(model, spec.sort, where)
   const backward = spec.pagination.direction === 'backward'
   const key = primaryKeyOf(model)
   const ids = await selectOrderedIds(db as unknown as SqlLaneClient, model, {
     where,
     order: orderSteps(model, spec.sort, backward),
-    relations,
+    paths,
     take
   })
 
@@ -131,7 +131,7 @@ async function listThroughSqlLane(
 
   let table = project(tableOf(db, model), fields)
 
-  for (const relation of relations) {
+  for (const relation of new Set(paths.map((path) => path[0]))) {
     table = table.include(relation)
   }
 

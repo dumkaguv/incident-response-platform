@@ -24,7 +24,11 @@ describe('SQL lane ordering', () => {
   it('orders by physical columns, not model field names', () => {
     expect(
       orderBySql([{ team: { name: 'ASC' } }, { createdAt: 'DESC' }])
-    ).toEqual(['team.name ASC', 'incident.created_at DESC', 'incident.id ASC'])
+    ).toEqual([
+      'j_team.name ASC',
+      'incident.created_at DESC',
+      'incident.id ASC'
+    ])
   })
 
   it('maps every mapped column reached through a relation sort', () => {
@@ -39,7 +43,7 @@ describe('SQL lane ordering', () => {
         { title: 'ASC' }
       ])
     ).toEqual([
-      'team.name ASC',
+      'j_team.name ASC',
       'incident.resolved_at ASC',
       'incident.severity DESC',
       'incident.status ASC',
@@ -52,7 +56,7 @@ describe('SQL lane ordering', () => {
 
   it('maps mapped columns on the joined model too', () => {
     expect(orderBySql([{ team: { createdAt: 'ASC' } }])).toEqual([
-      'team.created_at ASC',
+      'j_team.created_at ASC',
       'incident.id ASC'
     ])
   })
@@ -83,12 +87,12 @@ describe('SQL lane ordering', () => {
 
   it('ranks nulls for a non-null column reached through an optional relation', () => {
     expect(orderBySql([{ team: { name: 'AscNullsFirst' } }])).toEqual([
-      'team.name IS NULL DESC',
-      'team.name ASC',
+      'j_team.name IS NULL DESC',
+      'j_team.name ASC',
       'incident.id ASC'
     ])
     expect(orderBySql([{ team: { name: 'ASC' } }])).toEqual([
-      'team.name ASC',
+      'j_team.name ASC',
       'incident.id ASC'
     ])
   })

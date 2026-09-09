@@ -1,3 +1,4 @@
+import { TeamRole } from '@/modules/team/types/team.types'
 import type { QueryDefinition } from '@/core/pagination'
 
 import { IncidentSeverity, IncidentStatus } from '../types/incident.types'
@@ -47,9 +48,23 @@ export const incidentQuery: QueryDefinition = {
           filterable: true,
           sortable: true
         },
-        createdAt: { type: 'date', filterable: true, sortable: true }
+        createdAt: { type: 'date', filterable: true, sortable: true },
+        members: {
+          type: 'relation',
+          many: true,
+          fields: {
+            id: { type: 'id', filterable: true },
+            name: { type: 'string', filterable: true },
+            email: { type: 'string', filterable: true },
+            role: {
+              type: 'enum',
+              enum: { name: 'TeamRole', values: TeamRole },
+              filterable: true
+            }
+          }
+        }
       }
     }
   },
-  searchable: ['title', 'description', 'team.name']
+  searchable: ['title', 'description', 'team.name', 'team.members.name']
 }
