@@ -127,4 +127,30 @@ describe('SQL lane ordering', () => {
     )
     expect(requiresSqlLane(sortOf([{ team: { name: 'ASC' } }]))).toBe(true)
   })
+
+  it('refuses to order through a to-many relation', () => {
+    expect(() =>
+      orderSteps(
+        'Incident',
+        [
+          {
+            field: {
+              name: 'team.members.name',
+              column: 'name',
+              scalar: { type: 'string' },
+              relations: [
+                { field: 'team', nullable: true, many: false },
+                { field: 'members', nullable: false, many: true }
+              ]
+            },
+            direction: 'ASC',
+            nulls: 'last'
+          }
+        ],
+        false
+      )
+    ).toThrow(
+      'Ordering through the to-many relation "members" is not supported'
+    )
+  })
 })

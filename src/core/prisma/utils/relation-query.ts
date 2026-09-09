@@ -111,6 +111,12 @@ export type OrderStep = {
 function joinStep(model: string, name: string): JoinStep {
   const relation = relationMeta(model, name)
 
+  if (isToMany(relation)) {
+    throw new BadUserInputError(
+      `Filtering through the to-many relation "${name}" is not supported`
+    )
+  }
+
   return {
     relation: name,
     source: tableOf(model),
