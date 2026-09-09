@@ -3,11 +3,9 @@ import type { QuerySpec } from '@/core/pagination/utils/query-spec'
 
 import type { FieldOutputTypes } from '../contract'
 
+import { modelFields, primaryKeyOf, relationLocalFields } from './contract-meta'
 import {
   type SqlLaneClient,
-  modelFields,
-  primaryKeyOf,
-  relationLocalFields,
   relationNames,
   orderSteps,
   requiresSqlLane,

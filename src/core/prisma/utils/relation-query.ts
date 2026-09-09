@@ -8,25 +8,21 @@ import { BadUserInputError } from '@/common/utils'
 import { fieldIsNullable } from '@/core/pagination/utils/query-definition'
 import type { SortClause } from '@/core/pagination/utils/query-spec'
 
-import contractJson from '../contract.json' with { type: 'json' }
-
+import {
+  columnOf,
+  isToMany,
+  primaryKeyOf,
+  relationMeta,
+  relationsOf,
+  storageFields,
+  tableOf
+} from './contract-meta'
 import {
   type Combinators,
   type Expr,
   type FieldBag,
   whereToExpr
 } from './where-to-expr'
-
-type RelationMeta = {
-  cardinality: string
-  on: { localFields: string[]; targetFields: string[] }
-  to: { model: string; namespace: string }
-}
-
-type ModelMeta = {
-  relations?: Record<string, RelationMeta>
-  storage: { table: string; fields: Record<string, { column: string }> }
-}
 
 type SqlFns = {
   eq(left: unknown, right: unknown): Expr
@@ -112,66 +108,6 @@ export type OrderStep = {
   expression: 'column' | 'isNull'
 }
 
-const models = contractJson.domain.namespaces.public
-  .models as unknown as Record<string, ModelMeta>
-
-const primaryKeys = contractJson.storage.namespaces.public.entries
-  .table as unknown as Record<string, { primaryKey: { columns: string[] } }>
-
-function modelMeta(model: string): ModelMeta {
-  const meta = models[model]
-
-  if (!meta) {
-    throw new Error(`Model "${model}" is not declared in the contract`)
-  }
-
-  return meta
-}
-
-function columnOf(model: string, field: string): string {
-  return modelMeta(model).storage.fields[field]?.column ?? field
-}
-
-export function tableOf(model: string): string {
-  return modelMeta(model).storage.table
-}
-
-export function modelFields(model: string): string[] {
-  return Object.keys(modelMeta(model).storage.fields)
-}
-
-export function relationLocalFields(model: string, name: string): string[] {
-  return modelMeta(model).relations?.[name]?.on.localFields ?? []
-}
-
-export function primaryKeyOf(model: string): { field: string; column: string } {
-  const meta = modelMeta(model)
-  const [column] = primaryKeys[meta.storage.table].primaryKey.columns
-  const entry = Object.entries(meta.storage.fields).find(
-    ([, storage]) => storage.column === column
-  )
-
-  return { field: entry?.[0] ?? column, column }
-}
-
-function relationMeta(model: string, name: string): RelationMeta {
-  const relation = modelMeta(model).relations?.[name]
-
-  if (!relation) {
-    throw new BadUserInputError(
-      `Relation "${name}" is not declared on "${model}"`
-    )
-  }
-
-  if (relation.cardinality !== 'N:1' && relation.cardinality !== '1:1') {
-    throw new BadUserInputError(
-      `Ordering and filtering through the to-many relation "${name}" is not supported yet`
-    )
-  }
-
-  return relation
-}
-
 function joinStep(model: string, name: string): JoinStep {
   const relation = relationMeta(model, name)
 
@@ -213,7 +149,7 @@ export function relationNames(
     }
   }
 
-  const declared = new Set(Object.keys(modelMeta(model).relations ?? {}))
+  const declared = new Set(Object.keys(relationsOf(model)))
 
   function walk(node: Record<string, unknown>): void {
     for (const [key, value] of Object.entries(node)) {
@@ -255,7 +191,15 @@ export function orderSteps(
     let owner = model
 
     for (const relation of clause.field.relations) {
-      owner = relationMeta(owner, relation.field).to.model
+      const meta = relationMeta(owner, relation.field)
+
+      if (isToMany(meta)) {
+        throw new BadUserInputError(
+          `Ordering through the to-many relation "${relation.field}" is not supported`
+        )
+      }
+
+      owner = meta.to.model
     }
 
     const table = tableOf(owner)
@@ -299,14 +243,14 @@ export function sqlFieldBag(
   fns: SqlFns,
   joined: ReadonlySet<string>
 ): FieldBag {
-  const meta = modelMeta(model)
+  const table = tableOf(model)
   const bag: Record<string, unknown> = {}
 
-  for (const [field, storage] of Object.entries(meta.storage.fields)) {
-    bag[field] = fieldOps(scope[meta.storage.table][storage.column], fns)
+  for (const [field, storage] of Object.entries(storageFields(model))) {
+    bag[field] = fieldOps(scope[table][storage.column], fns)
   }
 
-  for (const [name, relation] of Object.entries(meta.relations ?? {})) {
+  for (const [name, relation] of Object.entries(relationsOf(model))) {
     if (!joined.has(name)) {
       continue
     }
