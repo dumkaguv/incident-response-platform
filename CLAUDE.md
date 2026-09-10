@@ -157,11 +157,19 @@ tiebreaker is appended automatically.
 **`preference` is a sort key, not a filter.** A list query accepts
 `preference: [ID!]` on the root model only — no nested form — and the ids it
 carries lead the result in the order given, everything else following `orderBy`
-behind them. It is emitted as a leading `CASE WHEN id = $1 THEN 0 … END ASC`,
-whose NULL for an unpinned row sorts last under PostgreSQL's own default, so no
-null-rank key is needed; backward paging flips the direction and NULLs move to
-the front, which is the correct reversal. Because the ORM lane cannot express
-that expression, any `preference` forces the SQL lane. **The rank is the first
+behind them. **A leading `CASE … END` in `ORDER BY` would defeat every index**,
+so the SQL lane never emits one — it splits the page by cursor position
+instead. The rank is discrete and small, so the pinned block is read by primary
+key (`id IN (…)`) and ordered in memory, while everything past it is a plain
+keyset query (`id NOT IN (…)` under the normal order) that still lands on
+`(createdAt, id)`; a page straddling the boundary runs both and concatenates.
+Measured on 200k rows: a single `CASE` sort costs 47.9 ms on **every** page,
+against 0.32 ms for the pinned page and 0.096 ms past it — the latter being the
+same Index Only Scan a query with no `preference` gets. Backward reverses the
+phases, and a cursor sitting on a pinned row skips the unpinned phase entirely,
+because in reversed order every unpinned row is already behind it. `preference`
+still forces the SQL lane, since the ORM lane cannot express the two-phase
+read. **The rank is the first
 element of every cursor tuple and the list is part of the fingerprint** — a
 comparison against `id` sets (`IN` the ids after the cursor's rank, or `NOT IN`
 the list at all) is what keeps page two correct, and changing the list mid-walk
