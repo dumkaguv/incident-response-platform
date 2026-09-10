@@ -123,7 +123,7 @@ export function specToPrisma(spec: QuerySpec): PrismaQueryPlan {
   const filter = pagination.values
     ? group('and', [
         spec.filter,
-        keysetFilter(spec.sort, pagination.values, backward)
+        keysetFilter(spec.sort, pagination.values, backward, spec.preference)
       ])
     : spec.filter
 

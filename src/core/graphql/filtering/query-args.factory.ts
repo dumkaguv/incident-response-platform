@@ -1,8 +1,15 @@
-import { ArgsType, Field, InputType, registerEnumType } from '@nestjs/graphql'
-import { IsOptional, MaxLength } from 'class-validator'
+import {
+  ArgsType,
+  Field,
+  ID,
+  InputType,
+  registerEnumType
+} from '@nestjs/graphql'
+import { ArrayMaxSize, IsOptional, MaxLength } from 'class-validator'
 import type { Type } from '@nestjs/common'
 
 import { CursorPaginationArgs } from '@/core/pagination/cursor-pagination.args'
+import { MAX_PREFERENCE } from '@/core/pagination/pagination.constants'
 import { normalizeQuery } from '@/core/pagination/utils/normalize-query'
 import {
   type QueryDefinition,
@@ -22,6 +29,7 @@ registerEnumType(ORDER_DIRECTIONS, {
 export type QueryArgs = {
   filter?: unknown
   orderBy?: unknown
+  preference?: string[]
   search?: string
   toSpec(): QuerySpec
 }
@@ -42,6 +50,15 @@ export function QueryArgsFor(definition: QueryDefinition): Type<QueryArgs> {
 
     @IsOptional()
     public orderBy?: unknown
+
+    @IsOptional()
+    @ArrayMaxSize(MAX_PREFERENCE)
+    @Field(() => [ID], {
+      nullable: true,
+      description:
+        'Ids pinned to the top of the first page, in the order given; everything else follows orderBy'
+    })
+    public preference?: string[]
 
     @IsOptional()
     @MaxLength(200)

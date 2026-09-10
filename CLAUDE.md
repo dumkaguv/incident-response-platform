@@ -154,6 +154,20 @@ argument and each element carries exactly one path — `[{ createdAt: 'DESC' }, 
 id: 'DESC' }]`, never `[{ createdAt: 'DESC', id: 'DESC' }]`. The unique
 tiebreaker is appended automatically.
 
+**`preference` is a sort key, not a filter.** A list query accepts
+`preference: [ID!]` on the root model only — no nested form — and the ids it
+carries lead the result in the order given, everything else following `orderBy`
+behind them. It is emitted as a leading `CASE WHEN id = $1 THEN 0 … END ASC`,
+whose NULL for an unpinned row sorts last under PostgreSQL's own default, so no
+null-rank key is needed; backward paging flips the direction and NULLs move to
+the front, which is the correct reversal. Because the ORM lane cannot express
+that expression, any `preference` forces the SQL lane. **The rank is the first
+element of every cursor tuple and the list is part of the fingerprint** — a
+comparison against `id` sets (`IN` the ids after the cursor's rank, or `NOT IN`
+the list at all) is what keeps page two correct, and changing the list mid-walk
+is refused rather than silently reshuffled. An id that no row matches, or whose
+row the filter excludes, simply does not appear; `totalCount` never moves.
+
 **The ORM lane can express neither a relation order nor a NULLS placement.** A
 relation accessor exposes only `some`/`every`/`none`, and `OrderByItem` carries
 `(expr, dir)` with no NULLS clause, so `ORDER BY … NULLS FIRST/LAST` is

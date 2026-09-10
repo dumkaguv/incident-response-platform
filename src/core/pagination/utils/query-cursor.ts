@@ -9,7 +9,12 @@ import {
   validateScalarValue,
   wrapFieldCondition
 } from './query-filter'
-import type { FilterNode, QuerySpec, SortClause } from './query-spec'
+import type {
+  FilterNode,
+  PreferenceSpec,
+  QuerySpec,
+  SortClause
+} from './query-spec'
 
 export class InvalidCursorError extends BadUserInputError {
   constructor() {
@@ -22,11 +27,13 @@ export class InvalidCursorError extends BadUserInputError {
 export function queryFingerprint(
   resource: string,
   filter: FilterNode,
-  sort: SortClause[]
+  sort: SortClause[],
+  preference: PreferenceSpec
 ): string {
   const value = {
     resource,
     filter,
+    preference,
     sort: sort.map((clause) => ({
       ...clause,
       enumOrder: Object.values(clause.field.scalar.enum?.values ?? {})
@@ -70,18 +77,48 @@ function valueAtOrderPath(row: unknown, clause: SortClause): unknown {
   return value
 }
 
+function preferenceRank(
+  preference: PreferenceSpec,
+  row: unknown
+): number | null {
+  const value = (row as Record<string, unknown>)[preference.field]
+  const index = preference.ids.indexOf(value as string)
+
+  return index < 0 ? null : index
+}
+
 export function encodeCursor(row: unknown, spec: QuerySpec): string {
-  const values = spec.sort.map((clause) => valueAtOrderPath(row, clause))
+  const values: unknown[] = spec.sort.map((clause) =>
+    valueAtOrderPath(row, clause)
+  )
+
+  if (spec.preference.ids.length) {
+    values.unshift(preferenceRank(spec.preference, row))
+  }
 
   return Buffer.from(
     JSON.stringify({ v: 1, fingerprint: spec.fingerprint, values })
   ).toString('base64url')
 }
 
+function validateRank(preference: PreferenceSpec, value: unknown): unknown {
+  if (
+    value !== null &&
+    (!Number.isInteger(value) ||
+      (value as number) < 0 ||
+      (value as number) >= preference.ids.length)
+  ) {
+    throw new InvalidCursorError()
+  }
+
+  return value
+}
+
 export function decodeCursor(
   cursor: unknown,
   fingerprint: string,
-  sort: SortClause[]
+  sort: SortClause[],
+  preference: PreferenceSpec
 ): unknown[] {
   try {
     if (
@@ -106,20 +143,27 @@ export function decodeCursor(
       payload.v !== 1 ||
       payload.fingerprint !== fingerprint ||
       !Array.isArray(payload.values) ||
-      payload.values.length !== sort.length
+      payload.values.length !== sort.length + (preference.ids.length ? 1 : 0)
     ) {
       throw new InvalidCursorError()
     }
 
-    return payload.values.map((value: unknown, index) =>
-      validateScalarValue(
-        {
-          ...sort[index].field.scalar,
-          nullable: fieldIsNullable(sort[index].field)
-        },
-        value
+    const ranked = preference.ids.length
+      ? [validateRank(preference, payload.values[0])]
+      : []
+
+    return [
+      ...ranked,
+      ...payload.values.slice(ranked.length).map((value: unknown, index) =>
+        validateScalarValue(
+          {
+            ...sort[index].field.scalar,
+            nullable: fieldIsNullable(sort[index].field)
+          },
+          value
+        )
       )
-    )
+    ]
   } catch {
     throw new InvalidCursorError()
   }
@@ -206,16 +250,71 @@ function comparison(
   })
 }
 
+function rankReached(
+  preference: PreferenceSpec,
+  rank: number | null,
+  backward: boolean
+): FilterNode {
+  const { field, ids } = preference
+
+  if (backward) {
+    const earlier = rank === null ? ids : ids.slice(0, rank)
+
+    return earlier.length
+      ? { kind: 'condition', field, operator: 'in', value: earlier }
+      : { kind: 'constant', value: false }
+  }
+
+  if (rank === null) {
+    return { kind: 'constant', value: false }
+  }
+
+  const unpinned: FilterNode = {
+    kind: 'condition',
+    field,
+    operator: 'nin',
+    value: ids
+  }
+  const later = ids.slice(rank + 1)
+
+  return later.length
+    ? group('or', [
+        { kind: 'condition', field, operator: 'in', value: later },
+        unpinned
+      ])
+    : unpinned
+}
+
+function rankEquality(
+  preference: PreferenceSpec,
+  rank: number | null
+): FilterNode {
+  const { field, ids } = preference
+
+  return rank === null
+    ? { kind: 'condition', field, operator: 'nin', value: ids }
+    : { kind: 'condition', field, operator: 'eq', value: ids[rank] }
+}
+
 export function keysetFilter(
   sort: SortClause[],
   values: unknown[],
-  backward: boolean
+  backward: boolean,
+  preference: PreferenceSpec
 ): FilterNode {
   const branches: FilterNode[] = []
   const equalities: FilterNode[] = []
+  const ranked = preference.ids.length
+
+  if (ranked) {
+    const rank = values[0] as number | null
+
+    branches.push(rankReached(preference, rank, backward))
+    equalities.push(rankEquality(preference, rank))
+  }
 
   for (const [index, clause] of sort.entries()) {
-    const value = values[index]
+    const value = values[index + (ranked ? 1 : 0)]
     const ascending = (clause.direction === 'ASC') !== backward
     const nullsLast = (clause.nulls === 'last') !== backward
     let after: FilterNode

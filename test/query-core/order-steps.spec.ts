@@ -4,20 +4,25 @@ import { normalizeQuery } from '@/core/pagination/utils/normalize-query'
 import { orderSteps, requiresSqlLane } from '@/core/prisma/utils/relation-query'
 import { incidentQuery } from '@/modules/incident/resolvers/incident.query'
 import type { OrderByInput } from '@/core/pagination/utils/query-definition'
+import type { PreferenceSpec } from '@/core/pagination/utils/query-spec'
+
+const NO_PREFERENCE: PreferenceSpec = { field: 'id', ids: [] }
 
 function sortOf(orderBy: OrderByInput[]) {
   return normalizeQuery(incidentQuery, { orderBy }).sort
 }
 
 function orderBySql(orderBy: OrderByInput[], backward = false): string[] {
-  return orderSteps('Incident', sortOf(orderBy), backward).map((step) => {
-    const operand =
-      step.expression === 'isNull'
-        ? `${step.table}.${step.column} IS NULL`
-        : `${step.table}.${step.column}`
+  return orderSteps('Incident', sortOf(orderBy), backward, NO_PREFERENCE).map(
+    (step) => {
+      const operand =
+        step.expression === 'isNull'
+          ? `${step.table}.${step.column} IS NULL`
+          : `${step.table}.${step.column}`
 
-    return `${operand} ${step.direction.toUpperCase()}`
-  })
+      return `${operand} ${step.direction.toUpperCase()}`
+    }
+  )
 }
 
 describe('SQL lane ordering', () => {
@@ -115,21 +120,27 @@ describe('SQL lane ordering', () => {
   })
 
   it('sends only orderings the ORM lane cannot express to the SQL lane', () => {
-    expect(requiresSqlLane(sortOf([{ createdAt: 'DESC' }]))).toBe(false)
-    expect(requiresSqlLane(sortOf([{ title: 'ASC' }]))).toBe(false)
-    expect(requiresSqlLane(sortOf([{ resolvedAt: 'AscNullsLast' }]))).toBe(
+    expect(
+      requiresSqlLane(sortOf([{ createdAt: 'DESC' }]), NO_PREFERENCE)
+    ).toBe(false)
+    expect(requiresSqlLane(sortOf([{ title: 'ASC' }]), NO_PREFERENCE)).toBe(
       false
     )
-    expect(requiresSqlLane(sortOf([{ resolvedAt: 'DescNullsFirst' }]))).toBe(
-      false
-    )
-    expect(requiresSqlLane(sortOf([{ resolvedAt: 'AscNullsFirst' }]))).toBe(
-      true
-    )
-    expect(requiresSqlLane(sortOf([{ description: 'DescNullsLast' }]))).toBe(
-      true
-    )
-    expect(requiresSqlLane(sortOf([{ team: { name: 'ASC' } }]))).toBe(true)
+    expect(
+      requiresSqlLane(sortOf([{ resolvedAt: 'AscNullsLast' }]), NO_PREFERENCE)
+    ).toBe(false)
+    expect(
+      requiresSqlLane(sortOf([{ resolvedAt: 'DescNullsFirst' }]), NO_PREFERENCE)
+    ).toBe(false)
+    expect(
+      requiresSqlLane(sortOf([{ resolvedAt: 'AscNullsFirst' }]), NO_PREFERENCE)
+    ).toBe(true)
+    expect(
+      requiresSqlLane(sortOf([{ description: 'DescNullsLast' }]), NO_PREFERENCE)
+    ).toBe(true)
+    expect(
+      requiresSqlLane(sortOf([{ team: { name: 'ASC' } }]), NO_PREFERENCE)
+    ).toBe(true)
   })
 
   it('refuses to order through a to-many relation', () => {
@@ -151,7 +162,8 @@ describe('SQL lane ordering', () => {
             nulls: 'last'
           }
         ],
-        false
+        false,
+        NO_PREFERENCE
       )
     ).toThrow(
       'Ordering through the to-many relation "members" is not supported'

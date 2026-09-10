@@ -8,8 +8,11 @@ import {
 } from '@/core/pagination/utils/query-cursor'
 import { validateQueryDefinition } from '@/core/pagination/utils/query-definition'
 import { specToPrisma } from '@/core/prisma/utils/spec-to-prisma'
+import type { PreferenceSpec } from '@/core/pagination/utils/query-spec'
 
 import { fixtureQuery } from './fixtures/query-definition'
+
+const NO_PREFERENCE: PreferenceSpec = { field: 'id', ids: [] }
 
 describe('query core', () => {
   it('preserves logical groups and maps composite and relation fields', () => {
@@ -169,11 +172,11 @@ describe('query core', () => {
       })
     ).toString('base64url')
 
-    expect(() => decodeCursor(malformed, spec.fingerprint, spec.sort)).toThrow(
-      'Invalid pagination cursor'
-    )
     expect(() =>
-      decodeCursor('not-a-cursor', spec.fingerprint, spec.sort)
+      decodeCursor(malformed, spec.fingerprint, spec.sort, NO_PREFERENCE)
+    ).toThrow('Invalid pagination cursor')
+    expect(() =>
+      decodeCursor('not-a-cursor', spec.fingerprint, spec.sort, NO_PREFERENCE)
     ).toThrow('Invalid pagination cursor')
     expect(() => encodeCursor({ id: 'a' }, spec)).toThrow(
       'Missing selected cursor field'

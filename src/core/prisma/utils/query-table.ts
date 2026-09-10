@@ -120,7 +120,7 @@ async function listThroughSqlLane(
   const key = primaryKeyOf(model)
   const ids = await selectOrderedIds(db as unknown as SqlLaneClient, model, {
     where,
-    order: orderSteps(model, spec.sort, backward),
+    order: orderSteps(model, spec.sort, backward, spec.preference),
     paths,
     take
   })
@@ -151,7 +151,7 @@ export async function listConnection<M extends ModelName>(
 ): Promise<Connection<RowOf<M>>> {
   const { args, countWhere } = specToPrisma(spec)
   const fields = projectionFor(model, spec, requested)
-  const rows = requiresSqlLane(spec.sort)
+  const rows = requiresSqlLane(spec.sort, spec.preference)
     ? await listThroughSqlLane(db, model, spec, args.where, args.take, fields)
     : await listDirect(
         project(tableOf(db, model), fields),

@@ -1,14 +1,19 @@
 import {
   AndExpr,
+  CaseExpr,
   ColumnRef,
   ExistsExpr,
+  LiteralExpr,
   NotExpr,
   NullCheckExpr
 } from '@prisma/orm-postgres/relational-core/ast'
 
 import { BadUserInputError } from '@/common/utils'
 import { fieldIsNullable } from '@/core/pagination/utils/query-definition'
-import type { SortClause } from '@/core/pagination/utils/query-spec'
+import type {
+  PreferenceSpec,
+  SortClause
+} from '@/core/pagination/utils/query-spec'
 
 import {
   type RelationMeta,
@@ -83,7 +88,7 @@ type SqlScope = Record<string, Record<string, unknown>>
 type SqlQuery = {
   where(build: (scope: SqlScope, fns: SqlFns) => Expr): SqlQuery
   orderBy(
-    build: (scope: SqlScope) => unknown,
+    build: (scope: SqlScope, fns: SqlFns) => unknown,
     options: { direction: 'asc' | 'desc' }
   ): SqlQuery
   limit(count: number): SqlQuery
@@ -111,12 +116,11 @@ export type SqlLaneContext = {
   joined: ReadonlySet<string>
 }
 
-export type OrderStep = {
-  table: string
-  column: string
-  direction: 'asc' | 'desc'
-  expression: 'column' | 'isNull'
-}
+type OrderKey = { table: string; column: string; direction: 'asc' | 'desc' }
+
+export type OrderStep =
+  | (OrderKey & { expression: 'column' | 'isNull' })
+  | (OrderKey & { expression: 'preferenceRank'; ids: readonly string[] })
 
 type Quantifier = 'some' | 'none' | 'every'
 
@@ -124,7 +128,14 @@ function defaultNulls(direction: 'asc' | 'desc'): 'first' | 'last' {
   return direction === 'asc' ? 'last' : 'first'
 }
 
-export function requiresSqlLane(sort: readonly SortClause[]): boolean {
+export function requiresSqlLane(
+  sort: readonly SortClause[],
+  preference: PreferenceSpec
+): boolean {
+  if (preference.ids.length) {
+    return true
+  }
+
   return sort.some(
     (clause) =>
       clause.field.relations.length > 0 ||
@@ -137,10 +148,21 @@ export function requiresSqlLane(sort: readonly SortClause[]): boolean {
 export function orderSteps(
   model: string,
   sort: readonly SortClause[],
-  backward: boolean
+  backward: boolean,
+  preference: PreferenceSpec
 ): OrderStep[] {
   const rootTable = tableOf(model)
   const steps: OrderStep[] = []
+
+  if (preference.ids.length) {
+    steps.push({
+      table: rootTable,
+      column: columnOf(model, preference.field),
+      direction: backward ? 'desc' : 'asc',
+      expression: 'preferenceRank',
+      ids: preference.ids
+    })
+  }
 
   for (const clause of sort) {
     const ascending = (clause.direction === 'ASC') !== backward
@@ -194,6 +216,19 @@ function fieldOps(expr: unknown, fns: SqlFns): Record<string, unknown> {
     like: (pattern: string) => fns.ilike(expr, pattern),
     isNull: () => nullCheck(expr, false),
     isNotNull: () => nullCheck(expr, true)
+  }
+}
+
+function rankOf(column: unknown, ids: readonly string[], fns: SqlFns): unknown {
+  return {
+    buildAst: () =>
+      CaseExpr.of(
+        ids.map((id, index) => ({
+          condition: (fns.eq(column, id) as unknown as BuilderExpr).buildAst(),
+          value: new LiteralExpr(index)
+        })),
+        undefined
+      )
   }
 }
 
@@ -410,8 +445,12 @@ export function buildOrderedIdQuery(
 
   for (const step of options.order) {
     query = query.orderBy(
-      (scope) => {
+      (scope, fns) => {
         const column = scope[step.table][step.column]
+
+        if (step.expression === 'preferenceRank') {
+          return rankOf(column, step.ids, fns)
+        }
 
         return step.expression === 'isNull' ? nullCheck(column, false) : column
       },

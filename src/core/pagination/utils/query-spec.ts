@@ -39,6 +39,8 @@ export type SortClause = {
   nulls: 'first' | 'last'
 }
 
+export type PreferenceSpec = { field: string; ids: string[] }
+
 export type CursorPaginationSpec = {
   limit: number
   direction: 'forward' | 'backward'
@@ -48,6 +50,7 @@ export type CursorPaginationSpec = {
 export type QuerySpec = {
   filter: FilterNode
   sort: SortClause[]
+  preference: PreferenceSpec
   pagination: CursorPaginationSpec
   fingerprint: string
 }
