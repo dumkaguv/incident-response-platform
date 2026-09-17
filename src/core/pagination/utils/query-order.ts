@@ -145,7 +145,7 @@ export function parseOrder(
   const unique = sortClause(
     definition,
     definition.uniqueField ?? 'id',
-    'ASC',
+    result.at(-1)?.direction ?? 'ASC',
     true
   )
 

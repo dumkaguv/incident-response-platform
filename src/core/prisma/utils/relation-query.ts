@@ -111,10 +111,7 @@ export type SqlLaneClient = {
   runtime(): { query(plan: unknown): AsyncIterable<Record<string, unknown>> }
 }
 
-export type SqlLaneContext = {
-  tables: SqlTables
-  joined: ReadonlySet<string>
-}
+export type SqlLaneContext = { tables: SqlTables }
 
 type OrderKey = { table: string; column: string; direction: 'asc' | 'desc' }
 
@@ -299,71 +296,19 @@ export function sqlFieldBag(
   }
 
   for (const [name, relation] of Object.entries(relationsOf(model))) {
-    const next = [...path, name]
-
-    if (isToMany(relation)) {
-      function through(
-        quantifier: Quantifier
-      ): (build: (fields: FieldBag) => Expr) => Expr {
-        return (build) =>
-          existsThrough(
-            model,
-            key,
-            path,
-            name,
-            relation,
-            build,
-            ctx,
-            quantifier
-          )
-      }
-
-      bag[name] = {
-        some: through('some'),
-        none: through('none'),
-        every: through('every')
-      }
-
-      continue
-    }
-
-    if (!ctx.joined.has(next.join('.'))) {
-      continue
-    }
-
-    const childKey = joinAlias(next)
-    const target = sqlFieldBag(
-      relation.to.model,
-      next,
-      childKey,
-      scope,
-      fns,
-      ctx
-    )
-    const anchor = scope[childKey][primaryKeyOf(relation.to.model).column]
-    const combinators = sqlCombinators(fns)
-
-    function present(build: (fields: FieldBag) => Expr): Expr {
-      return combinators.and([nullCheck(anchor, true), build(target)])
-    }
-
-    function absent(build: (fields: FieldBag) => Expr): Expr {
-      return combinators.or([
-        nullCheck(anchor, false),
-        combinators.not(build(target))
-      ])
-    }
-
-    function every(build: (fields: FieldBag) => Expr): Expr {
-      return combinators.or([nullCheck(anchor, false), build(target)])
+    function through(
+      quantifier: Quantifier
+    ): (build: (fields: FieldBag) => Expr) => Expr {
+      return (build) =>
+        existsThrough(model, key, path, name, relation, build, ctx, quantifier)
     }
 
     bag[name] = {
-      is: present,
-      some: present,
-      isNot: absent,
-      none: absent,
-      every
+      is: through('some'),
+      some: through('some'),
+      isNot: through('none'),
+      none: through('none'),
+      every: through('every')
     }
   }
 
@@ -391,7 +336,7 @@ function applyJoins(
 
     if (isToMany(relation)) {
       throw new BadUserInputError(
-        `Filtering through the to-many relation "${name}" is not supported`
+        `Ordering through the to-many relation "${name}" is not supported`
       )
     }
 
@@ -428,10 +373,7 @@ export function buildOrderedIdQuery(
 ): SqlQuery {
   const key = primaryKeyOf(model)
   const rootTable = tableOf(model)
-  const ctx: SqlLaneContext = {
-    tables,
-    joined: new Set(options.paths.map((path) => path.join('.')))
-  }
+  const ctx: SqlLaneContext = { tables }
 
   let query = applyJoins(tables, model, options.paths)
     .select((scope) => ({ [key.column]: scope[rootTable][key.column] }))

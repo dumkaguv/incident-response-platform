@@ -22,7 +22,13 @@ describe('resolveLocale', () => {
     ['ru-RU,ru;q=0.9,en;q=0.8', 'ru'],
     ['RO-ro', 'ro'],
     ['fr-FR,fr;q=0.9', 'en'],
-    ['fr,ru;q=0.5', 'ru']
+    ['fr,ru;q=0.5', 'ru'],
+    ['ro;q=0.1, ru;q=0.9', 'ru'],
+    ['ro;q=0.8, ru', 'ru'],
+    ['ru;q=0, ro;q=0.5', 'ro'],
+    ['ru;q=0', 'en'],
+    ['*', 'en'],
+    ['ru;q=abc, ro', 'ro']
   ] as const)('maps %s to %s', ([header, expected]) => {
     expect(resolveLocale(header)).toBe(expected)
   })

@@ -7,6 +7,7 @@ import {
   encodeCursor
 } from '@/core/pagination/utils/query-cursor'
 import { validateQueryDefinition } from '@/core/pagination/utils/query-definition'
+import { validateScalarValue } from '@/core/pagination/utils/query-filter'
 import { specToPrisma } from '@/core/prisma/utils/spec-to-prisma'
 import type { PreferenceSpec } from '@/core/pagination/utils/query-spec'
 
@@ -223,6 +224,60 @@ describe('query core', () => {
         expect(count).toHaveBeenCalledTimes(1)
       }
     )
+  })
+
+  it('keeps the exact timestamp text in filters and cursors', () => {
+    const precise = '2026-01-01T00:00:00.123456+00:00'
+    const spec = normalizeQuery(fixtureQuery, {
+      filter: { createdAt: { gte: precise } },
+      orderBy: [{ createdAt: 'DESC' }]
+    })
+    const cursor = encodeCursor({ id: 'a', createdAt: precise }, spec)
+
+    expect(specToPrisma(spec).countWhere).toEqual({
+      createdAt: { gte: precise }
+    })
+    expect(
+      normalizeQuery(fixtureQuery, {
+        filter: { createdAt: { gte: precise } },
+        orderBy: [{ createdAt: 'DESC' }],
+        after: cursor
+      }).pagination.values
+    ).toEqual([precise, 'a'])
+    expect(
+      validateScalarValue({ type: 'date' }, new Date('2026-01-01T00:00:00Z'))
+    ).toBe('2026-01-01T00:00:00.000Z')
+    expect(() => validateScalarValue({ type: 'date' }, 'yesterday')).toThrow(
+      'Invalid date'
+    )
+  })
+
+  it('appends the tiebreaker in the direction of the last explicit key', () => {
+    function directions(orderBy: unknown): [string, string][] {
+      return normalizeQuery(fixtureQuery, { orderBy }).sort.map((clause) => [
+        clause.field.name,
+        clause.direction
+      ])
+    }
+
+    expect(directions([{ title: 'DESC' }])).toEqual([
+      ['title', 'DESC'],
+      ['id', 'DESC']
+    ])
+    expect(directions([{ rank: 'DescNullsLast' }, { title: 'ASC' }])).toEqual([
+      ['rank', 'DESC'],
+      ['title', 'ASC'],
+      ['id', 'ASC']
+    ])
+    expect(directions(undefined)).toEqual([
+      ['createdAt', 'DESC'],
+      ['id', 'DESC']
+    ])
+    expect(
+      specToPrisma(
+        normalizeQuery(fixtureQuery, { orderBy: [{ title: 'DESC' }] })
+      ).args.orderBy
+    ).toEqual([{ title: 'desc' }, { id: 'desc' }])
   })
 
   it('supports last without before and root id ordering', () => {

@@ -47,12 +47,8 @@ async function bootstrap(): Promise<void> {
     })
   )
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true
-    })
-  )
+  app.useGlobalPipes(new ValidationPipe({ transform: true }))
+  app.enableShutdownHooks()
 
   await app.listen(port)
 

@@ -16,7 +16,7 @@ const db = postgres<Contract>({
 const client = db as unknown as SqlLaneClient
 
 describe('selectOrderedIds', () => {
-  it('refuses to filter through a to-many relation', async () => {
+  it('refuses to join through a to-many relation for ordering', async () => {
     await expect(
       selectOrderedIds(client, 'Monitor', {
         where: {},
@@ -25,7 +25,7 @@ describe('selectOrderedIds', () => {
         take: 10
       })
     ).rejects.toThrow(
-      'Filtering through the to-many relation "checks" is not supported'
+      'Ordering through the to-many relation "checks" is not supported'
     )
   })
 })

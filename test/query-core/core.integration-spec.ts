@@ -134,26 +134,26 @@ describe('query core against PostgreSQL', () => {
 
   const cases: { orderBy: OrderByInput[]; sqlOrder: string }[] = []
 
-  for (const [direction, sqlDirection] of [
-    ['AscNullsFirst', 'ASC NULLS FIRST'],
-    ['AscNullsLast', 'ASC NULLS LAST'],
-    ['DescNullsFirst', 'DESC NULLS FIRST'],
-    ['DescNullsLast', 'DESC NULLS LAST']
+  for (const [direction, sqlDirection, tiebreaker] of [
+    ['AscNullsFirst', 'ASC NULLS FIRST', 'ASC'],
+    ['AscNullsLast', 'ASC NULLS LAST', 'ASC'],
+    ['DescNullsFirst', 'DESC NULLS FIRST', 'DESC'],
+    ['DescNullsLast', 'DESC NULLS LAST', 'DESC']
   ] as const) {
     cases.push({
       orderBy: [{ rank: direction }],
-      sqlOrder: `q.rank ${sqlDirection}, q.id ASC`
+      sqlOrder: `q.rank ${sqlDirection}, q.id ${tiebreaker}`
     })
     cases.push({
       orderBy: [{ owner: { name: direction } }],
-      sqlOrder: `p.name ${sqlDirection}, q.id ASC`
+      sqlOrder: `p.name ${sqlDirection}, q.id ${tiebreaker}`
     })
     cases.push({
       orderBy: [
         { owner: { organization: { name: direction } } },
         { priority: 'DESC' }
       ],
-      sqlOrder: `o.name ${sqlDirection}, q.priority DESC, q.id ASC`
+      sqlOrder: `o.name ${sqlDirection}, q.priority DESC, q.id DESC`
     })
     cases.push({
       orderBy: [

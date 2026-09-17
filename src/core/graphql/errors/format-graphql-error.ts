@@ -3,7 +3,13 @@ import { HttpException, HttpStatus } from '@nestjs/common'
 import { type GraphQLFormattedError, GraphQLError } from 'graphql'
 
 import { AppError } from '@/common/utils'
-import { isDev } from '@/core/config'
+
+export type ErrorFormatterOptions = { debug: boolean }
+
+export type ErrorFormatter = (
+  formattedError: GraphQLFormattedError,
+  error: unknown
+) => GraphQLFormattedError
 
 const HTTP_CODE_MAP: Record<number, string> = {
   [HttpStatus.BAD_REQUEST]: ApolloServerErrorCode.BAD_USER_INPUT,
@@ -14,33 +20,34 @@ const HTTP_CODE_MAP: Record<number, string> = {
   [HttpStatus.TOO_MANY_REQUESTS]: 'TOO_MANY_REQUESTS'
 }
 
-export function formatGraphQLError(
-  formattedError: GraphQLFormattedError,
-  error: unknown
-): GraphQLFormattedError {
-  const original = unwrapOriginalError(error)
+export function createErrorFormatter({
+  debug
+}: ErrorFormatterOptions): ErrorFormatter {
+  return (formattedError, error) => {
+    const original = unwrapOriginalError(error)
 
-  if (original instanceof AppError) {
-    return {
-      message: original.message,
-      path: formattedError.path,
-      extensions: { code: original.code }
+    if (original instanceof AppError) {
+      return {
+        message: original.message,
+        path: formattedError.path,
+        extensions: { code: original.code }
+      }
     }
-  }
 
-  if (original instanceof HttpException) {
-    return formatHttpException(original, formattedError)
-  }
-
-  if (!isDev() && isInternalError(formattedError)) {
-    return {
-      message: 'Internal server error',
-      path: formattedError.path,
-      extensions: { code: ApolloServerErrorCode.INTERNAL_SERVER_ERROR }
+    if (original instanceof HttpException) {
+      return formatHttpException(original, formattedError)
     }
-  }
 
-  return formattedError
+    if (!debug && isInternalError(formattedError)) {
+      return {
+        message: 'Internal server error',
+        path: formattedError.path,
+        extensions: { code: ApolloServerErrorCode.INTERNAL_SERVER_ERROR }
+      }
+    }
+
+    return formattedError
+  }
 }
 
 function unwrapOriginalError(error: unknown): unknown {

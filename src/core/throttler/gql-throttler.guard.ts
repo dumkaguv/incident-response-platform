@@ -1,6 +1,6 @@
 import { msg } from '@lingui/core/macro'
 import { type ExecutionContext, HttpStatus, Injectable } from '@nestjs/common'
-import { GqlExecutionContext } from '@nestjs/graphql'
+import { type GqlContextType, GqlExecutionContext } from '@nestjs/graphql'
 import {
   type ThrottlerLimitDetail,
   type ThrottlerRequest,
@@ -11,12 +11,18 @@ import { TooManyRequestsError } from '@/common/utils'
 
 import { clientTracker } from './client-tracker'
 
-const COUNTED = Symbol('throttler.counted')
+const VERDICTS = Symbol('throttler.verdicts')
 
-type CountedRequest = Record<string, unknown> & { [COUNTED]?: Set<string> }
+type JudgedRequest = Record<string, unknown> & {
+  [VERDICTS]?: Map<string, Promise<boolean>>
+}
 
 @Injectable()
 export class GqlThrottlerGuard extends ThrottlerGuard {
+  protected shouldSkip(context: ExecutionContext): Promise<boolean> {
+    return Promise.resolve(context.getType<GqlContextType>() !== 'graphql')
+  }
+
   protected getRequestResponse(context: ExecutionContext): {
     req: Record<string, unknown>
     res: Record<string, unknown>
@@ -29,19 +35,19 @@ export class GqlThrottlerGuard extends ThrottlerGuard {
     return { req: gqlContext.req, res: gqlContext.res }
   }
 
-  protected async handleRequest(request: ThrottlerRequest): Promise<boolean> {
+  protected handleRequest(request: ThrottlerRequest): Promise<boolean> {
     const { req } = this.getRequestResponse(request.context)
-    const carrier = req as CountedRequest
-    const counted = (carrier[COUNTED] ??= new Set<string>())
+    const carrier = req as JudgedRequest
+    const verdicts = (carrier[VERDICTS] ??= new Map<string, Promise<boolean>>())
     const name = request.throttler.name ?? 'default'
+    let verdict = verdicts.get(name)
 
-    if (counted.has(name)) {
-      return true
+    if (!verdict) {
+      verdict = super.handleRequest(request)
+      verdicts.set(name, verdict)
     }
 
-    counted.add(name)
-
-    return super.handleRequest(request)
+    return verdict
   }
 
   protected getTracker(req: Record<string, unknown>): Promise<string> {
