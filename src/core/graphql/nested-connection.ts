@@ -32,7 +32,7 @@ export type NestedConnectionArgs = {
   orderBy?: unknown
 }
 
-export function NestedConnectionArgsFor(
+function nestedArgsFor(
   definition: QueryDefinition
 ): Type<NestedConnectionArgs> {
   const orderInput = orderInputFor(definition)
@@ -82,7 +82,7 @@ export function NestedConnection(options: {
   description: string
 }): Type<unknown> {
   const { definition, field, foreignKey, model } = options
-  const NestedArgs = NestedConnectionArgsFor(definition)
+  const NestedArgs = nestedArgsFor(definition)
 
   @Resolver(() => options.parent)
   class GeneratedNestedResolver {

@@ -2,11 +2,13 @@ import { msg } from '@lingui/core/macro'
 import { Injectable } from '@nestjs/common'
 
 import { NotFoundError } from '@/common/utils'
+import { MonitorRepository } from '@/modules/monitor/repositories'
 import type { Connection, QuerySpec } from '@/core/pagination'
-
-import { MonitorRepository } from '../repositories'
-import type { MonitorCreateData, MonitorUpdateData } from '../inputs'
-import type { Monitor } from '../types'
+import type {
+  MonitorCreateData,
+  MonitorUpdateData
+} from '@/modules/monitor/inputs'
+import type { Monitor } from '@/modules/monitor/types'
 
 @Injectable()
 export class MonitorService {

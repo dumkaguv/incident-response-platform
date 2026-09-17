@@ -2,9 +2,12 @@ import { Field, ID, Int, ObjectType } from '@nestjs/graphql'
 
 import { DateTimeScalar, registerQueryEnum } from '@/core/graphql'
 import { Connected } from '@/core/pagination'
-
-import { MonitorTypeName } from '../constants'
-import { type MonitorCheck, CheckErrorType, MonitorStatus } from '../types'
+import { MonitorTypeName } from '@/modules/monitor/constants'
+import {
+  type MonitorCheck,
+  CheckErrorType,
+  MonitorStatus
+} from '@/modules/monitor/types'
 
 registerQueryEnum(MonitorStatus, MonitorTypeName.status, {
   description: 'Whether the probe reached a healthy response'

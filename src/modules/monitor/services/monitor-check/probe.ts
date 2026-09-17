@@ -1,6 +1,10 @@
 import { performance } from 'node:perf_hooks'
 
-import { type Monitor, CheckErrorType, MonitorStatus } from '../types'
+import {
+  type Monitor,
+  CheckErrorType,
+  MonitorStatus
+} from '@/modules/monitor/types'
 
 export type ProbeOutcome = {
   status: MonitorStatus

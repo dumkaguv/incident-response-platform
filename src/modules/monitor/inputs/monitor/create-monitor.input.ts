@@ -11,8 +11,8 @@ import {
   Min
 } from 'class-validator'
 
-import { MonitorLimit } from '../constants'
-import { MonitorMethod } from '../types'
+import { MonitorLimit } from '@/modules/monitor/constants'
+import { MonitorMethod } from '@/modules/monitor/types'
 
 @InputType()
 export class CreateMonitorInput {

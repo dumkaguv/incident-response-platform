@@ -10,12 +10,18 @@ import {
 import type { GraphQLResolveInfo } from 'graphql'
 
 import { ArgName, QueryArgsFor, connectionSelection } from '@/core/graphql'
+import {
+  CreateMonitorInput,
+  UpdateMonitorInput
+} from '@/modules/monitor/inputs'
+import {
+  MonitorCheckObject,
+  MonitorConnection,
+  MonitorObject
+} from '@/modules/monitor/models'
+import { MonitorCheckService, MonitorService } from '@/modules/monitor/services'
 import type { Connection } from '@/core/pagination'
-
-import { CreateMonitorInput, UpdateMonitorInput } from '../inputs'
-import { MonitorCheckObject, MonitorConnection, MonitorObject } from '../models'
-import { MonitorCheckService, MonitorService } from '../services'
-import type { Monitor, MonitorCheck } from '../types'
+import type { Monitor, MonitorCheck } from '@/modules/monitor/types'
 
 import { monitorQuery } from './monitor.query'
 

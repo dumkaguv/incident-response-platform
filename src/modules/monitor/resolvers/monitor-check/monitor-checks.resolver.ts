@@ -1,6 +1,5 @@
 import { NestedConnection } from '@/core/graphql'
-
-import { MonitorCheckConnection, MonitorObject } from '../models'
+import { MonitorCheckConnection, MonitorObject } from '@/modules/monitor/models'
 
 import { monitorCheckQuery } from './monitor-check.query'
 

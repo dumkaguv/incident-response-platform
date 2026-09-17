@@ -56,16 +56,23 @@ src/
   modules/<feature>/
     <feature>.prisma          schema fragment — edit here
     <feature>.module.ts
-    constants/  GraphQL type names, one object per feature
-    inputs/     GraphQL write surface + the repository data types,
-                one <verb>-<feature>.input.ts per input
+    constants/  GraphQL type names and validation bounds, shared by the
+                whole feature, so this one stays flat
+    inputs/     GraphQL write surface, one <verb>-<entity>.input.ts per input
     models/     @ObjectType classes
     resolvers/  resolver, its @ArgsType, and the QueryDefinition
     services/   rules and errors
-    repositories/  <feature>.repository.ts
-    types/      row type + enum value maps
+    repositories/  the only place that touches the database
+    types/      row types, enum value maps, repository write shapes
     index.ts    in every folder; imports go to the folder, not the file
 ```
+
+Every layer above `constants/` is split one folder per entity — `models/monitor/`
+and `models/monitor-check/`, not two files side by side. A layer holding one
+entity keeps the folder anyway, so the shape does not change when a second
+arrives. The cost is that a file two levels down cannot reach a sibling layer
+with `../../`, which lint forbids: it imports `@/modules/<feature>/<layer>`
+instead.
 
 Two layers under the resolver. The **repository** is the only place that
 touches the database and returns rows or `null`; it is a plain `@Injectable()`
@@ -77,9 +84,13 @@ satisfied structurally. The **service** holds the rules and throws
 `NotFoundError` / `ConflictError`.
 
 Write types are **derived, not retyped**: `XCreateData = CreateXInput` and
-`XUpdateData = UpdateXInput & { serverOnlyField?: … }`, declared in `inputs/`
-because `inputs` already imports the enum maps from `types` and declaring them
-in `types` would close an import cycle.
+`XUpdateData = UpdateXInput & { serverOnlyField?: ... }`. Those stay in
+`inputs/` next to the class they are derived from — `inputs` already imports the
+enum maps from `types`, so declaring them in `types` would close an import
+cycle. An entity with no GraphQL write surface at all has nothing to derive
+from: its write shape is a plain type, it imports only enums, and it belongs in
+`types/` with the row it is written into. That is where `MonitorCheckCreateData`
+lives — a probe result is produced by the server, never posted by a client.
 
 **Nothing reads `process.env` except `core/config/env.schema.ts`.** Every
 variable is declared there in a Zod schema that coerces and defaults, and

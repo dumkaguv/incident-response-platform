@@ -1,7 +1,10 @@
+import { MonitorTypeName } from '@/modules/monitor/constants'
+import {
+  CheckErrorType,
+  MonitorMethod,
+  MonitorStatus
+} from '@/modules/monitor/types'
 import type { QueryDefinition } from '@/core/pagination'
-
-import { MonitorTypeName } from '../constants'
-import { CheckErrorType, MonitorMethod, MonitorStatus } from '../types'
 
 export const monitorQuery: QueryDefinition = {
   name: MonitorTypeName.monitor,

@@ -2,11 +2,13 @@ import { Args, ArgsType, Info, Query, Resolver } from '@nestjs/graphql'
 import type { GraphQLResolveInfo } from 'graphql'
 
 import { QueryArgsFor, connectionSelection } from '@/core/graphql'
+import {
+  MonitorCheckConnection,
+  MonitorCheckObject
+} from '@/modules/monitor/models'
+import { MonitorCheckService } from '@/modules/monitor/services'
 import type { Connection } from '@/core/pagination'
-
-import { MonitorCheckConnection, MonitorCheckObject } from '../models'
-import { MonitorCheckService } from '../services'
-import type { MonitorCheck } from '../types'
+import type { MonitorCheck } from '@/modules/monitor/types'
 
 import { monitorCheckQuery } from './monitor-check.query'
 

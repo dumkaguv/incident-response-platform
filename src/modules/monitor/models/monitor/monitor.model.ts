@@ -2,9 +2,8 @@ import { Field, ID, Int, ObjectType } from '@nestjs/graphql'
 
 import { DateTimeScalar, registerQueryEnum } from '@/core/graphql'
 import { Connected } from '@/core/pagination'
-
-import { MonitorTypeName } from '../constants'
-import { type Monitor, MonitorMethod } from '../types'
+import { MonitorTypeName } from '@/modules/monitor/constants'
+import { type Monitor, MonitorMethod } from '@/modules/monitor/types'
 
 registerQueryEnum(MonitorMethod, MonitorTypeName.method, {
   description: 'HTTP method the probe sends'

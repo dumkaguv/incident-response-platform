@@ -1,2 +1,2 @@
-export * from './monitor-check.model'
-export * from './monitor.model'
+export * from './monitor'
+export * from './monitor-check'

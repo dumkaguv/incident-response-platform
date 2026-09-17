@@ -1,2 +1,2 @@
-export * from './monitor-check.repository'
-export * from './monitor.repository'
+export * from './monitor'
+export * from './monitor-check'

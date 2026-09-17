@@ -1,5 +1,2 @@
-export * from './monitor-checks.resolver'
-export * from './monitor-check.query'
-export * from './monitor-check.resolver'
-export * from './monitor.query'
-export * from './monitor.resolver'
+export * from './monitor'
+export * from './monitor-check'

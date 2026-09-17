@@ -1,3 +1,2 @@
-export * from './monitor-check.service'
-export * from './monitor.service'
-export * from './probe'
+export * from './monitor'
+export * from './monitor-check'

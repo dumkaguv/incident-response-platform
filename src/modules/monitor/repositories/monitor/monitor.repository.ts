@@ -4,9 +4,11 @@ import { PrismaService } from '@/core/prisma/prisma.service'
 import { listConnection } from '@/core/prisma/utils/query-table'
 import type { Connection, QuerySpec } from '@/core/pagination'
 import type { Db } from '@/core/prisma/utils/db'
-
-import type { MonitorCreateData, MonitorUpdateData } from '../inputs'
-import type { Monitor } from '../types'
+import type {
+  MonitorCreateData,
+  MonitorUpdateData
+} from '@/modules/monitor/inputs'
+import type { Monitor } from '@/modules/monitor/types'
 
 @Injectable()
 export class MonitorRepository {
