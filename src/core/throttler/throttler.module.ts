@@ -1,4 +1,5 @@
 import {
+  type ExecutionContext,
   type MiddlewareConsumer,
   type NestModule,
   Module
@@ -12,11 +13,21 @@ import { numberSetting } from '@/common/utils'
 
 import { GqlThrottlerGuard } from './gql-throttler.guard'
 import { HttpThrottlerMiddleware } from './http-throttler.middleware'
-import { BLOCK_DURATION, THROTTLE_TIERS } from './throttler.constants'
+import { isMutation } from './operation'
+import {
+  BLOCK_DURATION,
+  THROTTLE_TIERS,
+  WRITE_TIERS
+} from './throttler.constants'
 
 function tiers(config: ConfigService): ThrottlerModuleOptions {
   function limit(name: string, fallback: number): number {
     return numberSetting(config.get(`THROTTLE_${name}_LIMIT`), fallback)
+  }
+
+  function byOperation(read: number, write: number) {
+    return (context: ExecutionContext): number =>
+      isMutation(context) ? write : read
   }
 
   return {
@@ -24,13 +35,19 @@ function tiers(config: ConfigService): ThrottlerModuleOptions {
       {
         name: 'burst',
         ttl: THROTTLE_TIERS.burst.ttl,
-        limit: limit('BURST', THROTTLE_TIERS.burst.limit),
+        limit: byOperation(
+          limit('BURST', THROTTLE_TIERS.burst.limit),
+          WRITE_TIERS.burst.limit
+        ),
         blockDuration: BLOCK_DURATION
       },
       {
         name: 'sustained',
         ttl: THROTTLE_TIERS.sustained.ttl,
-        limit: limit('SUSTAINED', THROTTLE_TIERS.sustained.limit)
+        limit: byOperation(
+          limit('SUSTAINED', THROTTLE_TIERS.sustained.limit),
+          WRITE_TIERS.sustained.limit
+        )
       },
       {
         name: 'hourly',

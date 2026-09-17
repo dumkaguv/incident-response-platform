@@ -4,6 +4,7 @@ import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { AppModule } from '@/app/app.module'
+import { WRITE_TIERS } from '@/core/throttler'
 
 type Server = Parameters<typeof request>[0]
 
@@ -120,5 +121,39 @@ describe('rate limiting: the HTTP wall in front of the parser', () => {
       ]
     })
     expect(Number(blocked?.retryAfter)).toBeGreaterThan(0)
+  })
+})
+
+describe('rate limiting: a mutation takes the write tier by itself', () => {
+  let app: INestApplication
+
+  beforeAll(async () => {
+    process.env.THROTTLE_HTTP_LIMIT = '10000'
+    process.env.THROTTLE_BURST_LIMIT = '9999'
+    app = await createApp()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env.THROTTLE_BURST_LIMIT
+    delete process.env.THROTTLE_HTTP_LIMIT
+  })
+
+  function gql(query: string) {
+    return request(app.getHttpServer() as Server)
+      .post('/graphql')
+      .send({ query })
+  }
+
+  it('bills a query against the read tier and a mutation against the write tier', async () => {
+    const read = await gql('{ incidents(first: 1) { totalCount } }')
+    const write = await gql(`mutation {
+      deleteIncident(id: "00000000-0000-0000-0000-000000000000") { id }
+    }`)
+
+    expect(Number(read.headers['x-ratelimit-limit-burst'])).toBe(9999)
+    expect(Number(write.headers['x-ratelimit-limit-burst'])).toBe(
+      WRITE_TIERS.burst.limit
+    )
   })
 })
