@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/incident_response' }}
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/incident_response
 
 jobs:
   commitlint:
