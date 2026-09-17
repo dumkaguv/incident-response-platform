@@ -2,15 +2,11 @@ import { Injectable } from '@nestjs/common'
 
 import { PrismaService } from '@/core/prisma/prisma.service'
 
-import type { Team, TeamMember } from '../types/team.types'
-
-import { TeamRepositoryInterface } from './team.repository.interface'
+import type { Team, TeamMember } from '../types'
 
 @Injectable()
-export class TeamPrismaRepository extends TeamRepositoryInterface {
-  constructor(private readonly prisma: PrismaService) {
-    super()
-  }
+export class TeamRepository {
+  constructor(private readonly prisma: PrismaService) {}
 
   public async findByIds(ids: readonly string[]): Promise<Team[]> {
     const rows = await this.prisma.db.orm.public.Team.where((fields) =>

@@ -55,26 +55,37 @@ src/
   modules/<feature>/
     <feature>.prisma          schema fragment — edit here
     <feature>.module.ts
-    inputs/     GraphQL write surface + the repository data types
+    constants/  GraphQL type names, one object per feature
+    inputs/     GraphQL write surface + the repository data types,
+                one <verb>-<feature>.input.ts per input
     models/     @ObjectType classes
     resolvers/  resolver, its @ArgsType, and the QueryDefinition
-    services/   rules and errors, never sees Prisma
-    repositories/  <feature>.repository.interface.ts + .prisma.repository.ts
+    services/   rules and errors
+    repositories/  <feature>.repository.ts
     types/      row type + enum value maps
+    index.ts    in every folder; imports go to the folder, not the file
 ```
 
 Two layers under the resolver. The **repository** is the only place that
-touches the database and returns rows or `null`. Its contract is an **abstract
-class**, not an `interface` — an interface has no runtime identity so it cannot
-be a Nest DI token. The module binds
-`{ provide: XRepositoryInterface, useClass: XPrismaRepository }`, so a test can
-hand the service a fake. The **service** holds the rules, throws
-`NotFoundError` / `ConflictError`, and never sees Prisma.
+touches the database and returns rows or `null`; it is a plain `@Injectable()`
+class and is its own DI token. There is no abstract base: nothing faked one, and
+the row types come from the Prisma contract anyway, so the second file only
+duplicated signatures. The cost is that faking the repository in a unit test now
+needs `as unknown as XRepository` — a class with a private field cannot be
+satisfied structurally. The **service** holds the rules and throws
+`NotFoundError` / `ConflictError`.
 
 Write types are **derived, not retyped**: `XCreateData = CreateXInput` and
 `XUpdateData = UpdateXInput & { serverOnlyField?: … }`, declared in `inputs/`
 because `inputs` already imports the enum maps from `types` and declaring them
 in `types` would close an import cycle.
+
+**A GraphQL type name is written once, in `constants/`.** `XTypeName` feeds
+`@ObjectType`, `registerQueryEnum` and the `QueryDefinition` — the same string
+in three places, and the schema breaks silently if they drift. `ArgName` in
+`core/graphql` does the same for argument names. Descriptions on fields and
+mutations are written for the client reading the schema, not for the backend:
+what the field is, never how it is fetched.
 
 **A relation field belongs to the module that owns the data, not the module
 that owns the parent type.** `Team.incidents` is resolved from `IncidentModule`

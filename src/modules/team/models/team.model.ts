@@ -2,9 +2,10 @@ import { Field, ID, ObjectType } from '@nestjs/graphql'
 
 import { DateTimeScalar } from '@/core/graphql'
 
-import type { Team } from '../types/team.types'
+import { TeamTypeName } from '../constants'
+import type { Team } from '../types'
 
-@ObjectType('Team')
+@ObjectType(TeamTypeName.team)
 export class TeamObject implements Team {
   @Field(() => ID)
   id: string

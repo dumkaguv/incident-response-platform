@@ -2,19 +2,19 @@ import { Context, Info, Parent, ResolveField, Resolver } from '@nestjs/graphql'
 import type { GraphQLResolveInfo } from 'graphql'
 
 import { type GqlContext, loadRelations } from '@/core/graphql'
-import { TeamObject } from '@/modules/team/models/team.model'
-import type { Team } from '@/modules/team/types/team.types'
+import { TeamObject } from '@/modules/team/models'
+import type { Team } from '@/modules/team/types'
 
-import { IncidentObject } from '../models/incident.model'
-import { IncidentRepositoryInterface } from '../repositories/incident.repository.interface'
-import type { Incident } from '../types/incident.types'
+import { IncidentObject } from '../models'
+import { IncidentRepository } from '../repositories'
+import type { Incident } from '../types'
 
 @Resolver(() => TeamObject)
 export class TeamIncidentsResolver {
-  constructor(private readonly repository: IncidentRepositoryInterface) {}
+  constructor(private readonly repository: IncidentRepository) {}
 
   @ResolveField(() => [IncidentObject], {
-    description: 'Incidents owned by the team; one batched query per request'
+    description: 'Incidents owned by the team'
   })
   public incidents(
     @Parent() team: Team,

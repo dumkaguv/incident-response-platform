@@ -8,7 +8,7 @@ import {
   scopeKey
 } from '@/core/prisma/utils/relation-path'
 import { filterToPrisma } from '@/core/prisma/utils/spec-to-prisma'
-import { incidentQuery } from '@/modules/incident/resolvers/incident.query'
+import { incidentQuery } from '@/modules/incident/resolvers'
 import type { OrderByInput } from '@/core/pagination/utils/query-definition'
 
 function pathsFor(orderBy: OrderByInput[], filter?: unknown): string[] {

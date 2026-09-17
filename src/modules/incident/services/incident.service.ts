@@ -4,16 +4,13 @@ import { Injectable } from '@nestjs/common'
 import { ConflictError, NotFoundError } from '@/common/utils'
 import type { Connection, QuerySpec } from '@/core/pagination'
 
-import { IncidentRepositoryInterface } from '../repositories/incident.repository.interface'
-import { type Incident, IncidentStatus } from '../types/incident.types'
-import type {
-  IncidentCreateData,
-  IncidentUpdateData
-} from '../inputs/incident.inputs'
+import { IncidentRepository } from '../repositories'
+import { type Incident, IncidentStatus } from '../types'
+import type { IncidentCreateData, IncidentUpdateData } from '../inputs'
 
 @Injectable()
 export class IncidentService {
-  constructor(private readonly incidents: IncidentRepositoryInterface) {}
+  constructor(private readonly incidents: IncidentRepository) {}
 
   public list(
     spec: QuerySpec,

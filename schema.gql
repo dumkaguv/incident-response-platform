@@ -3,8 +3,13 @@
 # ------------------------------------------------------
 
 input CreateIncidentInput {
+  """Any further detail worth recording (up to 2000 characters)"""
   description: String
+
+  """How badly the incident affects the business"""
   severity: IncidentSeverity!
+
+  """What happened, in one line (3-200 characters)"""
   title: String!
 }
 
@@ -91,7 +96,7 @@ type Incident {
   severity: IncidentSeverity!
   status: IncidentStatus!
 
-  """Owning team; batched per request, never one query per row"""
+  """Team that owns the incident"""
   team: Team
   teamId: ID
   title: String!
@@ -237,13 +242,16 @@ input Incident_team_membersRelationFilter {
 }
 
 type Mutation {
+  """Creates an incident"""
   createIncident(input: CreateIncidentInput!): Incident!
 
-  """Deletes the incident and returns its last state"""
+  """Deletes the incident and returns it as it was"""
   deleteIncident(id: ID!): Incident!
 
-  """Marks the incident RESOLVED and stamps resolvedAt"""
+  """Marks the incident as resolved"""
   resolveIncident(id: ID!): Incident!
+
+  """Updates an incident"""
   updateIncident(id: ID!, input: UpdateIncidentInput!): Incident!
 }
 
@@ -277,12 +285,10 @@ type PageInfo {
 }
 
 type Query {
-  """Single incident by id"""
+  """A single incident by id"""
   incident(id: ID!): Incident!
 
-  """
-  Keyset-paginated incidents with recursive filters, search and orderBy (edges, nodes, pageInfo, totalCount)
-  """
+  """Incidents, with filtering, search, sorting and pagination"""
   incidents(
     """
     Continue after pageInfo.endCursor with the same filter, search and orderBy
@@ -364,10 +370,10 @@ type Team {
   description: String
   id: ID!
 
-  """Incidents owned by the team; one batched query per request"""
+  """Incidents owned by the team"""
   incidents: [Incident!]!
 
-  """Members on call for the team; one batched query per request"""
+  """People who belong to the team"""
   members: [TeamMember!]!
   name: String!
   slug: String!
@@ -412,8 +418,17 @@ input TeamRoleFilter {
 }
 
 input UpdateIncidentInput {
+  """Any further detail worth recording (up to 2000 characters)"""
   description: String
+
+  """How badly the incident affects the business"""
   severity: IncidentSeverity
+
+  """
+  Where the incident stands; resolveIncident also stamps the resolution time
+  """
   status: IncidentStatus
+
+  """What happened, in one line (3-200 characters)"""
   title: String
 }

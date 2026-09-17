@@ -14,24 +14,21 @@ import type { GraphQLResolveInfo } from 'graphql'
 
 import {
   type GqlContext,
+  ArgName,
   QueryArgsFor,
   UNBOUNDED_LIST_FANOUT,
   connectionSelection,
   loadRelation
 } from '@/core/graphql'
-import { WriteThrottle } from '@/core/throttler'
-import { TeamObject } from '@/modules/team/models/team.model'
-import { TeamRepositoryInterface } from '@/modules/team/repositories/team.repository.interface'
+import { TeamObject } from '@/modules/team/models'
+import { TeamRepository } from '@/modules/team/repositories'
 import type { Connection } from '@/core/pagination'
-import type { Team } from '@/modules/team/types/team.types'
+import type { Team } from '@/modules/team/types'
 
-import {
-  CreateIncidentInput,
-  UpdateIncidentInput
-} from '../inputs/incident.inputs'
-import { IncidentConnection, IncidentObject } from '../models/incident.model'
-import { IncidentService } from '../services/incident.service'
-import type { Incident } from '../types/incident.types'
+import { CreateIncidentInput, UpdateIncidentInput } from '../inputs'
+import { IncidentConnection, IncidentObject } from '../models'
+import { IncidentService } from '../services'
+import type { Incident } from '../types'
 
 import { incidentQuery } from './incident.query'
 
@@ -42,12 +39,12 @@ export class IncidentQueryArgs extends QueryArgsFor(incidentQuery) {}
 export class IncidentResolver {
   constructor(
     private readonly incidentService: IncidentService,
-    private readonly teams: TeamRepositoryInterface
+    private readonly teams: TeamRepository
   ) {}
 
   @ResolveField(() => TeamObject, {
     nullable: true,
-    description: 'Owning team; batched per request, never one query per row'
+    description: 'Team that owns the incident'
   })
   public team(
     @Parent() incident: Incident,
@@ -60,8 +57,7 @@ export class IncidentResolver {
   }
 
   @Query(() => IncidentConnection, {
-    description:
-      'Keyset-paginated incidents with recursive filters, search and orderBy (edges, nodes, pageInfo, totalCount)'
+    description: 'Incidents, with filtering, search, sorting and pagination'
   })
   public incidents(
     @Args() args: IncidentQueryArgs,
@@ -70,46 +66,42 @@ export class IncidentResolver {
     return this.incidentService.list(args.toSpec(), connectionSelection(info))
   }
 
-  @Query(() => IncidentObject, { description: 'Single incident by id' })
+  @Query(() => IncidentObject, { description: 'A single incident by id' })
   public incident(
-    @Args('id', { type: () => ID }) id: string
+    @Args(ArgName.id, { type: () => ID }) id: string
   ): Promise<Incident> {
     return this.incidentService.getById(id)
   }
 
-  @Mutation(() => IncidentObject)
-  @WriteThrottle()
+  @Mutation(() => IncidentObject, { description: 'Creates an incident' })
   public createIncident(
-    @Args('input') input: CreateIncidentInput
+    @Args(ArgName.input) input: CreateIncidentInput
   ): Promise<Incident> {
     return this.incidentService.create(input)
   }
 
-  @Mutation(() => IncidentObject)
-  @WriteThrottle()
+  @Mutation(() => IncidentObject, { description: 'Updates an incident' })
   public updateIncident(
-    @Args('id', { type: () => ID }) id: string,
-    @Args('input') input: UpdateIncidentInput
+    @Args(ArgName.id, { type: () => ID }) id: string,
+    @Args(ArgName.input) input: UpdateIncidentInput
   ): Promise<Incident> {
     return this.incidentService.update(id, input)
   }
 
   @Mutation(() => IncidentObject, {
-    description: 'Marks the incident RESOLVED and stamps resolvedAt'
+    description: 'Marks the incident as resolved'
   })
-  @WriteThrottle()
   public resolveIncident(
-    @Args('id', { type: () => ID }) id: string
+    @Args(ArgName.id, { type: () => ID }) id: string
   ): Promise<Incident> {
     return this.incidentService.resolve(id)
   }
 
   @Mutation(() => IncidentObject, {
-    description: 'Deletes the incident and returns its last state'
+    description: 'Deletes the incident and returns it as it was'
   })
-  @WriteThrottle()
   public deleteIncident(
-    @Args('id', { type: () => ID }) id: string
+    @Args(ArgName.id, { type: () => ID }) id: string
   ): Promise<Incident> {
     return this.incidentService.remove(id)
   }

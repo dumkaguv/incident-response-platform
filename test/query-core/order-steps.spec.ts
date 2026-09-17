@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { normalizeQuery } from '@/core/pagination/utils/normalize-query'
 import { orderSteps, requiresSqlLane } from '@/core/prisma/utils/relation-query'
-import { incidentQuery } from '@/modules/incident/resolvers/incident.query'
+import { incidentQuery } from '@/modules/incident/resolvers'
 import type { OrderByInput } from '@/core/pagination/utils/query-definition'
 import type { PreferenceSpec } from '@/core/pagination/utils/query-spec'
 

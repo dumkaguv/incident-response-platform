@@ -3,21 +3,18 @@ import { Field, ID, ObjectType } from '@nestjs/graphql'
 import { DateTimeScalar, registerQueryEnum } from '@/core/graphql'
 import { Connected } from '@/core/pagination'
 
-import {
-  type Incident,
-  IncidentSeverity,
-  IncidentStatus
-} from '../types/incident.types'
+import { IncidentTypeName } from '../constants'
+import { type Incident, IncidentSeverity, IncidentStatus } from '../types'
 
-registerQueryEnum(IncidentStatus, 'IncidentStatus', {
+registerQueryEnum(IncidentStatus, IncidentTypeName.status, {
   description: 'Lifecycle status of an incident'
 })
 
-registerQueryEnum(IncidentSeverity, 'IncidentSeverity', {
+registerQueryEnum(IncidentSeverity, IncidentTypeName.severity, {
   description: 'Business impact of an incident'
 })
 
-@ObjectType('Incident')
+@ObjectType(IncidentTypeName.incident)
 export class IncidentObject implements Incident {
   @Field(() => ID)
   id: string

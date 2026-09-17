@@ -5,7 +5,7 @@ import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { PrismaService } from '@/core/prisma/prisma.service'
-import { IncidentRepositoryInterface } from '@/modules/incident/repositories/incident.repository.interface'
+import { IncidentRepository } from '@/modules/incident/repositories'
 
 import { AppModule } from '../src/app/app.module'
 
@@ -258,7 +258,7 @@ describe('GraphQL API (e2e)', () => {
   })
 
   it('walks incident -> team -> team.incidents on one batched query each', async () => {
-    const repository = app.get(IncidentRepositoryInterface)
+    const repository = app.get(IncidentRepository)
     const findByTeamIds = repository.findByTeamIds.bind(repository)
     let batches = 0
 

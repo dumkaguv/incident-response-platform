@@ -3,17 +3,16 @@ import type { GraphQLResolveInfo } from 'graphql'
 
 import { type GqlContext, loadRelations } from '@/core/graphql'
 
-import { TeamMemberObject } from '../models/team-member.model'
-import { TeamObject } from '../models/team.model'
-import { TeamRepositoryInterface } from '../repositories/team.repository.interface'
-import type { Team, TeamMember } from '../types/team.types'
+import { TeamMemberObject, TeamObject } from '../models'
+import { TeamRepository } from '../repositories'
+import type { Team, TeamMember } from '../types'
 
 @Resolver(() => TeamObject)
 export class TeamResolver {
-  constructor(private readonly teams: TeamRepositoryInterface) {}
+  constructor(private readonly teams: TeamRepository) {}
 
   @ResolveField(() => [TeamMemberObject], {
-    description: 'Members on call for the team; one batched query per request'
+    description: 'People who belong to the team'
   })
   public members(
     @Parent() team: Team,

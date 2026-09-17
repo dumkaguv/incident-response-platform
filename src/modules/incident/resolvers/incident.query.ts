@@ -1,10 +1,12 @@
-import { TeamRole } from '@/modules/team/types/team.types'
+import { TeamTypeName } from '@/modules/team/constants'
+import { TeamRole } from '@/modules/team/types'
 import type { QueryDefinition } from '@/core/pagination'
 
-import { IncidentSeverity, IncidentStatus } from '../types/incident.types'
+import { IncidentTypeName } from '../constants'
+import { IncidentSeverity, IncidentStatus } from '../types'
 
 export const incidentQuery: QueryDefinition = {
-  name: 'Incident',
+  name: IncidentTypeName.incident,
   fields: {
     id: { type: 'id', filterable: true, sortable: true },
     title: { type: 'string', filterable: true, sortable: true },
@@ -16,13 +18,13 @@ export const incidentQuery: QueryDefinition = {
     },
     status: {
       type: 'enum',
-      enum: { name: 'IncidentStatus', values: IncidentStatus },
+      enum: { name: IncidentTypeName.status, values: IncidentStatus },
       filterable: true,
       sortable: true
     },
     severity: {
       type: 'enum',
-      enum: { name: 'IncidentSeverity', values: IncidentSeverity },
+      enum: { name: IncidentTypeName.severity, values: IncidentSeverity },
       filterable: true,
       sortable: true
     },
@@ -58,7 +60,7 @@ export const incidentQuery: QueryDefinition = {
             email: { type: 'string', filterable: true },
             role: {
               type: 'enum',
-              enum: { name: 'TeamRole', values: TeamRole },
+              enum: { name: TeamTypeName.role, values: TeamRole },
               filterable: true
             }
           }

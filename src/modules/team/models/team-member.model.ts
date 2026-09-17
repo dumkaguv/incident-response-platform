@@ -2,13 +2,14 @@ import { Field, ID, ObjectType } from '@nestjs/graphql'
 
 import { DateTimeScalar, registerQueryEnum } from '@/core/graphql'
 
-import { type TeamMember, TeamRole } from '../types/team.types'
+import { TeamTypeName } from '../constants'
+import { type TeamMember, TeamRole } from '../types'
 
-registerQueryEnum(TeamRole, 'TeamRole', {
+registerQueryEnum(TeamRole, TeamTypeName.role, {
   description: 'What a member is expected to do during an incident'
 })
 
-@ObjectType('TeamMember')
+@ObjectType(TeamTypeName.member)
 export class TeamMemberObject implements TeamMember {
   @Field(() => ID)
   id: string

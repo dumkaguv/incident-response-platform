@@ -1,14 +1,10 @@
 import { Module } from '@nestjs/common'
 
-import { TeamPrismaRepository } from './repositories/team.prisma.repository'
-import { TeamRepositoryInterface } from './repositories/team.repository.interface'
-import { TeamResolver } from './resolvers/team.resolver'
+import { TeamRepository } from './repositories'
+import { TeamResolver } from './resolvers'
 
 @Module({
-  providers: [
-    { provide: TeamRepositoryInterface, useClass: TeamPrismaRepository },
-    TeamResolver
-  ],
-  exports: [TeamRepositoryInterface]
+  providers: [TeamRepository, TeamResolver],
+  exports: [TeamRepository]
 })
 export class TeamModule {}

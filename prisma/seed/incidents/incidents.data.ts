@@ -1,7 +1,4 @@
-import {
-  IncidentSeverity,
-  IncidentStatus
-} from '@/modules/incident/types/incident.types'
+import { IncidentSeverity, IncidentStatus } from '@/modules/incident/types'
 
 function daysAgo(days: number): string {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()

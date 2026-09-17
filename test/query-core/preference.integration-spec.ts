@@ -7,7 +7,7 @@ import {
 } from '@/core/pagination/utils/normalize-query'
 import { type Db, createDb } from '@/core/prisma/utils/db'
 import { listConnection } from '@/core/prisma/utils/query-table'
-import { incidentQuery } from '@/modules/incident/resolvers/incident.query'
+import { incidentQuery } from '@/modules/incident/resolvers'
 import type { OrderByInput } from '@/core/pagination/utils/query-definition'
 
 const ORDER: OrderByInput[] = [{ createdAt: 'DESC' }, { id: 'DESC' }]

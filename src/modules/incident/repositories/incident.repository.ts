@@ -5,19 +5,12 @@ import { listConnection } from '@/core/prisma/utils/query-table'
 import type { Connection, QuerySpec } from '@/core/pagination'
 import type { Db } from '@/core/prisma/utils/db'
 
-import type {
-  IncidentCreateData,
-  IncidentUpdateData
-} from '../inputs/incident.inputs'
-import type { Incident } from '../types/incident.types'
-
-import { IncidentRepositoryInterface } from './incident.repository.interface'
+import type { IncidentCreateData, IncidentUpdateData } from '../inputs'
+import type { Incident } from '../types'
 
 @Injectable()
-export class IncidentPrismaRepository extends IncidentRepositoryInterface {
-  constructor(private readonly prisma: PrismaService) {
-    super()
-  }
+export class IncidentRepository {
+  constructor(private readonly prisma: PrismaService) {}
 
   private get table(): Db['orm']['public']['Incident'] {
     return this.prisma.db.orm.public.Incident
