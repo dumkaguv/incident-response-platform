@@ -1,11 +1,11 @@
 import { ValidationPipe } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import compression from 'compression'
 import helmet from 'helmet'
+import type { ConfigType } from '@nestjs/config'
 import type { Express, NextFunction, Request, Response } from 'express'
 
-import { numberSetting } from '@/common/utils'
+import { appConfig } from '@/core/config'
 
 import { AppModule } from './app/app.module'
 
@@ -13,8 +13,9 @@ const GRAPHQL_PATH = '/graphql'
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule)
-  const config = app.get(ConfigService)
-  const trustProxy = config.get<string>('TRUST_PROXY')
+  const { port, trustProxy } = app.get<ConfigType<typeof appConfig>>(
+    appConfig.KEY
+  )
 
   if (trustProxy) {
     const express = app.getHttpAdapter().getInstance() as Express
@@ -52,8 +53,6 @@ async function bootstrap(): Promise<void> {
       transform: true
     })
   )
-
-  const port = numberSetting(config.get('PORT'), 3000)
 
   await app.listen(port)
 

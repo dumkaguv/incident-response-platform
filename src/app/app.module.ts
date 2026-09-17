@@ -2,9 +2,9 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { type DynamicModule, Module } from '@nestjs/common'
-import { ConfigModule } from '@nestjs/config'
 import { ServeStaticModule } from '@nestjs/serve-static'
 
+import { AppConfigModule } from '@/core/config'
 import { GraphqlConfigModule } from '@/core/graphql'
 import { I18nModule } from '@/core/i18n'
 import { PrismaModule } from '@/core/prisma/prisma.module'
@@ -25,7 +25,7 @@ function apiDocs(): DynamicModule[] {
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    AppConfigModule,
     ...apiDocs(),
     I18nModule,
     PrismaModule,

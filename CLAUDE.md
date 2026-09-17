@@ -45,8 +45,9 @@ pnpm bundle               # build, then esbuild it to one file
 ```bash
 src/
   app/          root module
-  common/       leaf utilities: errors, isDev, env readers
+  common/       leaf utilities: errors
   core/         machinery every feature runs on
+    config/     the env schema and one registerAs namespace per concern
     graphql/    driver config, dataloaders, filters, scalars, query limits
     i18n/       I18nService, locales, generated catalogs (committed)
     pagination/ the query engine: spec, filters, order, cursors, connection
@@ -79,6 +80,18 @@ Write types are **derived, not retyped**: `XCreateData = CreateXInput` and
 `XUpdateData = UpdateXInput & { serverOnlyField?: … }`, declared in `inputs/`
 because `inputs` already imports the enum maps from `types` and declaring them
 in `types` would close an import cycle.
+
+**Nothing reads `process.env` except `core/config/env.schema.ts`.** Every
+variable is declared there in a Zod schema that coerces and defaults, and
+`ConfigModule` runs it as `validate`, so a bad value stops the boot with the
+variable named instead of surfacing later as `NaN`. Consumers inject a
+namespace — `@Inject(throttleConfig.KEY) config: ConfigType<typeof
+throttleConfig>` — and get typed values, never strings. `env()` re-parses on
+every call on purpose: `ConfigModule.forRoot` is evaluated once when the
+decorator runs, so a cached copy would freeze the environment of whichever app
+booted first and break any test that overrides a variable. An empty variable
+counts as absent, so `GRAPHIQL=` in `.env` falls back to its default rather
+than coercing to `0`.
 
 **A GraphQL type name is written once, in `constants/`.** `XTypeName` feeds
 `@ObjectType`, `registerQueryEnum` and the `QueryDefinition` — the same string

@@ -2,7 +2,8 @@ import { ApolloServerErrorCode } from '@apollo/server/errors'
 import { HttpException, HttpStatus } from '@nestjs/common'
 import { type GraphQLFormattedError, GraphQLError } from 'graphql'
 
-import { AppError, isDev } from '@/common/utils'
+import { AppError } from '@/common/utils'
+import { isDev } from '@/core/config'
 
 const HTTP_CODE_MAP: Record<number, string> = {
   [HttpStatus.BAD_REQUEST]: ApolloServerErrorCode.BAD_USER_INPUT,

@@ -4,27 +4,23 @@ import {
   Inject,
   Injectable
 } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { ThrottlerStorage } from '@nestjs/throttler'
+import type { ConfigType } from '@nestjs/config'
 import type { NextFunction, Request, Response } from 'express'
 
-import { numberSetting } from '@/common/utils'
+import { throttleConfig } from '@/core/config'
 
 import { clientTracker } from './client-tracker'
-import { HTTP_BLOCK_DURATION, HTTP_TIER } from './throttler.constants'
 
 @Injectable()
 export class HttpThrottlerMiddleware implements NestMiddleware {
-  private readonly limit: number
+  private readonly http: ConfigType<typeof throttleConfig>['http']
 
   constructor(
     @Inject(ThrottlerStorage) private readonly storage: ThrottlerStorage,
-    config: ConfigService
+    @Inject(throttleConfig.KEY) config: ConfigType<typeof throttleConfig>
   ) {
-    this.limit = numberSetting(
-      config.get('THROTTLE_HTTP_LIMIT'),
-      HTTP_TIER.limit
-    )
+    this.http = config.http
   }
 
   public async use(
@@ -35,9 +31,9 @@ export class HttpThrottlerMiddleware implements NestMiddleware {
     const tracker = clientTracker(req as unknown as Record<string, unknown>)
     const record = await this.storage.increment(
       `http:${tracker}`,
-      HTTP_TIER.ttl,
-      this.limit,
-      HTTP_BLOCK_DURATION,
+      this.http.ttl,
+      this.http.limit,
+      this.http.blockDuration,
       'http'
     )
 

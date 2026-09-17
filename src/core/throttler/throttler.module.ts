@@ -4,55 +4,44 @@ import {
   type NestModule,
   Module
 } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
 import { APP_GUARD } from '@nestjs/core'
 import { ThrottlerModule } from '@nestjs/throttler'
+import type { ConfigType } from '@nestjs/config'
 import type { ThrottlerModuleOptions } from '@nestjs/throttler'
 
-import { numberSetting } from '@/common/utils'
+import { AppConfigModule, throttleConfig } from '@/core/config'
 
 import { GqlThrottlerGuard } from './gql-throttler.guard'
 import { HttpThrottlerMiddleware } from './http-throttler.middleware'
 import { isMutation } from './operation'
-import {
-  BLOCK_DURATION,
-  THROTTLE_TIERS,
-  WRITE_TIERS
-} from './throttler.constants'
 
-function tiers(config: ConfigService): ThrottlerModuleOptions {
-  function limit(name: string, fallback: number): number {
-    return numberSetting(config.get(`THROTTLE_${name}_LIMIT`), fallback)
-  }
+function tiers(
+  config: ConfigType<typeof throttleConfig>
+): ThrottlerModuleOptions {
+  const { read, write } = config
 
-  function byOperation(read: number, write: number) {
+  function byOperation(onRead: number, onWrite: number) {
     return (context: ExecutionContext): number =>
-      isMutation(context) ? write : read
+      isMutation(context) ? onWrite : onRead
   }
 
   return {
     throttlers: [
       {
         name: 'burst',
-        ttl: THROTTLE_TIERS.burst.ttl,
-        limit: byOperation(
-          limit('BURST', THROTTLE_TIERS.burst.limit),
-          WRITE_TIERS.burst.limit
-        ),
-        blockDuration: BLOCK_DURATION
+        ttl: read.burst.ttl,
+        limit: byOperation(read.burst.limit, write.burst.limit),
+        blockDuration: config.blockDuration
       },
       {
         name: 'sustained',
-        ttl: THROTTLE_TIERS.sustained.ttl,
-        limit: byOperation(
-          limit('SUSTAINED', THROTTLE_TIERS.sustained.limit),
-          WRITE_TIERS.sustained.limit
-        )
+        ttl: read.sustained.ttl,
+        limit: byOperation(read.sustained.limit, write.sustained.limit)
       },
       {
         name: 'hourly',
-        ttl: THROTTLE_TIERS.hourly.ttl,
-        limit: limit('HOURLY', THROTTLE_TIERS.hourly.limit)
+        ttl: read.hourly.ttl,
+        limit: read.hourly.limit
       }
     ]
   }
@@ -61,8 +50,8 @@ function tiers(config: ConfigService): ThrottlerModuleOptions {
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
+      imports: [AppConfigModule],
+      inject: [throttleConfig.KEY],
       useFactory: tiers
     })
   ],

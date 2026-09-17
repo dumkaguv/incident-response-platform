@@ -1,5 +1,12 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
+import {
+  Inject,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit
+} from '@nestjs/common'
+import type { ConfigType } from '@nestjs/config'
+
+import { databaseConfig } from '@/core/config'
 
 import { type Db, createDb } from './utils/db'
 
@@ -7,8 +14,10 @@ import { type Db, createDb } from './utils/db'
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
   public readonly db: Db
 
-  constructor(config: ConfigService) {
-    this.db = createDb(config.getOrThrow<string>('DATABASE_URL'))
+  constructor(
+    @Inject(databaseConfig.KEY) config: ConfigType<typeof databaseConfig>
+  ) {
+    this.db = createDb(config.url)
   }
 
   public async onModuleInit(): Promise<void> {

@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import { env } from '@/core/config/env.schema'
 import { createDb } from '@/core/prisma/utils/db'
 
 import { seedIncidents } from './incidents'
@@ -7,13 +8,7 @@ import { resetPublic } from './reset'
 import { seedTeams } from './teams'
 
 async function main(): Promise<void> {
-  const url = process.env.DATABASE_URL
-
-  if (!url) {
-    throw new Error('DATABASE_URL is not set')
-  }
-
-  const db = createDb(url)
+  const db = createDb(env().DATABASE_URL)
 
   try {
     const cleared = await resetPublic(db)
