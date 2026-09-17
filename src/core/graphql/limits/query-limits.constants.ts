@@ -1,4 +1,4 @@
-export const MAX_QUERY_COMPLEXITY = 15_000
+export const MAX_QUERY_COMPLEXITY = 10_000
 
 export const MAX_QUERY_DEPTH = 12
 

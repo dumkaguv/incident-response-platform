@@ -342,7 +342,7 @@ describe('GraphQL API (e2e)', () => {
   it('admits the costliest legitimate page', async () => {
     const response = await gql(`
       query {
-        incidents(first: 100) {
+        incidents(first: 50) {
           nodes {
             id
             title

@@ -16,7 +16,6 @@ import {
   type GqlContext,
   ArgName,
   QueryArgsFor,
-  UNBOUNDED_LIST_FANOUT,
   connectionSelection,
   loadRelation
 } from '@/core/graphql'
