@@ -2,30 +2,31 @@ import { join } from 'node:path'
 
 import { type ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo'
 import { Module } from '@nestjs/common'
-import { APP_FILTER } from '@nestjs/core'
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core'
 import { GraphQLModule } from '@nestjs/graphql'
 import type { ConfigType } from '@nestjs/config'
 import type { Request, Response } from 'express'
 
-import { graphqlConfig, isDev } from '@/core/config'
+import { graphqlConfig } from '@/core/config'
 
 import { AppErrorFilter } from './errors/app-error.filter'
-import { formatGraphQLError } from './errors/format-graphql-error'
+import { createErrorFormatter } from './errors/format-graphql-error'
 import { createGqlContext } from './graphql-context'
 import { QueryLimitsPlugin } from './limits/query-limits.plugin'
+import { ResetLoadersInterceptor } from './reset-loaders.interceptor'
 
-function driverConfig(
+export function driverConfig(
   config: ConfigType<typeof graphqlConfig>
 ): ApolloDriverConfig {
   return {
     driver: ApolloDriver,
-    autoSchemaFile: join(process.cwd(), 'schema.gql'),
+    autoSchemaFile: config.debug ? join(process.cwd(), 'schema.gql') : true,
     sortSchema: true,
     playground: false,
     graphiql: config.explorer,
     introspection: config.explorer,
-    includeStacktraceInErrorResponses: isDev(),
-    formatError: formatGraphQLError,
+    includeStacktraceInErrorResponses: config.debug,
+    formatError: createErrorFormatter(config),
     context: ({ req, res }: { req: Request; res: Response }) =>
       createGqlContext(req, res)
   }
@@ -41,6 +42,7 @@ function driverConfig(
   ],
   providers: [
     { provide: APP_FILTER, useClass: AppErrorFilter },
+    { provide: APP_INTERCEPTOR, useClass: ResetLoadersInterceptor },
     QueryLimitsPlugin
   ]
 })
