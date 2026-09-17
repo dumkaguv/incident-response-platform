@@ -56,6 +56,16 @@ describe('the application surface', () => {
     expect(response.body.errors[0].message).toBe('Validation failed')
   })
 
+  it('lets GraphQL itself refuse null for a defaulted create field', async () => {
+    const response = await gql(`mutation {
+      createMonitor(input: { name: "Probe", url: "https://example.com", method: null }) { id }
+    }`)
+
+    expect(response.body.errors[0].extensions.code).toBe(
+      'GRAPHQL_VALIDATION_FAILED'
+    )
+  })
+
   it('still reports a missing monitor when the patch is valid', async () => {
     const response = await gql(`mutation {
       updateMonitor(id: "${MISSING_ID}", input: { name: "Renamed" }) { id }

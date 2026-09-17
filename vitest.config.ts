@@ -55,8 +55,7 @@ export default defineConfig({
         test: {
           name: 'unit',
           include: ['test/**/*.spec.ts', 'src/**/*.spec.ts'],
-          pool: 'threads',
-          isolate: false
+          pool: 'threads'
         }
       },
       {

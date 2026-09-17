@@ -10,7 +10,7 @@ import {
   Min
 } from 'class-validator'
 
-import { Omittable } from '@/core/graphql'
+import { columnDefault } from '@/core/prisma/utils/contract-meta'
 import { MonitorLimit } from '@/modules/monitor/constants'
 import { MonitorMethod } from '@/modules/monitor/types'
 
@@ -30,60 +30,52 @@ export class CreateMonitorInput {
   url: string
 
   @Field(() => MonitorMethod, {
-    nullable: true,
-    description: 'Defaults to GET'
+    defaultValue: columnDefault('Monitor', 'method'),
+    description: 'HTTP method the probe sends'
   })
-  @Omittable()
   @IsIn(Object.values(MonitorMethod))
   method?: MonitorMethod
 
   @Field(() => Int, {
-    nullable: true,
-    description: `How often to probe (${MonitorLimit.intervalSecondsMin}-${MonitorLimit.intervalSecondsMax} seconds, defaults to 60)`
+    defaultValue: columnDefault('Monitor', 'intervalSeconds'),
+    description: `How often to probe (${MonitorLimit.intervalSecondsMin}-${MonitorLimit.intervalSecondsMax} seconds)`
   })
-  @Omittable()
   @IsInt()
   @Min(MonitorLimit.intervalSecondsMin)
   @Max(MonitorLimit.intervalSecondsMax)
   intervalSeconds?: number
 
   @Field(() => Int, {
-    nullable: true,
-    description: `How long a probe may take before it counts as timed out (${MonitorLimit.timeoutMsMin}-${MonitorLimit.timeoutMsMax} ms, defaults to 5000)`
+    defaultValue: columnDefault('Monitor', 'timeoutMs'),
+    description: `How long a probe may take before it counts as timed out (${MonitorLimit.timeoutMsMin}-${MonitorLimit.timeoutMsMax} ms)`
   })
-  @Omittable()
   @IsInt()
   @Min(MonitorLimit.timeoutMsMin)
   @Max(MonitorLimit.timeoutMsMax)
   timeoutMs?: number
 
   @Field(() => Int, {
-    nullable: true,
-    description:
-      'Lowest response code that still counts as healthy; defaults to 200'
+    defaultValue: columnDefault('Monitor', 'expectedStatusMin'),
+    description: 'Lowest response code that still counts as healthy'
   })
-  @Omittable()
   @IsInt()
   @Min(MonitorLimit.statusCodeMin)
   @Max(MonitorLimit.statusCodeMax)
   expectedStatusMin?: number
 
   @Field(() => Int, {
-    nullable: true,
-    description:
-      'Highest response code that still counts as healthy; defaults to 299'
+    defaultValue: columnDefault('Monitor', 'expectedStatusMax'),
+    description: 'Highest response code that still counts as healthy'
   })
-  @IsOptional()
   @IsInt()
   @Min(MonitorLimit.statusCodeMin)
   @Max(MonitorLimit.statusCodeMax)
   expectedStatusMax?: number
 
   @Field(() => Boolean, {
-    nullable: true,
-    description: 'A paused monitor is never probed; defaults to true'
+    defaultValue: columnDefault<boolean>('Monitor', 'isActive'),
+    description: 'A paused monitor is never probed'
   })
-  @Omittable()
   @IsBoolean()
   isActive?: boolean
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  columnDefault,
   columnOf,
   isToMany,
   primaryKeyOf,
@@ -38,6 +39,14 @@ describe('contract metadata', () => {
       localFields: ['monitorId'],
       targetFields: ['id']
     })
+  })
+
+  it('reads literal column defaults and leaves the rest undefined', () => {
+    expect(columnDefault('Monitor', 'intervalSeconds')).toBe(60)
+    expect(columnDefault('Monitor', 'method')).toBe('GET')
+    expect(columnDefault('Monitor', 'isActive')).toBe(true)
+    expect(columnDefault('Monitor', 'nextCheckAt')).toBeUndefined()
+    expect(columnDefault('Monitor', 'name')).toBeUndefined()
   })
 
   it('rejects a relation the model does not declare', () => {

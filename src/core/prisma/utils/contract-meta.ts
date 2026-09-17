@@ -15,8 +15,15 @@ type ModelMeta = {
 const models = contractJson.domain.namespaces.public
   .models as unknown as Record<string, ModelMeta>
 
-const primaryKeys = contractJson.storage.namespaces.public.entries
-  .table as unknown as Record<string, { primaryKey: { columns: string[] } }>
+type ColumnDefault = { kind: string; value?: unknown }
+
+type TableMeta = {
+  primaryKey: { columns: string[] }
+  columns: Record<string, { default?: ColumnDefault }>
+}
+
+const tables = contractJson.storage.namespaces.public.entries
+  .table as unknown as Record<string, TableMeta>
 
 function modelMeta(model: string): ModelMeta {
   const meta = models[model]
@@ -54,9 +61,19 @@ export function relationLocalFields(model: string, name: string): string[] {
   return relationsOf(model)[name]?.on.localFields ?? []
 }
 
+export function columnDefault<T = unknown>(
+  model: string,
+  field: string
+): T | undefined {
+  const fallback =
+    tables[tableOf(model)].columns[columnOf(model, field)]?.default
+
+  return fallback?.kind === 'literal' ? (fallback.value as T) : undefined
+}
+
 export function primaryKeyOf(model: string): { field: string; column: string } {
   const meta = modelMeta(model)
-  const [column] = primaryKeys[meta.storage.table].primaryKey.columns
+  const [column] = tables[meta.storage.table].primaryKey.columns
   const entry = Object.entries(meta.storage.fields).find(
     ([, storage]) => storage.column === column
   )

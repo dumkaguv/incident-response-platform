@@ -27,7 +27,8 @@ describe('UpdateMonitorInput', () => {
     'method',
     'intervalSeconds',
     'timeoutMs',
-    'expectedStatusCode',
+    'expectedStatusMin',
+    'expectedStatusMax',
     'isActive'
   ])('rejects an explicit null for %s', async (field) => {
     await expect(validate({ [field]: null })).rejects.toBeInstanceOf(

@@ -49,28 +49,26 @@ input CheckErrorTypeFilter {
 }
 
 input CreateMonitorInput {
-  """Highest response code that still counts as healthy; defaults to 299"""
-  expectedStatusMax: Int
+  """Highest response code that still counts as healthy"""
+  expectedStatusMax: Int! = 299
 
-  """Lowest response code that still counts as healthy; defaults to 200"""
-  expectedStatusMin: Int
+  """Lowest response code that still counts as healthy"""
+  expectedStatusMin: Int! = 200
 
-  """How often to probe (10-86400 seconds, defaults to 60)"""
-  intervalSeconds: Int
+  """How often to probe (10-86400 seconds)"""
+  intervalSeconds: Int! = 60
 
-  """A paused monitor is never probed; defaults to true"""
-  isActive: Boolean
+  """A paused monitor is never probed"""
+  isActive: Boolean! = true
 
-  """Defaults to GET"""
-  method: MonitorMethod
+  """HTTP method the probe sends"""
+  method: MonitorMethod! = GET
 
   """Label shown in lists and alerts (1-120 characters)"""
   name: String!
 
-  """
-  How long a probe may take before it counts as timed out (100-60000 ms, defaults to 5000)
-  """
-  timeoutMs: Int
+  """How long a probe may take before it counts as timed out (100-60000 ms)"""
+  timeoutMs: Int! = 5000
 
   """Absolute http(s) address to probe"""
   url: String!
@@ -611,27 +609,25 @@ input StringFilter {
 }
 
 input UpdateMonitorInput {
-  """Highest response code that still counts as healthy; defaults to 299"""
+  """Highest response code that still counts as healthy"""
   expectedStatusMax: Int
 
-  """Lowest response code that still counts as healthy; defaults to 200"""
+  """Lowest response code that still counts as healthy"""
   expectedStatusMin: Int
 
-  """How often to probe (10-86400 seconds, defaults to 60)"""
+  """How often to probe (10-86400 seconds)"""
   intervalSeconds: Int
 
-  """A paused monitor is never probed; defaults to true"""
+  """A paused monitor is never probed"""
   isActive: Boolean
 
-  """Defaults to GET"""
+  """HTTP method the probe sends"""
   method: MonitorMethod
 
   """Label shown in lists and alerts (1-120 characters)"""
   name: String
 
-  """
-  How long a probe may take before it counts as timed out (100-60000 ms, defaults to 5000)
-  """
+  """How long a probe may take before it counts as timed out (100-60000 ms)"""
   timeoutMs: Int
 
   """Absolute http(s) address to probe"""

@@ -9,7 +9,7 @@ import { listConnection } from '@/core/prisma/utils/query-table'
 import type { QueryInput } from '@/core/pagination/utils/normalize-query'
 import type { QueryDefinition } from '@/core/pagination/utils/query-definition'
 
-const SCHEDULED_AT = '2030-01-01T00:00:00.000Z'
+const CHECKED_AT = '2026-01-01T00:00:00.000Z'
 
 const checkQuery: QueryDefinition = {
   name: 'LaneParityCheck',
@@ -22,7 +22,7 @@ const checkQuery: QueryDefinition = {
       fields: {
         id: { type: 'id', filterable: true, sortable: true },
         name: { type: 'string', filterable: true, sortable: true },
-        nextCheckAt: {
+        lastCheckedAt: {
           type: 'date',
           nullable: true,
           filterable: true,
@@ -49,14 +49,14 @@ describe('the two query lanes agree on relation filters', () => {
     db = createDb(url)
     await db.connect()
 
-    for (const [suffix, nextCheckAt] of [
-      ['scheduled', SCHEDULED_AT],
-      ['unscheduled', null]
+    for (const [suffix, lastCheckedAt] of [
+      ['probed', CHECKED_AT],
+      ['never-probed', null]
     ] as const) {
       const monitor = await db.orm.public.Monitor.create({
         name: `${prefix} ${suffix}`,
         url: 'https://example.com',
-        nextCheckAt
+        lastCheckedAt
       })
 
       monitorIds.push(monitor.id)
@@ -94,7 +94,7 @@ describe('the two query lanes agree on relation filters', () => {
   it('keeps rows whose related NULL column fails a negated equality', async () => {
     const filter = {
       monitor: { name: { startsWith: prefix } },
-      not: { monitor: { nextCheckAt: { eq: SCHEDULED_AT } } }
+      not: { monitor: { lastCheckedAt: { eq: CHECKED_AT } } }
     }
     const viaOrm = await pageIds({ filter })
     const viaSql = await pageIds({
@@ -109,12 +109,12 @@ describe('the two query lanes agree on relation filters', () => {
 
   it('answers a null check on the related column the same way in both lanes', async () => {
     const filter = {
-      monitor: { name: { startsWith: prefix }, nextCheckAt: { is: 'NULL' } }
+      monitor: { name: { startsWith: prefix }, lastCheckedAt: { is: 'NULL' } }
     }
     const viaOrm = await pageIds({ filter })
     const viaSql = await pageIds({
       filter,
-      orderBy: [{ monitor: { nextCheckAt: 'AscNullsFirst' } }]
+      orderBy: [{ monitor: { lastCheckedAt: 'AscNullsFirst' } }]
     })
 
     expect(viaOrm.ids).toHaveLength(2)

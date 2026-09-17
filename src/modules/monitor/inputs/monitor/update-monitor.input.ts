@@ -6,6 +6,7 @@ import { CreateMonitorInput } from './create-monitor.input'
 
 @InputType()
 export class UpdateMonitorInput extends PartialType(CreateMonitorInput, {
+  omitDefaultValues: true,
   skipNullProperties: false
 }) {}
 
