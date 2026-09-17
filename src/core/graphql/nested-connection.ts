@@ -8,7 +8,6 @@ import {
   ResolveField,
   Resolver
 } from '@nestjs/graphql'
-import { IsInt, IsOptional, Max, Min } from 'class-validator'
 import type { Type } from '@nestjs/common'
 
 import { Connection } from '@/core/pagination/connection'
@@ -18,7 +17,10 @@ import {
 } from '@/core/pagination/pagination.constants'
 import { normalizeQuery } from '@/core/pagination/utils/normalize-query'
 import { PrismaService } from '@/core/prisma/prisma.service'
-import { selectNestedPage } from '@/core/prisma/utils/nested-page'
+import {
+  countNestedRows,
+  selectNestedPage
+} from '@/core/prisma/utils/nested-page'
 import type { QueryDefinition } from '@/core/pagination/utils/query-definition'
 import type { ModelName } from '@/core/prisma/utils/query-table'
 
@@ -32,6 +34,16 @@ export type NestedConnectionArgs = {
   orderBy?: unknown
 }
 
+type Row = Record<string, unknown>
+
+type IdTable = {
+  where(
+    build: (
+      fields: Record<string, { in(values: string[]): unknown }>
+    ) => unknown
+  ): { all(): Promise<Row[]> }
+}
+
 function nestedArgsFor(
   definition: QueryDefinition
 ): Type<NestedConnectionArgs> {
@@ -43,20 +55,12 @@ function nestedArgsFor(
       nullable: true,
       description: `Rows per parent; defaults to ${DEFAULT_NESTED_FIRST}, max ${MAX_FIRST}`
     })
-    @IsOptional()
-    @IsInt()
-    @Min(1)
-    @Max(MAX_FIRST)
     public first?: number
 
     @Field(() => Int, {
       nullable: true,
       description: `Rows per parent counted from the far end, max ${MAX_FIRST}`
     })
-    @IsOptional()
-    @IsInt()
-    @Min(1)
-    @Max(MAX_FIRST)
     public last?: number
 
     public orderBy?: unknown
@@ -81,8 +85,12 @@ export function NestedConnection(options: {
   foreignKey: string
   description: string
 }): Type<unknown> {
-  const { definition, field, foreignKey, model } = options
-  const NestedArgs = nestedArgsFor(definition)
+  const { field, foreignKey, model } = options
+  const definition: QueryDefinition = {
+    ...options.definition,
+    name: `${options.parent.name}.${field}`
+  }
+  const NestedArgs = nestedArgsFor(options.definition)
 
   @Resolver(() => options.parent)
   class GeneratedNestedResolver {
@@ -104,7 +112,20 @@ export function NestedConnection(options: {
         orderBy: args.orderBy
       })
       const db = this.prisma.db
-      const loader = getLoader(
+      const totals = getLoader(
+        context,
+        `nested-total:${model}:${field}`,
+        async (parentIds: readonly string[]) => {
+          const counted = await countNestedRows(db, {
+            model,
+            foreignKey,
+            parentIds
+          })
+
+          return parentIds.map((parentId) => counted.get(parentId) ?? 0)
+        }
+      )
+      const pages = getLoader(
         context,
         `nested:${model}:${field}:${spec.fingerprint}`,
         async (parentIds: readonly string[]) => {
@@ -116,31 +137,24 @@ export function NestedConnection(options: {
             take: spec.pagination.limit + 1,
             backward: spec.pagination.direction === 'backward'
           })
-          const flat = [...page.ids.values()].flat()
-          const table = db.orm.public[model] as unknown as {
-            where(
-              build: (
-                fields: Record<string, { in(values: string[]): unknown }>
-              ) => unknown
-            ): { all(): Promise<Record<string, unknown>[]> }
-          }
+          const flat = [...page.values()].flat()
+          const table = db.orm.public[model] as unknown as IdTable
           const rows = flat.length
             ? await table.where((fields) => fields.id.in(flat)).all()
             : []
           const byId = new Map(rows.map((row) => [String(row.id), row]))
 
           return parentIds.map((parentId) => {
-            const ordered = (page.ids.get(parentId) ?? [])
+            const ordered = (page.get(parentId) ?? [])
               .map((id) => byId.get(id))
               .filter((row) => row !== undefined)
-            const total = page.totals.get(parentId) ?? 0
 
-            return new Connection(ordered, spec, () => Promise.resolve(total))
+            return new Connection(ordered, spec, () => totals.load(parentId))
           })
         }
       )
 
-      return loader.load(parent.id)
+      return pages.load(parent.id)
     }
   }
 

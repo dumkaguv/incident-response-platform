@@ -1,16 +1,20 @@
 import type { SortClause } from '@/core/pagination/utils/query-spec'
 
 import { columnOf, primaryKeyOf, tableOf } from './contract-meta'
+import { rawRows, separators } from './raw-sql'
 import type { Db } from './db'
 import type { ModelName } from './query-table'
 
 const TEXT = 'pg/text@1'
 
-type Rows = AsyncIterable<Record<string, unknown>>
+export type NestedPage = Map<string, string[]>
 
-export type NestedPage = {
-  ids: Map<string, string[]>
-  totals: Map<string, number>
+export type NestedTotals = Map<string, number>
+
+export type NestedTarget = {
+  model: ModelName
+  foreignKey: string
+  parentIds: readonly string[]
 }
 
 function orderFragment(
@@ -34,101 +38,69 @@ function orderFragment(
   return steps.join(', ')
 }
 
-function placeholders(count: number): string[] {
-  return Array.from({ length: count }, () => '')
-}
-
-function tagged(parts: string[]): TemplateStringsArray {
-  return Object.assign(parts.slice(), { raw: parts.slice() })
-}
-
-async function collect(rows: Rows): Promise<Record<string, unknown>[]> {
-  const collected: Record<string, unknown>[] = []
-
-  for await (const row of rows) {
-    collected.push(row)
-  }
-
-  return collected
-}
-
 export async function selectNestedPage(
   db: Db,
-  request: {
-    model: ModelName
-    foreignKey: string
-    parentIds: readonly string[]
+  request: NestedTarget & {
     sort: SortClause[]
     take: number
     backward: boolean
   }
 ): Promise<NestedPage> {
   const { model, foreignKey, parentIds, sort, take, backward } = request
-  const ids = new Map<string, string[]>()
-  const totals = new Map<string, number>()
-
-  for (const parentId of parentIds) {
-    ids.set(parentId, [])
-    totals.set(parentId, 0)
-  }
+  const page: NestedPage = new Map(parentIds.map((id) => [id, []]))
 
   if (!parentIds.length) {
-    return { ids, totals }
+    return page
   }
 
   const table = tableOf(model)
   const key = primaryKeyOf(model).column
   const foreign = columnOf(model, foreignKey)
-  const list = placeholders(parentIds.length).map((_, index) =>
-    index === 0 ? '' : ', '
-  )
-  const pageParts = [
-    `SELECT t."${key}", t."${foreign}" FROM (
-       SELECT c."${key}", c."${foreign}",
-              row_number() OVER (
-                PARTITION BY c."${foreign}"
-                ORDER BY ${orderFragment(model, sort, backward)}
-              ) AS position
-       FROM "${table}" c
-       WHERE c."${foreign}" IN (`,
-    ...list.slice(1),
-    `)) t WHERE t.position <= ${String(take)}`
+  const parts = [
+    `SELECT c."${key}", c."${foreign}" FROM unnest(ARRAY[`,
+    ...separators(parentIds.length),
+    `]::text[]) AS p(id) CROSS JOIN LATERAL (
+       SELECT c."${key}", c."${foreign}" FROM "${table}" c
+       WHERE c."${foreign}" = p.id
+       ORDER BY ${orderFragment(model, sort, backward)}
+       LIMIT ${String(take)}
+     ) c`
   ]
-  const countParts = [
-    `SELECT c."${foreign}", count(*)::text AS total
-     FROM "${table}" c
-     WHERE c."${foreign}" IN (`,
-    ...list.slice(1),
+
+  for (const row of await rawRows(db, parts, parentIds, {
+    [key]: TEXT,
+    [foreign]: TEXT
+  })) {
+    page.get(String(row[foreign]))?.push(String(row[key]))
+  }
+
+  return page
+}
+
+export async function countNestedRows(
+  db: Db,
+  target: NestedTarget
+): Promise<NestedTotals> {
+  const { model, foreignKey, parentIds } = target
+  const totals: NestedTotals = new Map(parentIds.map((id) => [id, 0]))
+
+  if (!parentIds.length) {
+    return totals
+  }
+
+  const foreign = columnOf(model, foreignKey)
+  const parts = [
+    `SELECT c."${foreign}", count(*)::text AS total FROM "${tableOf(model)}" c WHERE c."${foreign}" IN (`,
+    ...separators(parentIds.length),
     `) GROUP BY c."${foreign}"`
   ]
 
-  const page = await collect(
-    db.runtime().query(
-      db.raw
-        .sql(tagged(pageParts), ...parentIds)
-        .returnsRow({ [key]: TEXT, [foreign]: TEXT })
-        .build()
-    )
-  )
-
-  for (const row of page) {
-    const parentId = String(row[foreign])
-
-    ids.get(parentId)?.push(String(row[key]))
-  }
-
-  const counts = await collect(
-    db.runtime().query(
-      db.raw
-        .sql(tagged(countParts), ...parentIds)
-        .returnsRow({ [foreign]: TEXT, total: TEXT })
-        .build()
-    )
-  )
-
-  for (const row of counts) {
+  for (const row of await rawRows(db, parts, parentIds, {
+    [foreign]: TEXT,
+    total: TEXT
+  })) {
     totals.set(String(row[foreign]), Number(row.total))
   }
 
-  return { ids, totals }
+  return totals
 }
