@@ -6,6 +6,7 @@ import { ServeStaticModule } from '@nestjs/serve-static'
 
 import { AppConfigModule } from '@/core/config'
 import { GraphqlConfigModule } from '@/core/graphql'
+import { HealthModule } from '@/core/health'
 import { I18nModule } from '@/core/i18n'
 import { PrismaModule } from '@/core/prisma/prisma.module'
 import { ThrottlerConfigModule } from '@/core/throttler'
@@ -27,6 +28,7 @@ function apiDocs(): DynamicModule[] {
   imports: [
     AppConfigModule,
     ...apiDocs(),
+    HealthModule,
     I18nModule,
     PrismaModule,
     ThrottlerConfigModule,
