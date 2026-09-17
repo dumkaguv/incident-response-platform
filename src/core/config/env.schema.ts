@@ -18,6 +18,21 @@ function positive(fallback: number) {
   return z.coerce.number().int().positive().default(fallback)
 }
 
+function isNumeric(value: string): boolean {
+  return !Number.isNaN(Number(value))
+}
+
+const trustProxy = z.union([
+  z.coerce.number().int().nonnegative(),
+  z.stringbool({ truthy: ['true'], falsy: ['false'] }),
+  z
+    .string()
+    .min(1)
+    .refine((value) => !isNumeric(value), {
+      message: 'TRUST_PROXY hop count must be a whole non-negative number'
+    })
+])
+
 export const envSchema = z.preprocess(
   withoutBlanks,
   z.object({
@@ -27,7 +42,7 @@ export const envSchema = z.preprocess(
     PORT: positive(3000),
     DATABASE_URL: z.url(),
     GRAPHIQL: z.stringbool().optional(),
-    TRUST_PROXY: z.string().min(1).optional(),
+    TRUST_PROXY: trustProxy.optional(),
     THROTTLE_HTTP_LIMIT: positive(HTTP_TIER.limit),
     THROTTLE_BURST_LIMIT: positive(THROTTLE_TIERS.burst.limit),
     THROTTLE_SUSTAINED_LIMIT: positive(THROTTLE_TIERS.sustained.limit),

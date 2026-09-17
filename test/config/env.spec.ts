@@ -39,6 +39,22 @@ describe('envSchema', () => {
     expect(parse({ GRAPHIQL: '0' }).GRAPHIQL).toBe(false)
   })
 
+  it('reads TRUST_PROXY as a hop count, a boolean or an address list', () => {
+    expect(parse({ TRUST_PROXY: '1' }).TRUST_PROXY).toBe(1)
+    expect(parse({ TRUST_PROXY: '2' }).TRUST_PROXY).toBe(2)
+    expect(parse({ TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true)
+    expect(parse({ TRUST_PROXY: 'false' }).TRUST_PROXY).toBe(false)
+    expect(parse({ TRUST_PROXY: 'loopback' }).TRUST_PROXY).toBe('loopback')
+    expect(parse({ TRUST_PROXY: '10.0.0.0/8, 127.0.0.1' }).TRUST_PROXY).toBe(
+      '10.0.0.0/8, 127.0.0.1'
+    )
+  })
+
+  it('refuses a TRUST_PROXY hop count that is not a whole number', () => {
+    expect(() => parse({ TRUST_PROXY: '-1' })).toThrow()
+    expect(() => parse({ TRUST_PROXY: '1.5' })).toThrow()
+  })
+
   it('refuses a limit that is not a positive integer', () => {
     expect(() => parse({ THROTTLE_BURST_LIMIT: 'many' })).toThrow()
     expect(() => parse({ THROTTLE_BURST_LIMIT: '0' })).toThrow()
