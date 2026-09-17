@@ -19,6 +19,7 @@ input BooleanFilter {
 """Why a probe failed"""
 enum CheckErrorType {
   ASSERTION_FAILED
+  CONNECTION_ERROR
   CONNECTION_REFUSED
   DNS_ERROR
   INVALID_STATUS_CODE
@@ -48,8 +49,11 @@ input CheckErrorTypeFilter {
 }
 
 input CreateMonitorInput {
-  """Response code that counts as healthy; defaults to 200"""
-  expectedStatusCode: Int
+  """Highest response code that still counts as healthy; defaults to 299"""
+  expectedStatusMax: Int
+
+  """Lowest response code that still counts as healthy; defaults to 200"""
+  expectedStatusMin: Int
 
   """How often to probe (10-86400 seconds, defaults to 60)"""
   intervalSeconds: Int
@@ -191,10 +195,16 @@ type Monitor {
     """One scalar path per entry; array order defines precedence"""
     orderBy: [MonitorCheckOrderBy!]
   ): MonitorCheckConnection!
+
+  """Failures since the last success; reset to zero by a success"""
+  consecutiveFailures: Int!
   createdAt: DateTime!
 
-  """Response code that counts as healthy"""
-  expectedStatusCode: Int!
+  """Highest response code that still counts as healthy"""
+  expectedStatusMax: Int!
+
+  """Lowest response code that still counts as healthy"""
+  expectedStatusMin: Int!
   id: ID!
 
   """How often the probe should run"""
@@ -202,13 +212,25 @@ type Monitor {
 
   """A paused monitor is never probed"""
   isActive: Boolean!
+
+  """When the most recent probe ran"""
+  lastCheckedAt: DateTime
+
+  """Round trip of the most recent probe, in milliseconds"""
+  lastResponseTimeMs: Int
+
+  """Result of the most recent probe; empty until one has run"""
+  lastStatus: MonitorStatus
+
+  """Response code of the most recent probe"""
+  lastStatusCode: Int
   method: MonitorMethod!
 
   """Label shown in lists and alerts"""
   name: String!
 
-  """When the next probe falls due; empty until scheduled"""
-  nextCheckAt: DateTime
+  """When the next probe falls due"""
+  nextCheckAt: DateTime!
 
   """How long a probe may take before it counts as timed out"""
   timeoutMs: Int!
@@ -221,6 +243,9 @@ type Monitor {
 type MonitorCheck {
   """When the probe ran"""
   checkedAt: DateTime!
+
+  """Short technical detail of the failure, such as the socket error code"""
+  errorMessage: String
 
   """Set only when the probe failed"""
   errorType: CheckErrorType
@@ -257,6 +282,7 @@ type MonitorCheckEdge {
 input MonitorCheckFilter {
   and: [MonitorCheckFilter!]
   checkedAt: DateTimeFilter
+  errorMessage: StringFilter
   errorType: CheckErrorTypeFilter
   id: IdFilter
   monitor: MonitorCheck_monitorFilter
@@ -270,6 +296,7 @@ input MonitorCheckFilter {
 
 input MonitorCheckOrderBy {
   checkedAt: OrderByDirection
+  errorMessage: OrderByDirection
   errorType: OrderByDirection
   id: OrderByDirection
   monitor: MonitorCheck_monitorOrderBy
@@ -318,11 +345,17 @@ type MonitorEdge {
 input MonitorFilter {
   and: [MonitorFilter!]
   checks: Monitor_checksRelationFilter
+  consecutiveFailures: IntFilter
   createdAt: DateTimeFilter
-  expectedStatusCode: IntFilter
+  expectedStatusMax: IntFilter
+  expectedStatusMin: IntFilter
   id: IdFilter
   intervalSeconds: IntFilter
   isActive: BooleanFilter
+  lastCheckedAt: DateTimeFilter
+  lastResponseTimeMs: IntFilter
+  lastStatus: MonitorStatusFilter
+  lastStatusCode: IntFilter
   method: MonitorMethodFilter
   name: StringFilter
   nextCheckAt: DateTimeFilter
@@ -337,7 +370,6 @@ input MonitorFilter {
 enum MonitorMethod {
   GET
   HEAD
-  POST
 }
 
 input MonitorMethodFilter {
@@ -361,11 +393,17 @@ input MonitorMethodFilter {
 }
 
 input MonitorOrderBy {
+  consecutiveFailures: OrderByDirection
   createdAt: OrderByDirection
-  expectedStatusCode: OrderByDirection
+  expectedStatusMax: OrderByDirection
+  expectedStatusMin: OrderByDirection
   id: OrderByDirection
   intervalSeconds: OrderByDirection
   isActive: OrderByDirection
+  lastCheckedAt: OrderByDirection
+  lastResponseTimeMs: OrderByDirection
+  lastStatus: OrderByDirection
+  lastStatusCode: OrderByDirection
   method: OrderByDirection
   name: OrderByDirection
   nextCheckAt: OrderByDirection
@@ -573,8 +611,11 @@ input StringFilter {
 }
 
 input UpdateMonitorInput {
-  """Response code that counts as healthy; defaults to 200"""
-  expectedStatusCode: Int
+  """Highest response code that still counts as healthy; defaults to 299"""
+  expectedStatusMax: Int
+
+  """Lowest response code that still counts as healthy; defaults to 200"""
+  expectedStatusMin: Int
 
   """How often to probe (10-86400 seconds, defaults to 60)"""
   intervalSeconds: Int

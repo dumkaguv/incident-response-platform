@@ -2,7 +2,15 @@ import { CheckErrorType } from '@/modules/monitor/types'
 
 const DNS_CODES = new Set(['ENOTFOUND', 'EAI_AGAIN', 'EAI_FAIL'])
 
-const REFUSED_CODES = new Set(['ECONNREFUSED', 'ECONNRESET'])
+const REFUSED_CODES = new Set(['ECONNREFUSED'])
+
+const CONNECTION_CODES = new Set([
+  'ECONNRESET',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'EPIPE',
+  'UND_ERR_SOCKET'
+])
 
 const TLS_CODES = new Set([
   'CERT_HAS_EXPIRED',
@@ -46,7 +54,23 @@ export function classifyProbeError(error: unknown): CheckErrorType {
     return CheckErrorType.CONNECTION_REFUSED
   }
 
-  return TLS_CODES.has(code) || code.startsWith('ERR_TLS')
-    ? CheckErrorType.TLS_ERROR
+  if (TLS_CODES.has(code) || code.startsWith('ERR_TLS')) {
+    return CheckErrorType.TLS_ERROR
+  }
+
+  return CONNECTION_CODES.has(code)
+    ? CheckErrorType.CONNECTION_ERROR
     : CheckErrorType.UNKNOWN
+}
+
+export function probeErrorMessage(error: unknown): string | null {
+  const code = errorCode(error)
+
+  if (code !== null) {
+    return code
+  }
+
+  const message = stringProperty(error, 'message')
+
+  return message === null ? null : message.slice(0, 200)
 }

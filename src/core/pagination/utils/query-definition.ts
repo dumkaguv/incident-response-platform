@@ -28,6 +28,14 @@ export type QueryField =
       nullable?: boolean
       fields: QueryFields
     }
+export function isFilterable(field: ScalarQueryField): boolean {
+  return field.filterable !== false
+}
+
+export function isSortable(field: ScalarQueryField): boolean {
+  return field.sortable !== false
+}
+
 export type QueryFields = Record<string, QueryField>
 export type OrderByInput = {
   [field: string]: OrderDirection | OrderByInput | null

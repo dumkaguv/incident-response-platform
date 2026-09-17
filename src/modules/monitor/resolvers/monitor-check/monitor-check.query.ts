@@ -5,42 +5,35 @@ import type { QueryDefinition } from '@/core/pagination'
 export const monitorCheckQuery: QueryDefinition = {
   name: MonitorTypeName.check,
   fields: {
-    id: { type: 'id', filterable: true, sortable: true },
-    monitorId: { type: 'id', filterable: true, sortable: true },
+    id: { type: 'id' },
+    monitorId: { type: 'id' },
     status: {
       type: 'enum',
-      enum: { name: MonitorTypeName.status, values: MonitorStatus },
-      filterable: true,
-      sortable: true
+      enum: { name: MonitorTypeName.status, values: MonitorStatus }
     },
     statusCode: {
       type: 'int',
-      nullable: true,
-      filterable: true,
-      sortable: true
+      nullable: true
     },
     responseTimeMs: {
       type: 'int',
-      nullable: true,
-      filterable: true,
-      sortable: true
+      nullable: true
     },
     errorType: {
       type: 'enum',
       nullable: true,
-      enum: { name: MonitorTypeName.errorType, values: CheckErrorType },
-      filterable: true,
-      sortable: true
+      enum: { name: MonitorTypeName.errorType, values: CheckErrorType }
     },
-    checkedAt: { type: 'date', filterable: true, sortable: true },
+    errorMessage: { type: 'string', nullable: true },
+    checkedAt: { type: 'date' },
     monitor: {
       type: 'relation',
       field: 'monitor',
       fields: {
-        id: { type: 'id', filterable: true, sortable: true },
-        name: { type: 'string', filterable: true, sortable: true },
-        url: { type: 'string', filterable: true, sortable: true },
-        isActive: { type: 'boolean', filterable: true, sortable: true }
+        id: { type: 'id' },
+        name: { type: 'string' },
+        url: { type: 'string' },
+        isActive: { type: 'boolean' }
       }
     }
   },

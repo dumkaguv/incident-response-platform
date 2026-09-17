@@ -3,7 +3,6 @@
 enum MonitorMethod {
   GET
   HEAD
-  POST
 }
 
 enum MonitorStatus {
@@ -15,6 +14,7 @@ enum CheckErrorType {
   TIMEOUT
   DNS_ERROR
   CONNECTION_REFUSED
+  CONNECTION_ERROR
   TLS_ERROR
   INVALID_STATUS_CODE
   ASSERTION_FAILED
@@ -22,22 +22,30 @@ enum CheckErrorType {
 }
 
 model Monitor {
-  id                 String             @id @default(uuid())
-  name               String
-  url                String
-  method             MonitorMethod      @default(GET)
-  intervalSeconds    Int                @default(60)   @map("interval_seconds")
-  timeoutMs          Int                @default(5000) @map("timeout_ms")
-  expectedStatusCode Int                @default(200)  @map("expected_status_code")
-  isActive           Boolean            @default(true) @map("is_active")
-  nextCheckAt        TimestamptzString?                @map("next_check_at")
-  createdAt          TimestamptzString  @default(now()) @map("created_at")
-  updatedAt          temporal.updatedAtString()        @map("updated_at")
+  id                  String             @id @default(uuid())
+  name                String
+  url                 String
+  method              MonitorMethod      @default(GET)
+  intervalSeconds     Int                @default(60)    @map("interval_seconds")
+  timeoutMs           Int                @default(5000)  @map("timeout_ms")
+  expectedStatusMin   Int                @default(200)   @map("expected_status_min")
+  expectedStatusMax   Int                @default(299)   @map("expected_status_max")
+  isActive            Boolean            @default(true)  @map("is_active")
+  nextCheckAt         TimestamptzString  @default(now()) @map("next_check_at")
+
+  lastStatus          MonitorStatus?                     @map("last_status")
+  lastCheckedAt       TimestamptzString?                 @map("last_checked_at")
+  lastStatusCode      Int?                               @map("last_status_code")
+  lastResponseTimeMs  Int?                               @map("last_response_time_ms")
+  consecutiveFailures Int                @default(0)     @map("consecutive_failures")
+
+  createdAt           TimestamptzString  @default(now()) @map("created_at")
+  updatedAt           temporal.updatedAtString()         @map("updated_at")
 
   checks MonitorCheck[]
 
   @@index([createdAt, id])
-  @@index([isActive, name])
+  @@index([isActive, nextCheckAt, id])
 }
 
 model MonitorCheck {
@@ -47,6 +55,7 @@ model MonitorCheck {
   statusCode     Int?              @map("status_code")
   responseTimeMs Int?              @map("response_time_ms")
   errorType      CheckErrorType?   @map("error_type")
+  errorMessage   String?           @map("error_message")
   checkedAt      TimestamptzString @default(now()) @map("checked_at")
 
   monitor Monitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)

@@ -23,7 +23,13 @@ export class MonitorCheckService {
   public async run(monitorId: string): Promise<MonitorCheck> {
     const monitor = await this.monitors.getById(monitorId)
     const outcome = await probe(monitor)
+    const check = await this.checks.create({
+      monitorId: monitor.id,
+      ...outcome
+    })
 
-    return this.checks.create({ monitorId: monitor.id, ...outcome })
+    await this.monitors.recordOutcome(monitor, check)
+
+    return check
   }
 }

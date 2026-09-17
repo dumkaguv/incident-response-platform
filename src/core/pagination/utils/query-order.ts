@@ -7,6 +7,7 @@ import {
   type QueryDefinition,
   isProvided,
   isQueryObject,
+  isSortable,
   resolveQueryField
 } from './query-definition'
 import type { SortClause } from './query-spec'
@@ -22,7 +23,7 @@ function sortClause(
   const field = resolveQueryField(definition, path)
 
   if (
-    (!unique && !field.scalar.sortable) ||
+    (!unique && !isSortable(field.scalar)) ||
     field.relations.some((relation) => relation.many)
   ) {
     throw new BadUserInputError(
@@ -74,7 +75,7 @@ function supportsPath(definition: QueryDefinition, path: string): boolean {
     const field = resolveQueryField(definition, path)
 
     return (
-      Boolean(field.scalar.sortable) &&
+      isSortable(field.scalar) &&
       !field.relations.some((relation) => relation.many)
     )
   } catch {

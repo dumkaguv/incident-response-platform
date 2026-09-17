@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'d362154a82471777aa5b1d5d124fac595b16b12e713a3f2c2f89549cef026692'>;
+  StorageHashBase<'1f8ab6752507632128c254bca3d1b59f246dca9883347ef776a9699d23522b7b'>;
 export type ExecutionHash =
   ExecutionHashBase<'05bf92c870ad09f9c2bab6a0463a90ae666aabe5eeb41e6cae1b2c0fbe37162d'>;
 export type ProfileHash =
@@ -245,12 +245,18 @@ export type FieldOutputTypes = {
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'];
       readonly url: CodecTypes['pg/text@1']['output'];
-      readonly method: 'GET' | 'HEAD' | 'POST';
+      readonly method: 'GET' | 'HEAD';
       readonly intervalSeconds: CodecTypes['pg/int4@1']['output'];
       readonly timeoutMs: CodecTypes['pg/int4@1']['output'];
-      readonly expectedStatusCode: CodecTypes['pg/int4@1']['output'];
+      readonly expectedStatusMin: CodecTypes['pg/int4@1']['output'];
+      readonly expectedStatusMax: CodecTypes['pg/int4@1']['output'];
       readonly isActive: CodecTypes['pg/bool@1']['output'];
-      readonly nextCheckAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly nextCheckAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly lastStatus: 'UP' | 'DOWN' | null;
+      readonly lastCheckedAt: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly lastStatusCode: CodecTypes['pg/int4@1']['output'] | null;
+      readonly lastResponseTimeMs: CodecTypes['pg/int4@1']['output'] | null;
+      readonly consecutiveFailures: CodecTypes['pg/int4@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
@@ -264,11 +270,13 @@ export type FieldOutputTypes = {
         | 'TIMEOUT'
         | 'DNS_ERROR'
         | 'CONNECTION_REFUSED'
+        | 'CONNECTION_ERROR'
         | 'TLS_ERROR'
         | 'INVALID_STATUS_CODE'
         | 'ASSERTION_FAILED'
         | 'UNKNOWN'
         | null;
+      readonly errorMessage: CodecTypes['pg/text@1']['output'] | null;
       readonly checkedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
   };
@@ -279,12 +287,18 @@ export type FieldInputTypes = {
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly name: CodecTypes['pg/text@1']['input'];
       readonly url: CodecTypes['pg/text@1']['input'];
-      readonly method: 'GET' | 'HEAD' | 'POST';
+      readonly method: 'GET' | 'HEAD';
       readonly intervalSeconds: CodecTypes['pg/int4@1']['input'];
       readonly timeoutMs: CodecTypes['pg/int4@1']['input'];
-      readonly expectedStatusCode: CodecTypes['pg/int4@1']['input'];
+      readonly expectedStatusMin: CodecTypes['pg/int4@1']['input'];
+      readonly expectedStatusMax: CodecTypes['pg/int4@1']['input'];
       readonly isActive: CodecTypes['pg/bool@1']['input'];
-      readonly nextCheckAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly nextCheckAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly lastStatus: 'UP' | 'DOWN' | null;
+      readonly lastCheckedAt: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly lastStatusCode: CodecTypes['pg/int4@1']['input'] | null;
+      readonly lastResponseTimeMs: CodecTypes['pg/int4@1']['input'] | null;
+      readonly consecutiveFailures: CodecTypes['pg/int4@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
@@ -298,11 +312,13 @@ export type FieldInputTypes = {
         | 'TIMEOUT'
         | 'DNS_ERROR'
         | 'CONNECTION_REFUSED'
+        | 'CONNECTION_ERROR'
         | 'TLS_ERROR'
         | 'INVALID_STATUS_CODE'
         | 'ASSERTION_FAILED'
         | 'UNKNOWN'
         | null;
+      readonly errorMessage: CodecTypes['pg/text@1']['input'] | null;
       readonly checkedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
   };
@@ -310,24 +326,32 @@ export type FieldInputTypes = {
 export type StorageColumnTypes = {
   readonly public: {
     readonly monitor: {
+      readonly consecutive_failures: CodecTypes['pg/int4@1']['output'];
       readonly created_at: CodecTypes['pg/timestamptz-string@1']['output'];
-      readonly expected_status_code: CodecTypes['pg/int4@1']['output'];
+      readonly expected_status_max: CodecTypes['pg/int4@1']['output'];
+      readonly expected_status_min: CodecTypes['pg/int4@1']['output'];
       readonly id: CodecTypes['pg/text@1']['output'];
       readonly interval_seconds: CodecTypes['pg/int4@1']['output'];
       readonly is_active: CodecTypes['pg/bool@1']['output'];
-      readonly method: 'GET' | 'HEAD' | 'POST';
+      readonly last_checked_at: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly last_response_time_ms: CodecTypes['pg/int4@1']['output'] | null;
+      readonly last_status: 'UP' | 'DOWN' | null;
+      readonly last_status_code: CodecTypes['pg/int4@1']['output'] | null;
+      readonly method: 'GET' | 'HEAD';
       readonly name: CodecTypes['pg/text@1']['output'];
-      readonly next_check_at: CodecTypes['pg/timestamptz-string@1']['output'] | null;
+      readonly next_check_at: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly timeout_ms: CodecTypes['pg/int4@1']['output'];
       readonly updated_at: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly url: CodecTypes['pg/text@1']['output'];
     };
     readonly monitorCheck: {
       readonly checked_at: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly error_message: CodecTypes['pg/text@1']['output'] | null;
       readonly error_type:
         | 'TIMEOUT'
         | 'DNS_ERROR'
         | 'CONNECTION_REFUSED'
+        | 'CONNECTION_ERROR'
         | 'TLS_ERROR'
         | 'INVALID_STATUS_CODE'
         | 'ASSERTION_FAILED'
@@ -344,24 +368,32 @@ export type StorageColumnTypes = {
 export type StorageColumnInputTypes = {
   readonly public: {
     readonly monitor: {
+      readonly consecutive_failures: CodecTypes['pg/int4@1']['input'];
       readonly created_at: CodecTypes['pg/timestamptz-string@1']['input'];
-      readonly expected_status_code: CodecTypes['pg/int4@1']['input'];
+      readonly expected_status_max: CodecTypes['pg/int4@1']['input'];
+      readonly expected_status_min: CodecTypes['pg/int4@1']['input'];
       readonly id: CodecTypes['pg/text@1']['input'];
       readonly interval_seconds: CodecTypes['pg/int4@1']['input'];
       readonly is_active: CodecTypes['pg/bool@1']['input'];
-      readonly method: 'GET' | 'HEAD' | 'POST';
+      readonly last_checked_at: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly last_response_time_ms: CodecTypes['pg/int4@1']['input'] | null;
+      readonly last_status: 'UP' | 'DOWN' | null;
+      readonly last_status_code: CodecTypes['pg/int4@1']['input'] | null;
+      readonly method: 'GET' | 'HEAD';
       readonly name: CodecTypes['pg/text@1']['input'];
-      readonly next_check_at: CodecTypes['pg/timestamptz-string@1']['input'] | null;
+      readonly next_check_at: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly timeout_ms: CodecTypes['pg/int4@1']['input'];
       readonly updated_at: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly url: CodecTypes['pg/text@1']['input'];
     };
     readonly monitorCheck: {
       readonly checked_at: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly error_message: CodecTypes['pg/text@1']['input'] | null;
       readonly error_type:
         | 'TIMEOUT'
         | 'DNS_ERROR'
         | 'CONNECTION_REFUSED'
+        | 'CONNECTION_ERROR'
         | 'TLS_ERROR'
         | 'INVALID_STATUS_CODE'
         | 'ASSERTION_FAILED'
@@ -437,13 +469,22 @@ type ContractBase = Omit<
                     readonly value: DefaultLiteralValue<'pg/int4@1', 5000>;
                   };
                 };
-                readonly expected_status_code: {
+                readonly expected_status_min: {
                   readonly nativeType: 'int4';
                   readonly codecId: 'pg/int4@1';
                   readonly nullable: false;
                   readonly default: {
                     readonly kind: 'literal';
                     readonly value: DefaultLiteralValue<'pg/int4@1', 200>;
+                  };
+                };
+                readonly expected_status_max: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 299>;
                   };
                 };
                 readonly is_active: {
@@ -458,7 +499,37 @@ type ContractBase = Omit<
                 readonly next_check_at: {
                   readonly nativeType: 'timestamptz';
                   readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                };
+                readonly last_status: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
                   readonly nullable: true;
+                };
+                readonly last_checked_at: {
+                  readonly nativeType: 'timestamptz';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                  readonly nullable: true;
+                };
+                readonly last_status_code: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly last_response_time_ms: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly consecutive_failures: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
                 };
                 readonly created_at: {
                   readonly nativeType: 'timestamptz';
@@ -482,9 +553,9 @@ type ContractBase = Omit<
                   readonly unique: false;
                 },
                 {
-                  readonly name: 'monitor_is_active_name_idx_46b5e021';
-                  readonly prefix: 'monitor_is_active_name_idx';
-                  readonly columns: readonly ['is_active', 'name'];
+                  readonly name: 'monitor_is_active_next_check_at_id_idx_3556133e';
+                  readonly prefix: 'monitor_is_active_next_check_at_id_idx';
+                  readonly columns: readonly ['is_active', 'next_check_at', 'id'];
                   readonly unique: false;
                 },
               ];
@@ -518,6 +589,11 @@ type ContractBase = Omit<
                   readonly nullable: true;
                 };
                 readonly error_type: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly error_message: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
@@ -574,6 +650,7 @@ type ContractBase = Omit<
                 'TIMEOUT',
                 'DNS_ERROR',
                 'CONNECTION_REFUSED',
+                'CONNECTION_ERROR',
                 'TLS_ERROR',
                 'INVALID_STATUS_CODE',
                 'ASSERTION_FAILED',
@@ -582,7 +659,7 @@ type ContractBase = Omit<
             };
             readonly MonitorMethod: {
               readonly kind: 'valueSet';
-              readonly values: readonly ['GET', 'HEAD', 'POST'];
+              readonly values: readonly ['GET', 'HEAD'];
             };
             readonly MonitorStatus: {
               readonly kind: 'valueSet';
@@ -635,7 +712,11 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
-              readonly expectedStatusCode: {
+              readonly expectedStatusMin: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly expectedStatusMax: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
@@ -644,11 +725,34 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
               };
               readonly nextCheckAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-string@1';
+                };
+              };
+              readonly lastStatus: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly lastCheckedAt: {
                 readonly nullable: true;
                 readonly type: {
                   readonly kind: 'scalar';
                   readonly codecId: 'pg/timestamptz-string@1';
                 };
+              };
+              readonly lastStatusCode: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly lastResponseTimeMs: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly consecutiveFailures: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
               readonly createdAt: {
                 readonly nullable: false;
@@ -688,9 +792,15 @@ type ContractBase = Omit<
                 readonly method: { readonly column: 'method' };
                 readonly intervalSeconds: { readonly column: 'interval_seconds' };
                 readonly timeoutMs: { readonly column: 'timeout_ms' };
-                readonly expectedStatusCode: { readonly column: 'expected_status_code' };
+                readonly expectedStatusMin: { readonly column: 'expected_status_min' };
+                readonly expectedStatusMax: { readonly column: 'expected_status_max' };
                 readonly isActive: { readonly column: 'is_active' };
                 readonly nextCheckAt: { readonly column: 'next_check_at' };
+                readonly lastStatus: { readonly column: 'last_status' };
+                readonly lastCheckedAt: { readonly column: 'last_checked_at' };
+                readonly lastStatusCode: { readonly column: 'last_status_code' };
+                readonly lastResponseTimeMs: { readonly column: 'last_response_time_ms' };
+                readonly consecutiveFailures: { readonly column: 'consecutive_failures' };
                 readonly createdAt: { readonly column: 'created_at' };
                 readonly updatedAt: { readonly column: 'updated_at' };
               };
@@ -719,6 +829,10 @@ type ContractBase = Omit<
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
               readonly errorType: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly errorMessage: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
@@ -753,6 +867,7 @@ type ContractBase = Omit<
                 readonly statusCode: { readonly column: 'status_code' };
                 readonly responseTimeMs: { readonly column: 'response_time_ms' };
                 readonly errorType: { readonly column: 'error_type' };
+                readonly errorMessage: { readonly column: 'error_message' };
                 readonly checkedAt: { readonly column: 'checked_at' };
               };
             };
@@ -764,7 +879,6 @@ type ContractBase = Omit<
             readonly members: readonly [
               { readonly name: 'GET'; readonly value: 'GET' },
               { readonly name: 'HEAD'; readonly value: 'HEAD' },
-              { readonly name: 'POST'; readonly value: 'POST' },
             ];
           };
           readonly MonitorStatus: {
@@ -780,6 +894,7 @@ type ContractBase = Omit<
               { readonly name: 'TIMEOUT'; readonly value: 'TIMEOUT' },
               { readonly name: 'DNS_ERROR'; readonly value: 'DNS_ERROR' },
               { readonly name: 'CONNECTION_REFUSED'; readonly value: 'CONNECTION_REFUSED' },
+              { readonly name: 'CONNECTION_ERROR'; readonly value: 'CONNECTION_ERROR' },
               { readonly name: 'TLS_ERROR'; readonly value: 'TLS_ERROR' },
               { readonly name: 'INVALID_STATUS_CODE'; readonly value: 'INVALID_STATUS_CODE' },
               { readonly name: 'ASSERTION_FAILED'; readonly value: 'ASSERTION_FAILED' },

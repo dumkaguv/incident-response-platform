@@ -15,4 +15,5 @@ export type MonitorCheckCreateData = {
   statusCode?: number | null
   responseTimeMs?: number | null
   errorType?: CheckErrorType | null
+  errorMessage?: string | null
 }

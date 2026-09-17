@@ -7,7 +7,8 @@ const MONITORS = [
     method: 'GET',
     intervalSeconds: 60,
     timeoutMs: 5000,
-    expectedStatusCode: 200,
+    expectedStatusMin: 200,
+    expectedStatusMax: 299,
     isActive: true
   },
   {
@@ -16,7 +17,8 @@ const MONITORS = [
     method: 'GET',
     intervalSeconds: 30,
     timeoutMs: 3000,
-    expectedStatusCode: 200,
+    expectedStatusMin: 200,
+    expectedStatusMax: 299,
     isActive: true
   },
   {
@@ -25,7 +27,8 @@ const MONITORS = [
     method: 'GET',
     intervalSeconds: 120,
     timeoutMs: 8000,
-    expectedStatusCode: 200,
+    expectedStatusMin: 200,
+    expectedStatusMax: 299,
     isActive: true
   },
   {
@@ -34,7 +37,8 @@ const MONITORS = [
     method: 'GET',
     intervalSeconds: 300,
     timeoutMs: 1000,
-    expectedStatusCode: 200,
+    expectedStatusMin: 200,
+    expectedStatusMax: 299,
     isActive: true
   },
   {
@@ -43,7 +47,8 @@ const MONITORS = [
     method: 'GET',
     intervalSeconds: 600,
     timeoutMs: 2000,
-    expectedStatusCode: 200,
+    expectedStatusMin: 200,
+    expectedStatusMax: 299,
     isActive: false
   },
   {
@@ -52,7 +57,8 @@ const MONITORS = [
     method: 'HEAD',
     intervalSeconds: 900,
     timeoutMs: 4000,
-    expectedStatusCode: 200,
+    expectedStatusMin: 200,
+    expectedStatusMax: 299,
     isActive: true
   }
 ] as const

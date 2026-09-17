@@ -5,7 +5,7 @@ export const fixtureQuery: QueryDefinition = {
   fields: {
     id: { type: 'id', filterable: true, sortable: true },
     title: { type: 'string', filterable: true, sortable: true },
-    secret: { type: 'string' },
+    secret: { type: 'string', filterable: false, sortable: false },
     rank: { type: 'int', nullable: true, filterable: true, sortable: true },
     active: { type: 'boolean', filterable: true, sortable: true },
     priority: {

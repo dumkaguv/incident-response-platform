@@ -41,7 +41,7 @@
     "execute": [
       {
         "description": "create table \"monitor\"",
-        "sql": "CREATE TABLE \"public\".\"monitor\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"expected_status_code\" int4 DEFAULT 200 NOT NULL,\n  \"id\" text NOT NULL,\n  \"interval_seconds\" int4 DEFAULT 60 NOT NULL,\n  \"is_active\" bool DEFAULT true NOT NULL,\n  \"method\" text DEFAULT 'GET' NOT NULL,\n  \"name\" text NOT NULL,\n  \"next_check_at\" timestamptz,\n  \"timeout_ms\" int4 DEFAULT 5000 NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  \"url\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"monitor_method_check_f6b740eb\" CHECK (\"method\" IN ('GET', 'HEAD', 'POST'))\n)",
+        "sql": "CREATE TABLE \"public\".\"monitor\" (\n  \"consecutive_failures\" int4 DEFAULT 0 NOT NULL,\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"expected_status_max\" int4 DEFAULT 299 NOT NULL,\n  \"expected_status_min\" int4 DEFAULT 200 NOT NULL,\n  \"id\" text NOT NULL,\n  \"interval_seconds\" int4 DEFAULT 60 NOT NULL,\n  \"is_active\" bool DEFAULT true NOT NULL,\n  \"last_checked_at\" timestamptz,\n  \"last_response_time_ms\" int4,\n  \"last_status\" text,\n  \"last_status_code\" int4,\n  \"method\" text DEFAULT 'GET' NOT NULL,\n  \"name\" text NOT NULL,\n  \"next_check_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"timeout_ms\" int4 DEFAULT 5000 NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  \"url\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"monitor_last_status_check_8d5cf198\" CHECK (\"last_status\" IN ('UP', 'DOWN')),\n  CONSTRAINT \"monitor_method_check_a2e56478\" CHECK (\"method\" IN ('GET', 'HEAD'))\n)",
         "params": []
       }
     ],
@@ -80,7 +80,7 @@
     "execute": [
       {
         "description": "create table \"monitorCheck\"",
-        "sql": "CREATE TABLE \"public\".\"monitorCheck\" (\n  \"checked_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"error_type\" text,\n  \"id\" text NOT NULL,\n  \"monitor_id\" text NOT NULL,\n  \"response_time_ms\" int4,\n  \"status\" text NOT NULL,\n  \"status_code\" int4,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"monitorCheck_error_type_check_fdb8dbfc\" CHECK (\"error_type\" IN ('TIMEOUT', 'DNS_ERROR', 'CONNECTION_REFUSED', 'TLS_ERROR', 'INVALID_STATUS_CODE', 'ASSERTION_FAILED', 'UNKNOWN')),\n  CONSTRAINT \"monitorCheck_status_check_b2b99eb4\" CHECK (\"status\" IN ('UP', 'DOWN'))\n)",
+        "sql": "CREATE TABLE \"public\".\"monitorCheck\" (\n  \"checked_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"error_message\" text,\n  \"error_type\" text,\n  \"id\" text NOT NULL,\n  \"monitor_id\" text NOT NULL,\n  \"response_time_ms\" int4,\n  \"status\" text NOT NULL,\n  \"status_code\" int4,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"monitorCheck_error_type_check_84105df4\" CHECK (\"error_type\" IN ('TIMEOUT', 'DNS_ERROR', 'CONNECTION_REFUSED', 'CONNECTION_ERROR', 'TLS_ERROR', 'INVALID_STATUS_CODE', 'ASSERTION_FAILED', 'UNKNOWN')),\n  CONSTRAINT \"monitorCheck_status_check_b2b99eb4\" CHECK (\"status\" IN ('UP', 'DOWN'))\n)",
         "params": []
       }
     ],
@@ -134,40 +134,40 @@
     ]
   },
   {
-    "id": "index.monitor.monitor_is_active_name_idx_46b5e021",
-    "label": "Create index \"monitor_is_active_name_idx_46b5e021\" on \"monitor\"",
+    "id": "index.monitor.monitor_is_active_next_check_at_id_idx_3556133e",
+    "label": "Create index \"monitor_is_active_next_check_at_id_idx_3556133e\" on \"monitor\"",
     "operationClass": "additive",
     "target": {
       "id": "postgres",
       "details": {
         "schema": "public",
         "objectType": "index",
-        "name": "monitor_is_active_name_idx_46b5e021",
+        "name": "monitor_is_active_next_check_at_id_idx_3556133e",
         "table": "monitor"
       }
     },
     "precheck": [
       {
-        "description": "ensure index \"monitor_is_active_name_idx_46b5e021\" does not exist",
+        "description": "ensure index \"monitor_is_active_next_check_at_id_idx_3556133e\" does not exist",
         "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
         "params": [
-          "\"public\".\"monitor_is_active_name_idx_46b5e021\""
+          "\"public\".\"monitor_is_active_next_check_at_id_idx_3556133e\""
         ]
       }
     ],
     "execute": [
       {
-        "description": "create index \"monitor_is_active_name_idx_46b5e021\"",
-        "sql": "CREATE INDEX \"monitor_is_active_name_idx_46b5e021\" ON \"public\".\"monitor\" (\"is_active\", \"name\")",
+        "description": "create index \"monitor_is_active_next_check_at_id_idx_3556133e\"",
+        "sql": "CREATE INDEX \"monitor_is_active_next_check_at_id_idx_3556133e\" ON \"public\".\"monitor\" (\"is_active\", \"next_check_at\", \"id\")",
         "params": []
       }
     ],
     "postcheck": [
       {
-        "description": "verify index \"monitor_is_active_name_idx_46b5e021\" exists",
+        "description": "verify index \"monitor_is_active_next_check_at_id_idx_3556133e\" exists",
         "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
         "params": [
-          "\"public\".\"monitor_is_active_name_idx_46b5e021\""
+          "\"public\".\"monitor_is_active_next_check_at_id_idx_3556133e\""
         ]
       }
     ]

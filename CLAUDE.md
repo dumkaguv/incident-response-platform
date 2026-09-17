@@ -177,13 +177,37 @@ not be used**: introspection reads the opclass back as a plain column, so
 contract and database never agree. Trigram indexes therefore live outside the
 contract, in `prisma/search-indexes/`; `db verify` tolerates them.
 
+**The planner stops at data, not at schema.** It handled a dropped column, a
+removed enum value (drop and re-add the check constraint), a new index and
+`setNotNull` without help — but making `next_check_at` non-null produced a
+`dataTransform` with `placeholder(...)` in both `check` and `run`, because only
+the author knows what the existing NULLs should become. Filling one means
+building a `SqlQueryPlan` against the end contract. With nothing but seed data
+in the database the honest move was a fresh baseline; once a deployed database
+exists, that shortcut is gone and the placeholder has to be written.
+
+**`filterable` and `sortable` default to true.** A field opts out with an
+explicit `false`, which is how `secret` stays out of the fixture's filter
+input. The flags read as exceptions now, and a definition that wants everything
+exposed says nothing at all.
+
+**Latest state is denormalised onto `Monitor`.** `lastStatus`, `lastCheckedAt`,
+`lastStatusCode`, `lastResponseTimeMs` and `consecutiveFailures` save a list of
+monitors from reaching into `MonitorCheck` for each row. The probe writes the
+check first and the monitor second, so a crash between them leaves the monitor
+one probe stale — the next probe repairs it, and nothing reads those fields as
+the source of truth. `consecutiveFailures` is what an incident engine will
+debounce on, so one stray timeout cannot open an incident.
+
 **Every index exists for one query pattern**, measured on 200k skewed rows and
 invisible on seed data: `(createdAt, id)` for the default keyset order, scanned
 backwards since all columns are DESC; `(status, createdAt, id)` for a status
 filter under that order, 23 ms without it against 7.8 ms with;
-`team_member (team_id, name)` for the batched relation fetch and its ordering in
-one scan, 13.8 ms against 0.29 ms; trigram GIN for search, 140 ms against
-0.3 ms on a rare term.
+`(monitor_id, checked_at, id)` for a page of one monitor history and for the
+nested connection window; `(is_active, next_check_at, id)` for the scheduler
+claim, which is the only reason that index exists — `(is_active, name)` was
+dropped because nothing ordered active monitors by name; trigram GIN for
+search, 140 ms against 0.3 ms on a rare term.
 
 **The bundle is built from `dist`, not `src`** — SWC has already emitted the
 decorator metadata, so esbuild never handles decorators. `keepNames` is

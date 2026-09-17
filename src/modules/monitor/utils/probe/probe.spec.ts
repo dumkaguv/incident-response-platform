@@ -12,9 +12,15 @@ function monitor(overrides: Partial<Monitor> = {}): Monitor {
     method: 'GET',
     intervalSeconds: 60,
     timeoutMs: 1000,
-    expectedStatusCode: 200,
+    expectedStatusMin: 200,
+    expectedStatusMax: 299,
     isActive: true,
-    nextCheckAt: null,
+    nextCheckAt: '2026-09-17T00:00:00.000Z',
+    lastStatus: null,
+    lastCheckedAt: null,
+    lastStatusCode: null,
+    lastResponseTimeMs: null,
+    consecutiveFailures: 0,
     createdAt: '2026-09-17T00:00:00.000Z',
     updatedAt: '2026-09-17T00:00:00.000Z',
     ...overrides
@@ -63,12 +69,17 @@ describe('probe', () => {
     expect(outcome.errorType).toBe(CheckErrorType.INVALID_STATUS_CODE)
   })
 
-  it('honours a monitor that expects something other than 200', async () => {
+  it('accepts any code inside the healthy range', async () => {
     vi.stubGlobal('fetch', responding(204, { called: false }))
 
-    const outcome = await probe(monitor({ expectedStatusCode: 204 }))
+    expect((await probe(monitor())).status).toBe(MonitorStatus.UP)
 
-    expect(outcome.status).toBe(MonitorStatus.UP)
+    vi.stubGlobal('fetch', responding(301, { called: false }))
+
+    expect((await probe(monitor())).status).toBe(MonitorStatus.DOWN)
+    expect((await probe(monitor({ expectedStatusMax: 399 }))).status).toBe(
+      MonitorStatus.UP
+    )
   })
 
   it('sends the monitor method and follows redirects', async () => {
@@ -117,6 +128,7 @@ describe('probe', () => {
 
     expect(outcome.status).toBe(MonitorStatus.DOWN)
     expect(outcome.errorType).toBe(CheckErrorType.DNS_ERROR)
+    expect(outcome.errorMessage).toBe('ENOTFOUND')
     expect(outcome.statusCode).toBeNull()
   })
 })

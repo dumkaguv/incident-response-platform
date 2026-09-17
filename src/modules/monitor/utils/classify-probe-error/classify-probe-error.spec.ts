@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { CheckErrorType } from '@/modules/monitor/types'
-import { classifyProbeError } from '@/modules/monitor/utils'
+import { classifyProbeError, probeErrorMessage } from '@/modules/monitor/utils'
 
 function withCode(code: string): Error {
   return new Error('fetch failed', {
@@ -23,7 +23,10 @@ describe('classifyProbeError', () => {
     ['EAI_AGAIN', CheckErrorType.DNS_ERROR],
     ['EAI_FAIL', CheckErrorType.DNS_ERROR],
     ['ECONNREFUSED', CheckErrorType.CONNECTION_REFUSED],
-    ['ECONNRESET', CheckErrorType.CONNECTION_REFUSED],
+    ['ECONNRESET', CheckErrorType.CONNECTION_ERROR],
+    ['ENETUNREACH', CheckErrorType.CONNECTION_ERROR],
+    ['EHOSTUNREACH', CheckErrorType.CONNECTION_ERROR],
+    ['UND_ERR_SOCKET', CheckErrorType.CONNECTION_ERROR],
     ['CERT_HAS_EXPIRED', CheckErrorType.TLS_ERROR],
     ['DEPTH_ZERO_SELF_SIGNED_CERT', CheckErrorType.TLS_ERROR],
     ['UNABLE_TO_VERIFY_LEAF_SIGNATURE', CheckErrorType.TLS_ERROR],
@@ -46,5 +49,19 @@ describe('classifyProbeError', () => {
     expect(classifyProbeError(new Error('bare'))).toBe(CheckErrorType.UNKNOWN)
     expect(classifyProbeError('a string')).toBe(CheckErrorType.UNKNOWN)
     expect(classifyProbeError(null)).toBe(CheckErrorType.UNKNOWN)
+  })
+})
+
+describe('probeErrorMessage', () => {
+  it('keeps the code, which is the detail worth storing', () => {
+    expect(probeErrorMessage(withCode('ECONNRESET'))).toBe('ECONNRESET')
+  })
+
+  it('falls back to a trimmed message when there is no code', () => {
+    expect(probeErrorMessage(new Error('x'.repeat(400)))).toHaveLength(200)
+  })
+
+  it('has nothing to say about a value that is not an error', () => {
+    expect(probeErrorMessage(null)).toBeNull()
   })
 })

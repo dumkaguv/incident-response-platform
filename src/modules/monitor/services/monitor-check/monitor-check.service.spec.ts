@@ -11,16 +11,26 @@ const monitor = {
   url: 'https://example.test/health',
   method: 'GET',
   timeoutMs: 1000,
-  expectedStatusCode: 200
+  intervalSeconds: 60,
+  expectedStatusMin: 200,
+  expectedStatusMax: 299,
+  consecutiveFailures: 0
 } as Monitor
 
 function serviceWith(created: MonitorCheckCreateData[]): MonitorCheckService {
-  const monitors = { getById: () => Promise.resolve(monitor) }
+  const monitors = {
+    getById: () => Promise.resolve(monitor),
+    recordOutcome: () => Promise.resolve(monitor)
+  }
   const checks = {
     create: (data: MonitorCheckCreateData) => {
       created.push(data)
 
-      return Promise.resolve({ id: 'c1', ...data })
+      return Promise.resolve({
+        id: 'c1',
+        checkedAt: '2026-09-17T00:00:00.000Z',
+        ...data
+      })
     }
   }
 

@@ -46,6 +46,13 @@ export class MonitorCheckObject implements MonitorCheck {
   })
   errorType: CheckErrorType | null
 
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'Short technical detail of the failure, such as the socket error code'
+  })
+  errorMessage: string | null
+
   @Field(() => DateTimeScalar, { description: 'When the probe ran' })
   checkedAt: string
 }

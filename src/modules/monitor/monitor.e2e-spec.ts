@@ -78,8 +78,10 @@ describe('monitor module (e2e)', () => {
     const created = await data(
       `mutation ($input: CreateMonitorInput!) {
         createMonitor(input: $input) {
-          id name url method intervalSeconds timeoutMs expectedStatusCode
-          isActive nextCheckAt createdAt
+          id name url method intervalSeconds timeoutMs
+          expectedStatusMin expectedStatusMax isActive nextCheckAt
+          lastStatus lastCheckedAt lastStatusCode lastResponseTimeMs
+          consecutiveFailures createdAt
         }
       }`,
       { input: { name: 'Probe target', url: `${origin}/ok` } }
@@ -93,11 +95,17 @@ describe('monitor module (e2e)', () => {
       method: 'GET',
       intervalSeconds: 60,
       timeoutMs: 5000,
-      expectedStatusCode: 200,
+      expectedStatusMin: 200,
+      expectedStatusMax: 299,
       isActive: true,
-      nextCheckAt: null
+      lastStatus: null,
+      lastCheckedAt: null,
+      lastStatusCode: null,
+      lastResponseTimeMs: null,
+      consecutiveFailures: 0
     })
     expect(monitor.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+    expect(monitor.nextCheckAt).toMatch(/^\d{4}-\d{2}-\d{2}T/)
   })
 
   it('refuses a url that is not http', async () => {
@@ -186,7 +194,8 @@ describe('monitor module (e2e)', () => {
     const run = await data(
       `mutation ($id: ID!) {
         checkMonitor(id: $id) {
-          id monitorId status statusCode responseTimeMs errorType checkedAt
+          id monitorId status statusCode responseTimeMs errorType
+          errorMessage checkedAt
         }
       }`,
       { id: monitorId }
@@ -212,7 +221,7 @@ describe('monitor module (e2e)', () => {
     const failing = (created.createMonitor as { id: string }).id
     const run = await data(
       `mutation ($id: ID!) {
-        checkMonitor(id: $id) { status statusCode errorType }
+        checkMonitor(id: $id) { status statusCode errorType errorMessage }
       }`,
       { id: failing }
     )
@@ -222,6 +231,29 @@ describe('monitor module (e2e)', () => {
       statusCode: 503,
       errorType: 'INVALID_STATUS_CODE'
     })
+  })
+
+  it('carries the probe outcome onto the monitor itself', async () => {
+    const after = await data(
+      `query ($id: ID!) {
+        monitor(id: $id) {
+          lastStatus lastStatusCode lastResponseTimeMs lastCheckedAt
+          consecutiveFailures nextCheckAt
+        }
+      }`,
+      { id: monitorId }
+    )
+    const monitor = after.monitor as Record<string, unknown>
+
+    expect(monitor).toMatchObject({
+      lastStatus: 'UP',
+      lastStatusCode: 200,
+      consecutiveFailures: 0
+    })
+    expect(monitor.lastResponseTimeMs).toBeTypeOf('number')
+    expect(Date.parse(monitor.nextCheckAt as string)).toBeGreaterThan(
+      Date.parse(monitor.lastCheckedAt as string)
+    )
   })
 
   it('serves the history as a root connection filtered by monitor', async () => {

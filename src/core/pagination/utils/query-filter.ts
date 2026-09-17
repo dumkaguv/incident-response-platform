@@ -5,6 +5,7 @@ import {
   type QueryFields,
   type ResolvedQueryField,
   type ScalarQueryField,
+  isFilterable,
   isQueryObject,
   queryField,
   resolveQueryField
@@ -216,7 +217,7 @@ export function parseFilter(fields: QueryFields, input: unknown): FilterNode {
           })
         }
       } else {
-        if (!field.filterable || !isQueryObject(entry)) {
+        if (!isFilterable(field) || !isQueryObject(entry)) {
           throw new BadUserInputError(`Field "${key}" is not filterable`)
         }
 

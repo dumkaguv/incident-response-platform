@@ -7,5 +7,6 @@ export const MonitorLimit = {
   timeoutMsMin: 100,
   timeoutMsMax: 60_000,
   statusCodeMin: 100,
-  statusCodeMax: 599
+  statusCodeMax: 599,
+  consecutiveFailuresReset: 0
 } as const

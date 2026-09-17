@@ -9,46 +9,47 @@ import type { QueryDefinition } from '@/core/pagination'
 export const monitorQuery: QueryDefinition = {
   name: MonitorTypeName.monitor,
   fields: {
-    id: { type: 'id', filterable: true, sortable: true },
-    name: { type: 'string', filterable: true, sortable: true },
-    url: { type: 'string', filterable: true, sortable: true },
+    id: { type: 'id' },
+    name: { type: 'string' },
+    url: { type: 'string' },
     method: {
       type: 'enum',
-      enum: { name: MonitorTypeName.method, values: MonitorMethod },
-      filterable: true,
-      sortable: true
+      enum: { name: MonitorTypeName.method, values: MonitorMethod }
     },
-    intervalSeconds: { type: 'int', filterable: true, sortable: true },
-    timeoutMs: { type: 'int', filterable: true, sortable: true },
-    expectedStatusCode: { type: 'int', filterable: true, sortable: true },
-    isActive: { type: 'boolean', filterable: true, sortable: true },
-    nextCheckAt: {
-      type: 'date',
+    intervalSeconds: { type: 'int' },
+    timeoutMs: { type: 'int' },
+    expectedStatusMin: { type: 'int' },
+    expectedStatusMax: { type: 'int' },
+    isActive: { type: 'boolean' },
+    nextCheckAt: { type: 'date' },
+    lastStatus: {
+      type: 'enum',
       nullable: true,
-      filterable: true,
-      sortable: true
+      enum: { name: MonitorTypeName.status, values: MonitorStatus }
     },
-    createdAt: { type: 'date', filterable: true, sortable: true },
-    updatedAt: { type: 'date', filterable: true, sortable: true },
+    lastCheckedAt: { type: 'date', nullable: true },
+    lastStatusCode: { type: 'int', nullable: true },
+    lastResponseTimeMs: { type: 'int', nullable: true },
+    consecutiveFailures: { type: 'int' },
+    createdAt: { type: 'date' },
+    updatedAt: { type: 'date' },
     checks: {
       type: 'relation',
       field: 'checks',
       many: true,
       fields: {
-        id: { type: 'id', filterable: true },
+        id: { type: 'id' },
         status: {
           type: 'enum',
-          enum: { name: MonitorTypeName.status, values: MonitorStatus },
-          filterable: true
+          enum: { name: MonitorTypeName.status, values: MonitorStatus }
         },
-        statusCode: { type: 'int', nullable: true, filterable: true },
+        statusCode: { type: 'int', nullable: true },
         errorType: {
           type: 'enum',
           nullable: true,
-          enum: { name: MonitorTypeName.errorType, values: CheckErrorType },
-          filterable: true
+          enum: { name: MonitorTypeName.errorType, values: CheckErrorType }
         },
-        checkedAt: { type: 'date', filterable: true }
+        checkedAt: { type: 'date' }
       }
     }
   },

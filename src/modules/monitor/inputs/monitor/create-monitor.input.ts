@@ -59,13 +59,25 @@ export class CreateMonitorInput {
 
   @Field(() => Int, {
     nullable: true,
-    description: 'Response code that counts as healthy; defaults to 200'
+    description:
+      'Lowest response code that still counts as healthy; defaults to 200'
   })
   @IsOptional()
   @IsInt()
   @Min(MonitorLimit.statusCodeMin)
   @Max(MonitorLimit.statusCodeMax)
-  expectedStatusCode?: number
+  expectedStatusMin?: number
+
+  @Field(() => Int, {
+    nullable: true,
+    description:
+      'Highest response code that still counts as healthy; defaults to 299'
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(MonitorLimit.statusCodeMin)
+  @Max(MonitorLimit.statusCodeMax)
+  expectedStatusMax?: number
 
   @Field(() => Boolean, {
     nullable: true,

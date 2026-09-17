@@ -33,6 +33,10 @@
                 "value": "CONNECTION_REFUSED"
               },
               {
+                "name": "CONNECTION_ERROR",
+                "value": "CONNECTION_ERROR"
+              },
+              {
                 "name": "TLS_ERROR",
                 "value": "TLS_ERROR"
               },
@@ -60,10 +64,6 @@
               {
                 "name": "HEAD",
                 "value": "HEAD"
-              },
-              {
-                "name": "POST",
-                "value": "POST"
               }
             ]
           },
@@ -84,6 +84,13 @@
         "models": {
           "Monitor": {
             "fields": {
+              "consecutiveFailures": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "createdAt": {
                 "nullable": false,
                 "type": {
@@ -91,7 +98,14 @@
                   "kind": "scalar"
                 }
               },
-              "expectedStatusCode": {
+              "expectedStatusMax": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "expectedStatusMin": {
                 "nullable": false,
                 "type": {
                   "codecId": "pg/int4@1",
@@ -119,6 +133,40 @@
                   "kind": "scalar"
                 }
               },
+              "lastCheckedAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "lastResponseTimeMs": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "lastStatus": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "MonitorStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "lastStatusCode": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "method": {
                 "nullable": false,
                 "type": {
@@ -140,7 +188,7 @@
                 }
               },
               "nextCheckAt": {
-                "nullable": true,
+                "nullable": false,
                 "type": {
                   "codecId": "pg/timestamptz-string@1",
                   "kind": "scalar"
@@ -187,11 +235,17 @@
             },
             "storage": {
               "fields": {
+                "consecutiveFailures": {
+                  "column": "consecutive_failures"
+                },
                 "createdAt": {
                   "column": "created_at"
                 },
-                "expectedStatusCode": {
-                  "column": "expected_status_code"
+                "expectedStatusMax": {
+                  "column": "expected_status_max"
+                },
+                "expectedStatusMin": {
+                  "column": "expected_status_min"
                 },
                 "id": {
                   "column": "id"
@@ -201,6 +255,18 @@
                 },
                 "isActive": {
                   "column": "is_active"
+                },
+                "lastCheckedAt": {
+                  "column": "last_checked_at"
+                },
+                "lastResponseTimeMs": {
+                  "column": "last_response_time_ms"
+                },
+                "lastStatus": {
+                  "column": "last_status"
+                },
+                "lastStatusCode": {
+                  "column": "last_status_code"
                 },
                 "method": {
                   "column": "method"
@@ -231,6 +297,13 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "errorMessage": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               },
@@ -311,6 +384,9 @@
                 "checkedAt": {
                   "column": "checked_at"
                 },
+                "errorMessage": {
+                  "column": "error_message"
+                },
                 "errorType": {
                   "column": "error_type"
                 },
@@ -346,12 +422,26 @@
             "monitor": {
               "checks": [
                 {
-                  "expression": "\"method\" IN ('GET', 'HEAD', 'POST')",
-                  "name": "monitor_method_check_f6b740eb",
+                  "expression": "\"last_status\" IN ('UP', 'DOWN')",
+                  "name": "monitor_last_status_check_8d5cf198",
+                  "prefix": "monitor_last_status_check"
+                },
+                {
+                  "expression": "\"method\" IN ('GET', 'HEAD')",
+                  "name": "monitor_method_check_a2e56478",
                   "prefix": "monitor_method_check"
                 }
               ],
               "columns": {
+                "consecutive_failures": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
                 "created_at": {
                   "codecId": "pg/timestamptz-string@1",
                   "default": {
@@ -361,7 +451,16 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
-                "expected_status_code": {
+                "expected_status_max": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 299
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "expected_status_min": {
                   "codecId": "pg/int4@1",
                   "default": {
                     "kind": "literal",
@@ -393,6 +492,32 @@
                   "nativeType": "bool",
                   "nullable": false
                 },
+                "last_checked_at": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "last_response_time_ms": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
+                "last_status": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "MonitorStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "last_status_code": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
                 "method": {
                   "codecId": "pg/text@1",
                   "default": {
@@ -415,8 +540,12 @@
                 },
                 "next_check_at": {
                   "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
                   "nativeType": "timestamptz",
-                  "nullable": true
+                  "nullable": false
                 },
                 "timeout_ms": {
                   "codecId": "pg/int4@1",
@@ -452,10 +581,11 @@
                 {
                   "columns": [
                     "is_active",
-                    "name"
+                    "next_check_at",
+                    "id"
                   ],
-                  "name": "monitor_is_active_name_idx_46b5e021",
-                  "prefix": "monitor_is_active_name_idx",
+                  "name": "monitor_is_active_next_check_at_id_idx_3556133e",
+                  "prefix": "monitor_is_active_next_check_at_id_idx",
                   "unique": false
                 }
               ],
@@ -469,8 +599,8 @@
             "monitorCheck": {
               "checks": [
                 {
-                  "expression": "\"error_type\" IN ('TIMEOUT', 'DNS_ERROR', 'CONNECTION_REFUSED', 'TLS_ERROR', 'INVALID_STATUS_CODE', 'ASSERTION_FAILED', 'UNKNOWN')",
-                  "name": "monitorCheck_error_type_check_fdb8dbfc",
+                  "expression": "\"error_type\" IN ('TIMEOUT', 'DNS_ERROR', 'CONNECTION_REFUSED', 'CONNECTION_ERROR', 'TLS_ERROR', 'INVALID_STATUS_CODE', 'ASSERTION_FAILED', 'UNKNOWN')",
+                  "name": "monitorCheck_error_type_check_84105df4",
                   "prefix": "monitorCheck_error_type_check"
                 },
                 {
@@ -488,6 +618,11 @@
                   },
                   "nativeType": "timestamptz",
                   "nullable": false
+                },
+                "error_message": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "error_type": {
                   "codecId": "pg/text@1",
@@ -595,6 +730,7 @@
                 "TIMEOUT",
                 "DNS_ERROR",
                 "CONNECTION_REFUSED",
+                "CONNECTION_ERROR",
                 "TLS_ERROR",
                 "INVALID_STATUS_CODE",
                 "ASSERTION_FAILED",
@@ -605,8 +741,7 @@
               "kind": "valueSet",
               "values": [
                 "GET",
-                "HEAD",
-                "POST"
+                "HEAD"
               ]
             },
             "MonitorStatus": {
@@ -622,7 +757,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "d362154a82471777aa5b1d5d124fac595b16b12e713a3f2c2f89549cef026692"
+    "storageHash": "1f8ab6752507632128c254bca3d1b59f246dca9883347ef776a9699d23522b7b"
   },
   "execution": {
     "executionHash": "05bf92c870ad09f9c2bab6a0463a90ae666aabe5eeb41e6cae1b2c0fbe37162d",

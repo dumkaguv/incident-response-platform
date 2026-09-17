@@ -14,6 +14,8 @@ import { normalizeQuery } from '@/core/pagination/utils/normalize-query'
 import {
   type QueryDefinition,
   type QueryFields,
+  isFilterable,
+  isSortable,
   validateQueryDefinition
 } from '@/core/pagination/utils/query-definition'
 import { ORDER_DIRECTIONS } from '@/core/pagination/utils/query-order'
@@ -133,7 +135,7 @@ function buildFilterInput(name: string, fields: QueryFields): Type<unknown> {
         input = CollectionFilterInput
       }
     } else {
-      if (!field.filterable) {
+      if (!isFilterable(field)) {
         continue
       }
 
@@ -169,7 +171,7 @@ function buildOrderInput(
 
       Field(() => nested, { nullable: true })(OrderInput.prototype, key)
     } else {
-      if (!field.sortable) {
+      if (!isSortable(field)) {
         continue
       }
 

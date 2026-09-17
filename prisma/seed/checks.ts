@@ -38,6 +38,7 @@ export async function seedChecks(
             ? null
             : latency(index + position),
         errorType: failing ? failure.errorType : null,
+        errorMessage: failing ? failure.errorType : null,
         checkedAt
       })
 
