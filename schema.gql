@@ -303,7 +303,7 @@ type Query {
     """Typed filters with nested and/or/not groups"""
     filter: IncidentFilter
 
-    """Forward page size; defaults to 10, max 100"""
+    """Forward page size; defaults to 25, max 100"""
     first: Int
 
     """Backward page size, max 100"""
