@@ -18,7 +18,6 @@ model Team {
   members   TeamMember[]
 
   @@index([name])
-  @@map("team")
 }
 
 model TeamMember {
@@ -33,5 +32,4 @@ model TeamMember {
   team Team @relation(fields: [teamId], references: [id])
 
   @@index([teamId, name])
-  @@map("team_member")
 }

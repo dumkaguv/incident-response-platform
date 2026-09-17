@@ -117,12 +117,17 @@ database has to move too.
 makes every later `migration plan` branch from the wrong base. Advance it to the
 applied migration's `to` hash — the **full** one; a prefix reads as a mismatch.
 
-**Physical names are snake_case, model names are not** — `@map`/`@@map` on every
-column and table, so the database reads `created_at`, `team_id`, `team_member`.
-**Prisma Next cannot rename**: the planner emits zero operations for a name
-change and the DSL has no `renameColumn`/`renameTable`, so `@map` only reaches a
-database created with those names — changing one later means squashing to a new
-baseline and recreating the database. A baseline is planned by deleting
+**Columns are snake_case, tables are not mapped at all.** `@map` on every
+column, so the database reads `created_at`, `team_id`. A table with no `@@map`
+takes the model name with a lowercased first letter — `incident`, `team`,
+`teamMember` — which is why `@@map("incident")` and `@@map("team")` were dropped
+as no-ops while `@@map("team_member")` was a real rename.
+
+**A rename is planned as drop-and-create, so its rows are gone.** The DSL has
+no `renameTable`/`renameColumn`; removing `@@map("team_member")` planned six
+operations starting with `DROP TABLE "team_member"`. It applies cleanly against
+a live database — no baseline squash — but everything in that table is lost, so
+reseed after. A baseline, when you do want one, is planned by deleting
 `refs/db.json` outright; a database is fresh only once `prisma_contract` is
 dropped too, since that schema holds the marker.
 

@@ -29,5 +29,4 @@ model Incident {
 
   @@index([createdAt, id])
   @@index([status, createdAt, id])
-  @@map("incident")
 }

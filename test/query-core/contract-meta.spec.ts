@@ -12,7 +12,7 @@ import {
 describe('contract metadata', () => {
   it('maps models to tables and fields to physical columns', () => {
     expect(tableOf('Incident')).toBe('incident')
-    expect(tableOf('TeamMember')).toBe('team_member')
+    expect(tableOf('TeamMember')).toBe('teamMember')
     expect(columnOf('Incident', 'createdAt')).toBe('created_at')
     expect(columnOf('Incident', 'resolvedAt')).toBe('resolved_at')
     expect(columnOf('Incident', 'teamId')).toBe('team_id')
