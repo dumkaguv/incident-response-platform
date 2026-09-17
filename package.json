@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node --import ./tools/swc/register.mjs src/main.ts",
     "dev": "node --watch --import ./tools/swc/register.mjs src/main.ts",
-    "build": "pnpm typecheck && swc src -d dist --delete-dir-on-start --copy-files --strip-leading-paths",
+    "build": "pnpm typecheck && swc src -d dist --delete-dir-on-start --copy-files --strip-leading-paths --ignore \"**/*spec.ts\"",
     "bundle": "pnpm build && node --import ./tools/swc/register.mjs tools/bundle/index.ts",
     "debug": "node --inspect --watch --import ./tools/swc/register.mjs src/main.ts",
     "prod": "node dist/main.js",

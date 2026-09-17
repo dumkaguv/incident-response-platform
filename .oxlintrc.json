@@ -213,6 +213,8 @@
     {
       "files": [
         "**/*.spec.ts",
+        "**/*.e2e-spec.ts",
+        "**/*.integration-spec.ts",
         "**/*.spec.js",
         "**/*.test.ts",
         "**/*.test.js",
