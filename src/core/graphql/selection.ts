@@ -7,6 +7,8 @@ import {
 
 type Fragments = Record<string, FragmentDefinitionNode>
 
+type SelectionSets = (SelectionSetNode | undefined)[]
+
 function fieldNames(
   selectionSet: SelectionSetNode | undefined,
   fragments: Fragments,
@@ -31,52 +33,55 @@ function fieldNames(
   }
 }
 
-function childSelectionSet(
-  selectionSet: SelectionSetNode | undefined,
+function childSelectionSets(
+  parents: SelectionSets,
   fragments: Fragments,
   field: string
-): SelectionSetNode | undefined {
-  if (!selectionSet) {
-    return undefined
-  }
+): SelectionSets {
+  const found: SelectionSets = []
 
-  for (const selection of selectionSet.selections) {
-    if (selection.kind === Kind.FIELD && selection.name.value === field) {
-      return selection.selectionSet
+  function visit(selectionSet: SelectionSetNode | undefined): void {
+    if (!selectionSet) {
+      return
     }
 
-    if (selection.kind === Kind.INLINE_FRAGMENT) {
-      const nested = childSelectionSet(selection.selectionSet, fragments, field)
+    for (const selection of selectionSet.selections) {
+      if (selection.kind === Kind.FIELD) {
+        if (selection.name.value === field) {
+          found.push(selection.selectionSet)
+        }
 
-      if (nested) {
-        return nested
+        continue
       }
-    }
 
-    if (selection.kind === Kind.FRAGMENT_SPREAD) {
-      const nested = childSelectionSet(
-        fragments[selection.name.value]?.selectionSet,
-        fragments,
-        field
-      )
-
-      if (nested) {
-        return nested
+      if (selection.kind === Kind.INLINE_FRAGMENT) {
+        visit(selection.selectionSet)
+        continue
       }
+
+      visit(fragments[selection.name.value]?.selectionSet)
     }
   }
 
-  return undefined
+  for (const parent of parents) {
+    visit(parent)
+  }
+
+  return found
 }
 
 export function connectionSelection(info: GraphQLResolveInfo): string[] {
   const fragments = info.fragments
-  const root = info.fieldNodes[0]?.selectionSet
+  const roots = info.fieldNodes.map((node) => node.selectionSet)
   const names = new Set<string>()
-  const edges = childSelectionSet(root, fragments, 'edges')
+  const edges = childSelectionSets(roots, fragments, 'edges')
 
-  fieldNames(childSelectionSet(root, fragments, 'nodes'), fragments, names)
-  fieldNames(childSelectionSet(edges, fragments, 'node'), fragments, names)
+  for (const nodes of [
+    ...childSelectionSets(roots, fragments, 'nodes'),
+    ...childSelectionSets(edges, fragments, 'node')
+  ]) {
+    fieldNames(nodes, fragments, names)
+  }
 
   return [...names]
 }

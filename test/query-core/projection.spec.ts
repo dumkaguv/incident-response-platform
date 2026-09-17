@@ -21,12 +21,11 @@ function infoFor(query: string): GraphQLResolveInfo {
     }
   }
 
-  const [field] = operation?.selectionSet.selections ?? []
+  const fieldNodes = (operation?.selectionSet.selections ?? []).filter(
+    (selection) => selection.kind === Kind.FIELD
+  )
 
-  return {
-    fieldNodes: [field],
-    fragments
-  } as unknown as GraphQLResolveInfo
+  return { fieldNodes, fragments } as unknown as GraphQLResolveInfo
 }
 
 describe('connectionSelection', () => {
@@ -77,5 +76,44 @@ describe('connectionSelection', () => {
     )
 
     expect(fields).toEqual([])
+  })
+
+  it('merges a selection repeated under the same response key', () => {
+    const fields = connectionSelection(
+      infoFor('{ incidents { nodes { id } nodes { title } } }')
+    )
+
+    expect(fields.sort()).toEqual(['id', 'title'])
+  })
+
+  it('merges edges repeated under the same response key', () => {
+    const fields = connectionSelection(
+      infoFor(
+        '{ incidents { edges { node { id } } edges { node { severity } } } }'
+      )
+    )
+
+    expect(fields.sort()).toEqual(['id', 'severity'])
+  })
+
+  it('merges every field node the root field was requested through', () => {
+    const fields = connectionSelection(
+      infoFor(
+        '{ incidents { nodes { id } } incidents { edges { node { title } } } }'
+      )
+    )
+
+    expect(fields.sort()).toEqual(['id', 'title'])
+  })
+
+  it('merges a repeated selection reached through fragments', () => {
+    const fields = connectionSelection(
+      infoFor(`
+        fragment Ids on IncidentConnection { nodes { id } }
+        { incidents { ...Ids nodes { status } } }
+      `)
+    )
+
+    expect(fields.sort()).toEqual(['id', 'status'])
   })
 })
