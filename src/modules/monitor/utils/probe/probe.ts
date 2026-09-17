@@ -18,8 +18,8 @@ export type ProbeOutcome = {
   errorMessage: string | null
 }
 
-async function drain(response: Response): Promise<void> {
-  await response.arrayBuffer()
+async function discard(response: Response): Promise<void> {
+  await response.body?.cancel()
 }
 
 function accepts(monitor: Monitor, status: number): boolean {
@@ -47,7 +47,7 @@ export async function probe(monitor: Monitor): Promise<ProbeOutcome> {
     })
     const responseTimeMs = elapsed()
 
-    await drain(response)
+    await discard(response)
 
     if (accepts(monitor, response.status)) {
       return {

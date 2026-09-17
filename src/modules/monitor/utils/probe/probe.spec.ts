@@ -31,11 +31,14 @@ function responding(status: number, drained: { called: boolean }) {
   return vi.fn((_url: string, _init: RequestInit) =>
     Promise.resolve({
       status,
-      arrayBuffer: () => {
-        drained.called = true
+      body: {
+        cancel: () => {
+          drained.called = true
 
-        return Promise.resolve(new ArrayBuffer(0))
-      }
+          return Promise.resolve()
+        }
+      },
+      arrayBuffer: () => Promise.reject(new Error('the body must not be read'))
     })
   )
 }

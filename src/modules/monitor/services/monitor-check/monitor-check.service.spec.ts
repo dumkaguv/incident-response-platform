@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { TooManyRequestsError } from '@/common/utils'
+import { MonitorLimit } from '@/modules/monitor/constants'
 import { MonitorCheckService } from '@/modules/monitor/services'
 import { CheckErrorType, MonitorStatus } from '@/modules/monitor/types'
 import type { MonitorCheckRepository } from '@/modules/monitor/repositories'
@@ -44,16 +46,47 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+function upstream(): { status: number; body: { cancel(): Promise<void> } } {
+  return { status: 200, body: { cancel: () => Promise.resolve() } }
+}
+
 describe('MonitorCheckService', () => {
+  it('refuses to start more probes than fit in flight and recovers when they finish', async () => {
+    const release: (() => void)[] = []
+
+    vi.stubGlobal(
+      'fetch',
+      () =>
+        new Promise((resolve) => {
+          release.push(() => {
+            resolve(upstream())
+          })
+        })
+    )
+
+    const service = serviceWith([])
+    const running = Array.from({ length: MonitorLimit.probesInFlight }, () =>
+      service.run('m1')
+    )
+
+    await expect(service.run('m1')).rejects.toBeInstanceOf(TooManyRequestsError)
+    await vi.waitFor(() => {
+      expect(release).toHaveLength(MonitorLimit.probesInFlight)
+    })
+
+    for (const finish of release) {
+      finish()
+    }
+    await Promise.all(running)
+
+    vi.stubGlobal('fetch', () => Promise.resolve(upstream()))
+    await expect(service.run('m1')).resolves.toMatchObject({ monitorId: 'm1' })
+  })
+
   it('stores the probe outcome against the monitor it probed', async () => {
     const created: MonitorCheckCreateData[] = []
 
-    vi.stubGlobal('fetch', () =>
-      Promise.resolve({
-        status: 200,
-        arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
-      })
-    )
+    vi.stubGlobal('fetch', () => Promise.resolve(upstream()))
 
     const check = await serviceWith(created).run('m1')
 

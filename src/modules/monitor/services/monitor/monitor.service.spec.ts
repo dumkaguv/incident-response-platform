@@ -35,6 +35,18 @@ describe('MonitorService', () => {
     )
   })
 
+  it('treats an empty patch as a read instead of an update', async () => {
+    const update = vi.fn(() => Promise.resolve(null))
+    const service = serviceWith({
+      update,
+      findById: () => Promise.resolve(row)
+    })
+
+    await expect(service.update('m1', {})).resolves.toBe(row)
+    await expect(service.update('m1', { name: undefined })).resolves.toBe(row)
+    expect(update).not.toHaveBeenCalled()
+  })
+
   it('reports a delete against a missing row as NOT_FOUND', async () => {
     const service = serviceWith({ delete: () => Promise.resolve(null) })
 

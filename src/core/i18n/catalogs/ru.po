@@ -13,10 +13,14 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/modules/monitor/services/monitor.service.ts
+#: src/modules/monitor/services/monitor/monitor.service.ts
 msgid "Monitor \"{id}\" was not found"
 msgstr "Монитор «{id}» не найден"
 
 #: src/core/throttler/gql-throttler.guard.ts
 msgid "Rate limit reached, retry in {seconds} seconds"
 msgstr "Превышен лимит запросов, повторите через {seconds} с"
+
+#: src/modules/monitor/services/monitor-check/monitor-check.service.ts
+msgid "Too many probes are running right now, retry in a moment"
+msgstr "Сейчас выполняется слишком много проверок, повторите чуть позже"

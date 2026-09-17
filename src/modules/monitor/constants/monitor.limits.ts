@@ -8,5 +8,5 @@ export const MonitorLimit = {
   timeoutMsMax: 60_000,
   statusCodeMin: 100,
   statusCodeMax: 599,
-  consecutiveFailuresReset: 0
+  probesInFlight: 16
 } as const
