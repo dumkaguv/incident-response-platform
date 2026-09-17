@@ -56,7 +56,7 @@ describe('filtering through a to-many relation', () => {
   }
 
   const memberIsLead =
-    "SELECT 1 FROM team_member m WHERE m.team_id = t.id AND m.role = 'LEAD'"
+    'SELECT 1 FROM "teamMember" m WHERE m.team_id = t.id AND m.role = \'LEAD\''
 
   it('matches PostgreSQL for some', async () => {
     const expected = await idsMatching(`EXISTS (${memberIsLead})`)
@@ -82,7 +82,7 @@ describe('filtering through a to-many relation', () => {
 
   it('matches PostgreSQL for every, which holds for a team with no members', async () => {
     const expected = await idsMatching(
-      "NOT EXISTS (SELECT 1 FROM team_member m WHERE m.team_id = t.id AND NOT (m.role = 'LEAD'))"
+      'NOT EXISTS (SELECT 1 FROM "teamMember" m WHERE m.team_id = t.id AND NOT (m.role = \'LEAD\'))'
     )
     const connection = await page({
       orderBy: RELATION_SORT,
@@ -110,13 +110,13 @@ describe('filtering through a to-many relation', () => {
 
   it('searches through the to-many relation', async () => {
     const member = await sql.query<{ name: string }>(
-      'SELECT name FROM team_member ORDER BY name LIMIT 1'
+      'SELECT name FROM "teamMember" ORDER BY name LIMIT 1'
     )
     const term = member.rows[0].name.split(' ')[0]
     const expected = await idsMatching(`
       i.title ILIKE '%${term}%' OR i.description ILIKE '%${term}%'
       OR t.name ILIKE '%${term}%'
-      OR EXISTS (SELECT 1 FROM team_member m
+      OR EXISTS (SELECT 1 FROM "teamMember" m
                  WHERE m.team_id = t.id AND m.name ILIKE '%${term}%')
     `)
     const connection = await page({ search: term, orderBy: RELATION_SORT })
