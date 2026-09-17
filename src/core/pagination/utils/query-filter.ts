@@ -100,18 +100,15 @@ export function validateScalarValue(
       break
 
     case 'date': {
-      let date: Date | null = null
-
-      if (value instanceof Date) {
-        date = value
+      if (value instanceof Date && Number.isFinite(value.getTime())) {
+        return value.toISOString()
       }
 
-      if (typeof value === 'string') {
-        date = new Date(value)
-      }
-
-      if (date && Number.isFinite(date.getTime())) {
-        return date
+      if (
+        typeof value === 'string' &&
+        Number.isFinite(new Date(value).getTime())
+      ) {
+        return value
       }
 
       break
