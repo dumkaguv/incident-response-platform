@@ -5,11 +5,9 @@ import {
   InputType,
   registerEnumType
 } from '@nestjs/graphql'
-import { ArrayMaxSize, IsOptional, MaxLength } from 'class-validator'
 import type { Type } from '@nestjs/common'
 
 import { CursorPaginationArgs } from '@/core/pagination/cursor-pagination.args'
-import { MAX_PREFERENCE } from '@/core/pagination/pagination.constants'
 import { normalizeQuery } from '@/core/pagination/utils/normalize-query'
 import {
   type QueryDefinition,
@@ -56,18 +54,12 @@ export function QueryArgsFor(definition: QueryDefinition): Type<QueryArgs> {
 
   @ArgsType()
   class GeneratedQueryArgs extends CursorPaginationArgs {
-    @IsOptional()
     @Field(() => filterInput, {
       nullable: true,
       description: 'Typed filters with nested and/or/not groups'
     })
     public filter?: unknown
 
-    @IsOptional()
-    public orderBy?: unknown
-
-    @IsOptional()
-    @ArrayMaxSize(MAX_PREFERENCE)
     @Field(() => [ID], {
       nullable: true,
       description:
@@ -75,8 +67,8 @@ export function QueryArgsFor(definition: QueryDefinition): Type<QueryArgs> {
     })
     public preference?: string[]
 
-    @IsOptional()
-    @MaxLength(200)
+    public orderBy?: unknown
+
     public search?: string
 
     public toSpec(): QuerySpec {

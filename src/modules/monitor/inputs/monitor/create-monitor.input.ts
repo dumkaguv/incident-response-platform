@@ -3,7 +3,6 @@ import {
   IsBoolean,
   IsIn,
   IsInt,
-  IsOptional,
   IsUrl,
   Length,
   Max,
@@ -11,6 +10,7 @@ import {
   Min
 } from 'class-validator'
 
+import { Omittable } from '@/core/graphql'
 import { MonitorLimit } from '@/modules/monitor/constants'
 import { MonitorMethod } from '@/modules/monitor/types'
 
@@ -33,7 +33,7 @@ export class CreateMonitorInput {
     nullable: true,
     description: 'Defaults to GET'
   })
-  @IsOptional()
+  @Omittable()
   @IsIn(Object.values(MonitorMethod))
   method?: MonitorMethod
 
@@ -41,7 +41,7 @@ export class CreateMonitorInput {
     nullable: true,
     description: `How often to probe (${MonitorLimit.intervalSecondsMin}-${MonitorLimit.intervalSecondsMax} seconds, defaults to 60)`
   })
-  @IsOptional()
+  @Omittable()
   @IsInt()
   @Min(MonitorLimit.intervalSecondsMin)
   @Max(MonitorLimit.intervalSecondsMax)
@@ -51,7 +51,7 @@ export class CreateMonitorInput {
     nullable: true,
     description: `How long a probe may take before it counts as timed out (${MonitorLimit.timeoutMsMin}-${MonitorLimit.timeoutMsMax} ms, defaults to 5000)`
   })
-  @IsOptional()
+  @Omittable()
   @IsInt()
   @Min(MonitorLimit.timeoutMsMin)
   @Max(MonitorLimit.timeoutMsMax)
@@ -61,7 +61,7 @@ export class CreateMonitorInput {
     nullable: true,
     description: 'Response code that counts as healthy; defaults to 200'
   })
-  @IsOptional()
+  @Omittable()
   @IsInt()
   @Min(MonitorLimit.statusCodeMin)
   @Max(MonitorLimit.statusCodeMax)
@@ -71,7 +71,7 @@ export class CreateMonitorInput {
     nullable: true,
     description: 'A paused monitor is never probed; defaults to true'
   })
-  @IsOptional()
+  @Omittable()
   @IsBoolean()
   isActive?: boolean
 }

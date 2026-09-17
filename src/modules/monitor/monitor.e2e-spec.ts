@@ -35,7 +35,7 @@ describe('monitor module (e2e)', () => {
     }).compile()
 
     app = fixture.createNestApplication()
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }))
+    app.useGlobalPipes(new ValidationPipe({ transform: true }))
     await app.init()
   })
 
