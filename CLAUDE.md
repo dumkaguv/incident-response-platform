@@ -237,6 +237,23 @@ it through the contract (`created_at`, not `createdAt`). Feeding a field name to
 inside `resolveOrderBy` with `Cannot read properties of undefined (reading
 'buildAst')`.
 
+**A nested to-many is a connection, and one call declares it.**
+`NestedConnection({ parent, field, connection, definition, model, foreignKey })`
+in `core/graphql` generates the whole resolver: `first`, `last` and `orderBy`,
+deliberately no `filter` and no `search`. It pages every parent in one pass with
+`row_number() OVER (PARTITION BY fk ORDER BY ...)` issued through `db.raw.sql`,
+because the typed builder has no window functions and a plain `WHERE fk IN (...)`
+cannot take a page per parent. Identifiers come from the contract; the parent ids
+go in as ordinary bound parameters. It asks for `limit + 1` rows per parent —
+`Connection` reads `hasNextPage` off that extra row. The generated `@Args()` has
+to spell out `{ type: () => ... }`: a class built inside a factory reflects as
+`Object` and Nest refuses it.
+
+**Cursors are not offered on a nested connection.** A cursor belongs to one
+parent's sequence, and the field resolves for a whole page of parents at once.
+Paging through one monitor's history goes through the root query filtered on the
+foreign key, where the full keyset machinery applies.
+
 **`@Field(() => DateTimeScalar)`, never `@Field(() => Date)`.** The contract
 returns timestamps as ISO strings and `GraphQLISODateTime.serialize` returns
 `null` for a string without throwing, which would silently null out every

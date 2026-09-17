@@ -34,10 +34,25 @@ export type QueryArgs = {
   toSpec(): QuerySpec
 }
 
+const orderInputs = new Map<string, Type<unknown> | null>()
+
+export function orderInputFor(
+  definition: QueryDefinition
+): Type<unknown> | null {
+  if (!orderInputs.has(definition.name)) {
+    orderInputs.set(
+      definition.name,
+      buildOrderInput(definition.name, definition.fields)
+    )
+  }
+
+  return orderInputs.get(definition.name) ?? null
+}
+
 export function QueryArgsFor(definition: QueryDefinition): Type<QueryArgs> {
   validateQueryDefinition(definition)
   const filterInput = buildFilterInput(definition.name, definition.fields)
-  const orderInput = buildOrderInput(definition.name, definition.fields)
+  const orderInput = orderInputFor(definition)
 
   @ArgsType()
   class GeneratedQueryArgs extends CursorPaginationArgs {

@@ -180,6 +180,17 @@ input IntFilter {
 }
 
 type Monitor {
+  """Probes recorded for this monitor, newest first"""
+  checks(
+    """Rows per parent; defaults to 10, max 100"""
+    first: Int
+
+    """Rows per parent counted from the far end, max 100"""
+    last: Int
+
+    """One scalar path per entry; array order defines precedence"""
+    orderBy: [MonitorCheckOrderBy!]
+  ): MonitorCheckConnection!
   createdAt: DateTime!
 
   """Response code that counts as healthy"""

@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common'
 
 import { MonitorCheckRepository, MonitorRepository } from './repositories'
-import { MonitorCheckResolver, MonitorResolver } from './resolvers'
+import {
+  MonitorCheckResolver,
+  MonitorChecksResolver,
+  MonitorResolver
+} from './resolvers'
 import { MonitorCheckService, MonitorService } from './services'
 
 @Module({
@@ -11,7 +15,8 @@ import { MonitorCheckService, MonitorService } from './services'
     MonitorService,
     MonitorCheckService,
     MonitorResolver,
-    MonitorCheckResolver
+    MonitorCheckResolver,
+    MonitorChecksResolver
   ]
 })
 export class MonitorModule {}
