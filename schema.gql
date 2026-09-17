@@ -11,9 +11,6 @@ input BooleanFilter {
 
   """ne"""
   ne: Boolean
-
-  """neq"""
-  neq: Boolean
 }
 
 """Why a probe failed"""
@@ -40,9 +37,6 @@ input CheckErrorTypeFilter {
 
   """ne"""
   ne: CheckErrorType
-
-  """neq"""
-  neq: CheckErrorType
 
   """nin"""
   nin: [CheckErrorType!]
@@ -104,9 +98,6 @@ input DateTimeFilter {
   """ne"""
   ne: DateTime
 
-  """neq"""
-  neq: DateTime
-
   """nin"""
   nin: [DateTime!]
 }
@@ -142,9 +133,6 @@ input IdFilter {
   """ne"""
   ne: ID
 
-  """neq"""
-  neq: ID
-
   """nin"""
   nin: [ID!]
 }
@@ -173,9 +161,6 @@ input IntFilter {
 
   """ne"""
   ne: Int
-
-  """neq"""
-  neq: Int
 
   """nin"""
   nin: [Int!]
@@ -294,14 +279,7 @@ input MonitorCheckFilter {
 
 input MonitorCheckOrderBy {
   checkedAt: OrderByDirection
-  errorMessage: OrderByDirection
-  errorType: OrderByDirection
   id: OrderByDirection
-  monitor: MonitorCheck_monitorOrderBy
-  monitorId: OrderByDirection
-  responseTimeMs: OrderByDirection
-  status: OrderByDirection
-  statusCode: OrderByDirection
 }
 
 input MonitorCheck_monitorFilter {
@@ -312,13 +290,6 @@ input MonitorCheck_monitorFilter {
   not: MonitorCheck_monitorFilter
   or: [MonitorCheck_monitorFilter!]
   url: StringFilter
-}
-
-input MonitorCheck_monitorOrderBy {
-  id: OrderByDirection
-  isActive: OrderByDirection
-  name: OrderByDirection
-  url: OrderByDirection
 }
 
 type MonitorConnection {
@@ -383,9 +354,6 @@ input MonitorMethodFilter {
   """ne"""
   ne: MonitorMethod
 
-  """neq"""
-  neq: MonitorMethod
-
   """nin"""
   nin: [MonitorMethod!]
 }
@@ -428,9 +396,6 @@ input MonitorStatusFilter {
 
   """ne"""
   ne: MonitorStatus
-
-  """neq"""
-  neq: MonitorStatus
 
   """nin"""
   nin: [MonitorStatus!]
@@ -597,9 +562,6 @@ input StringFilter {
 
   """ne"""
   ne: String
-
-  """neq"""
-  neq: String
 
   """nin"""
   nin: [String!]
