@@ -119,7 +119,7 @@ function selectIds(
   return selectOrderedIds(db as unknown as SqlLaneClient, model, {
     where,
     order,
-    paths: collectJoinPaths(model, spec.sort, where),
+    paths: collectJoinPaths(spec.sort),
     take
   })
 }
@@ -236,7 +236,7 @@ async function listThroughSqlLane(
   let table = project(tableOf(db, model), fields)
 
   for (const relation of new Set(
-    collectJoinPaths(model, spec.sort, where).map((path) => path[0])
+    collectJoinPaths(spec.sort).map((path) => path[0])
   )) {
     table = table.include(relation)
   }
