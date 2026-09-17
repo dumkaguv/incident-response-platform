@@ -51,6 +51,15 @@ export const fixtureQuery: QueryDefinition = {
               nullable: true,
               filterable: true,
               sortable: true
+            },
+            people: {
+              type: 'relation',
+              field: 'people',
+              many: true,
+              fields: {
+                email: { type: 'string', filterable: true },
+                name: { type: 'string', nullable: true, filterable: true }
+              }
             }
           }
         }

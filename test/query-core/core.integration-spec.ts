@@ -282,6 +282,54 @@ describe('query core against PostgreSQL', () => {
     expect(empty.nodes).toHaveLength(0)
   })
 
+  const VACUOUS = [
+    {
+      quantifier: 'none',
+      filter: {
+        owner: {
+          organization: {
+            people: { none: { email: { eq: 'one@example.com' } } }
+          }
+        }
+      },
+      predicate: `NOT EXISTS (SELECT 1 FROM "QueryPerson" m WHERE m."organizationId" = o.id AND m.email = 'one@example.com')`
+    },
+    {
+      quantifier: 'every',
+      filter: {
+        owner: {
+          organization: {
+            people: { every: { email: { eq: 'one@example.com' } } }
+          }
+        }
+      },
+      predicate: `NOT EXISTS (SELECT 1 FROM "QueryPerson" m WHERE m."organizationId" = o.id AND NOT (m.email = 'one@example.com'))`
+    }
+  ]
+
+  it.fails.each(VACUOUS)(
+    'holds $quantifier vacuously when the relation chain is null',
+    async ({ filter, predicate }) => {
+      const expected = await sql.query<{ id: string }>(`
+        SELECT q.id FROM "QueryRecord" q
+        LEFT JOIN "QueryPerson" p ON p.id = q."assigneeId"
+        LEFT JOIN "QueryOrganization" o ON o.id = p."organizationId"
+        WHERE ${predicate}
+        ORDER BY q.id ASC
+      `)
+      const connection = await page({
+        first: 100,
+        orderBy: [{ id: 'ASC' }],
+        filter
+      })
+
+      expect(connection.nodes.map((row) => row.id)).toEqual(
+        expected.rows.map((row) => row.id)
+      )
+      expect(expected.rows.length).toBeGreaterThan(0)
+    }
+  )
+
   it('continues from stored ordering values after deleting the cursor record', async () => {
     const orderBy: OrderByInput[] = [
       { rank: 'AscNullsLast' },
