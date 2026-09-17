@@ -1,342 +1,157 @@
 # incident-response-platform
 
-`README.md` says what this is and how to run it. This file is the rules and the
-landmines.
+A synthetic uptime and API monitoring platform: a `Monitor` describes an HTTP
+resource, a probe records a `MonitorCheck`, history is read back over GraphQL.
+The repository name predates the domain; `README.md` says how to run it.
+
+The API is **GraphQL only** — not one controller. Filtering, search, ordering
+and cursor pagination come from the engine in `core/`, so a feature declares a
+`QueryDefinition` and gets all four without writing a query.
 
 ## Rules
 
 - Package manager is **pnpm**. Never `npm install` or `yarn`.
-- **No comments in code.** None, anywhere in `src`, `test`, `tools`, `prisma`
-  or the root configs. Names and structure carry the meaning; prose belongs
-  here. Comment syntax a tool reads is not a comment and must survive:
-  `// use prisma-next` as the first line of every `.prisma` file, and the
-  generator headers in `src/i18n/generated/*` and `contract.json`.
-- **Type check with TypeScript 7**: `pnpm typecheck`. A bare `tsc` resolves to
-  5.x, which exists only for the oxlint JS-plugin bridge. If an error looks
-  stale, delete `dist/*.tsbuildinfo`.
-- **oxfmt + oxlint only.** Do not reintroduce Prettier or ESLint. `.prettierrc`
-  is a leftover that nothing reads.
-- Aliases are `@/*` → `src/*` and `~/*` → repo root. A relative import may not
-  climb at all — any `../` is a lint error.
-- Commit messages are conventional commits. **Two configs exist and only
-  `.commitlintrc` is read**, so the `type-enum` in `commitlint.config.cts` is
-  dead.
-
-## Commands
-
-```bash
-pnpm dev                  # watch mode
-pnpm typecheck            # TS 7
-pnpm format / lint        # oxfmt --write / oxlint --fix
-pnpm format:check / lint:check
-pnpm test                 # unit
-pnpm test:e2e             # needs the database
-pnpm prisma:emit          # fragments -> contract (run after editing a .prisma)
-pnpm prisma:migrate-plan  # write a migration from the contract diff
-pnpm prisma:migrate       # apply it
-pnpm prisma:db-verify     # database matches the contract
-pnpm prisma:seed
-pnpm i18n:extract / i18n:compile / i18n:verify
-pnpm bundle               # build, then esbuild it to one file
-```
+- **No comments in code**, anywhere; prose belongs here. Comment syntax a tool
+  reads is not a comment: `// use prisma-next` atop every `.prisma`, and the
+  generator headers in `src/core/i18n/generated/*` and `contract.json`.
+- **Type check with `pnpm typecheck` (TS 7).** A bare `tsc` resolves to 5.x,
+  which exists only for the oxlint JS-plugin bridge.
+- **oxfmt + oxlint only.** Never reintroduce Prettier or ESLint.
+- Aliases `@/*` → `src/*`, `~/*` → repo root. **A relative import may not
+  climb**: `./` for the same folder, `@/` for everything else — any `../` is a
+  lint error, so moving a file never rewrites the imports inside it.
+- Conventional commits. **Two configs exist and only `.commitlintrc` is read**,
+  so the `type-enum` in `commitlint.config.cts` is dead.
 
 ## Structure
 
 ```bash
 src/
-  app/          root module
-  common/       leaf utilities: errors
-  core/         machinery every feature runs on
-    config/     the env schema and one registerAs namespace per concern
-    graphql/    driver config, dataloaders, filters, scalars, query limits
-    health/     GET /health liveness probe, outside both rate limiters
-    i18n/       I18nService, locales, generated catalogs (committed)
-    pagination/ the query engine: spec, filters, order, cursors, connection
-    prisma/     generated contract + db/query/enum/where adapters
-    throttler/  two-layer rate limiting
+  app/      root module
+  common/   leaf utilities: errors
+  core/     config, graphql, i18n, pagination, prisma, throttler —
+            the engine every feature runs on
   modules/<feature>/
-    <feature>.prisma          schema fragment — edit here
+    <feature>.prisma  schema fragment — edit here, never the contract
     <feature>.module.ts
-    constants/  GraphQL type names and validation bounds, shared by the
-                whole feature, so this one stays flat
-    inputs/     GraphQL write surface, one <verb>-<entity>.input.ts per input
+    constants/  GraphQL type names and validation bounds
+    inputs/     write surface, one <verb>-<entity>.input.ts each
     models/     @ObjectType classes
     resolvers/  resolver, its @ArgsType, and the QueryDefinition
     services/   rules and errors
     repositories/  the only place that touches the database
     types/      row types, enum value maps, repository write shapes
-    utils/      pure helpers of the feature — no DI, no database
-    index.ts    in every folder; imports go to the folder, not the file
+    utils/      pure helpers — no DI, no database
+    index.ts    in every folder; imports address the folder, not the file
 ```
 
-Every layer above is split one folder per entity — `models/monitor/` and
-`models/monitor-check/`, not two files side by side. A layer holding one entity
-keeps the folder anyway, so the shape does not change when a second arrives.
-`constants/` and `utils/` stay flat: what is in them belongs to the whole
-feature, not to one entity.
+Every layer except `constants/` splits **one folder per entity** —
+`models/monitor/`, `models/monitor-check/`, never two files side by side — and a
+layer holding one entity keeps the folder anyway. `utils/` goes one further: a
+folder per helper. **Tests live beside what they test**; `test/` keeps only what
+belongs to no module.
 
-**A relative import may not climb.** `./` for the same folder, `@/` for anything
-else — `../` is a lint error everywhere, at any depth. It is the only rule that
-keeps an import readable once layers nest two deep, and it means moving a file
-between folders never rewrites the imports inside it.
+## Architecture
 
-Two layers under the resolver. The **repository** is the only place that
-touches the database and returns rows or `null`; it is a plain `@Injectable()`
-class and is its own DI token. There is no abstract base: nothing faked one, and
-the row types come from the Prisma contract anyway, so the second file only
-duplicated signatures. The cost is that faking the repository in a unit test now
-needs `as unknown as XRepository` — a class with a private field cannot be
-satisfied structurally. The **service** holds the rules and throws
-`NotFoundError` / `ConflictError`.
+Two layers under the resolver. The **repository** is the only thing that touches
+the database and returns rows or `null`; a plain `@Injectable()` and its own DI
+token, with no abstract base — row types come from the contract anyway, and the
+cost is that faking one needs `as unknown as X`. The **service** holds the rules
+and throws `NotFoundError` / `ConflictError`.
 
-Write types are **derived, not retyped**: `XCreateData = CreateXInput` and
-`XUpdateData = UpdateXInput & { serverOnlyField?: ... }`. Those stay in
-`inputs/` next to the class they are derived from — `inputs` already imports the
-enum maps from `types`, so declaring them in `types` would close an import
-cycle. An entity with no GraphQL write surface at all has nothing to derive
-from: its write shape is a plain type, it imports only enums, and it belongs in
-`types/` with the row it is written into. That is where `MonitorCheckCreateData`
-lives — a probe result is produced by the server, never posted by a client.
+Write types are **derived, not retyped**: `XCreateData = CreateXInput`,
+`XUpdateData = UpdateXInput & { serverOnlyField?: … }`, in `inputs/` beside the
+class they derive from. An entity with no write surface derives from nothing, so
+its write shape is a plain type in `types/`.
 
-**Nothing reads `process.env` except `core/config/env.schema.ts`.** Every
-variable is declared there in a Zod schema that coerces and defaults, and
-`ConfigModule` runs it as `validate`, so a bad value stops the boot with the
-variable named instead of surfacing later as `NaN`. Consumers inject a
-namespace — `@Inject(throttleConfig.KEY) config: ConfigType<typeof
-throttleConfig>` — and get typed values, never strings. `env()` re-parses on
-every call on purpose: `ConfigModule.forRoot` is evaluated once when the
-decorator runs, so a cached copy would freeze the environment of whichever app
-booted first and break any test that overrides a variable. An empty variable
-counts as absent, so `GRAPHIQL=` in `.env` falls back to its default rather
-than coercing to `0`. `TRUST_PROXY` is tried as a hop count, then a boolean,
-then an address list, in that order: express reads a *string* `1` as the IP
-`0.0.0.1` and throws on the string `true`, so the number and boolean forms have
-to win before the string one.
-
-**`graphqlConfig.debug` is the only switch for what an error reveals.** It is
-`NODE_ENV !== 'production'` and drives stack traces, the masking of unexpected
-errors and whether `schema.gql` is written at boot; the error formatter is built
-once from it, so nothing re-parses the environment per error.
-
-**`class-validator` guards mutation inputs only.** Query arguments are
-validated by `normalizeQuery`, which already knows every limit, so decorators
-that duplicated them produced a second error shape for the same mistake and are
-gone. `whitelist` is off: GraphQL rejects unknown fields itself, and `whitelist`
-silently deletes any field without a decorator. A field that is nullable in the
-schema but `NOT NULL` in the database takes `@Omittable()`, because
-`IsOptional` waves an explicit `null` through, and `UpdateXInput` extends
-`PartialType(CreateXInput, { skipNullProperties: false })` for the same reason.
+**`class-validator` guards mutation inputs only** — query arguments go through
+`normalizeQuery`. `whitelist` is off: GraphQL rejects unknown fields itself, and
+`whitelist` deletes any field without a decorator. **A field a client may omit
+but not null is non-null with a `defaultValue`**, never `nullable: true` plus
+`IsOptional`, which waves an explicit `null` through to a `NOT NULL` column; the
+default comes from `columnDefault(model, field)`, written once in the `.prisma`.
+`UpdateXInput` extends `PartialType(CreateXInput, { omitDefaultValues: true,
+skipNullProperties: false })`: a patch must not reset an omitted field, and an
+explicit `null` must reach the inherited validators.
 
 **A GraphQL type name is written once, in `constants/`.** `XTypeName` feeds
-`@ObjectType`, `registerQueryEnum` and the `QueryDefinition` — the same string
-in three places, and the schema breaks silently if they drift. `ArgName` in
-`core/graphql` does the same for argument names. Descriptions on fields and
-mutations are written for the client reading the schema, not for the backend:
-what the field is, never how it is fetched.
+`@ObjectType`, `registerQueryEnum` and the `QueryDefinition`; the schema breaks
+silently if they drift, and `ArgName` does the same for argument names. In a
+`QueryDefinition`, `filterable` and `sortable` default to true, so a field states
+only its exceptions. Descriptions are for the client reading the schema: what a
+field is, never how it is fetched.
 
-**A relation field belongs to the module that owns the data, not the module
-that owns the parent type.** `Team.incidents` is resolved from `IncidentModule`
-because `IncidentModule` already imports `TeamModule`; the other direction
-would be a module cycle.
+**A relation field belongs to the module owning the data**, not the one owning
+the parent type — the other direction is a module cycle. A to-many is exposed
+through one `NestedConnection({…})` call: paging and ordering, deliberately no
+filter or search.
+
+**Nothing reads `process.env` except `core/config/env.schema.ts`**, a Zod schema
+run by `ConfigModule` as `validate`, so a bad value stops the boot naming the
+variable. Consumers inject a namespace and receive typed values.
 
 ## Landmines
 
-**Four SWC lanes, and a per-file plugin has to reach all of them.** Build reads
-`.swcrc`; tests read the inline object in `vitest.config.ts`; dev, start and the
-scripts read `.swcrc` only through `tools/swc/register.mjs`, a shim that sets
-`SWCRC=1` because `@swc-node/register` otherwise derives everything from
-`tsconfig.json`. Miss one and only that lane breaks.
-
-**Messages are written where they are thrown**, as a lingui macro template — no
-`defineMessages`, no `*.messages.ts`, no custom extractor. Ids are hashes, so
-changing the English text surfaces as untranslated instead of leaving a stale
-translation. Values are baked into the descriptor, so `AppError` carries no
-`values` argument. A simple identifier becomes a named placeholder; any other
-expression becomes `{0}`, so bind it to a local first. After adding a message:
-`pnpm i18n:extract`, translate, `pnpm i18n:compile`.
+**Messages are written where they are thrown**, as a lingui macro template. Ids
+are hashes, so changed English surfaces as untranslated rather than leaving a
+stale translation. After adding one: `pnpm i18n:extract`, translate, compile.
 
 **Contract first, always.** Edit `src/modules/*/*.prisma`, never
-`src/prisma/contract.prisma` — it is concatenated from the fragments. Then
+`src/core/prisma/contract.prisma` — it is concatenated from the fragments. Then
 `prisma:emit` and read the `contract.json` diff: a moved `storageHash` means the
-database has to move too.
+database has to move. **`db migrate` does not advance `refs/db.json`**; advance
+it by hand to the applied migration's **full** `to` hash, since a prefix reads as
+a mismatch and every later plan branches from the wrong base.
 
-**`db migrate` does not advance `migrations/app/refs/db.json`.** A stale ref
-makes every later `migration plan` branch from the wrong base. Advance it to the
-applied migration's `to` hash — the **full** one; a prefix reads as a mismatch.
+**The planner stops at data, not at schema.** Dropped columns, removed enum
+values, indexes and `setNotNull` it handles alone; anything needing a decision
+about existing rows scaffolds a `dataTransform` with placeholders only an author
+can fill. Rebaselining instead is a shortcut that dies with the first deploy.
 
-**Columns are snake_case, tables are not mapped at all.** `@map` on every
-column, so the database reads `created_at`, `team_id`. A table with no `@@map`
-takes the model name with a lowercased first letter — `incident`, `team`,
-`teamMember` — which is why `@@map("incident")` and `@@map("team")` were dropped
-as no-ops while `@@map("team_member")` was a real rename.
+**Every index exists for one query pattern**, invisible on seed data:
+`(created_at, id)` for the default keyset order, scanned backwards;
+`(monitor_id, checked_at, id)` for one monitor's history; `(is_active,
+next_check_at, id)` for the scheduler claim. Trigram indexes live outside the
+contract in `prisma/search-indexes/` — introspection reads an opclass back as a
+plain column. A column without an index is not `sortable`: on 500k checks an
+`ORDER BY response_time_ms` is a 51 ms parallel seq scan, so `monitorCheckQuery`
+states the exceptions and offers ordering on `checkedAt` and `id` only.
 
-**A rename is planned as drop-and-create, so its rows are gone.** The DSL has
-no `renameTable`/`renameColumn`; removing `@@map("team_member")` planned six
-operations starting with `DROP TABLE "team_member"`. It applies cleanly against
-a live database — no baseline squash — but everything in that table is lost, so
-reseed after. A baseline, when you do want one, is planned by deleting
-`refs/db.json` outright; a database is fresh only once `prisma_contract` is
-dropped too, since that schema holds the marker.
+**A keyset page is one row comparison, not a branch per key.** `(a < $1) OR (a
+= $1 AND b < $2)` is filtered row by row from the index end — 62 ms and 400 001
+rows removed at offset 400k on 500k checks — while `row(a, b) < row($1, $2)`
+is an index condition and costs 0.12 ms on any page. `keysetFilter` emits the
+`tuple` node whenever every sort key is a non-null root scalar of one direction
+and the cursor holds no null; both lanes compile it through `Combinators.row`
+from probes the field ops already type (`row(col, col) < row($1, $2)`). The
+branch form stays for nullable or mixed-direction keys, and for the classic
+Prisma fixture in `core.integration-spec`, which is why `specToPrisma` takes
+`{ rowComparison: true }` from `query-table` instead of defaulting to it.
 
-**Migrations run from `--target migrate`**, never the app image: the tooling is
-1 GB minimum (610 MB of it `alchemy`/`workerd` via the Prisma CLI) against
-213 MB for the runtime. A deployed database uses the manual `migrate` workflow.
+**A nested connection is a `LATERAL` per parent and counts lazily.** The
+`row_number() OVER (PARTITION BY …)` form sorted every check of every listed
+monitor — 372 ms and 24 MB on disk for 25 parents — where `unnest(parents)
+CROSS JOIN LATERAL (… ORDER BY … LIMIT n)` reads `n + 1` index entries per
+parent in 0.4 ms. The `count(*) GROUP BY` runs only when `totalCount` is
+selected, through its own loader. The nested spec is normalized under
+`<Parent>.<field>`, so its cursors carry a fingerprint the root query of the same
+model refuses.
 
-**Introspection is exempt from the cost limit** — it nests lists inside lists,
-so the fanout multiplier priced GraphiQL's schema fetch at 617 005 and broke the
-explorer; an e2e test covers it. `GRAPHIQL` decides whether the explorer and
-introspection are on; they used to hang off `NODE_ENV`, so a deploy that never
-set it served an open schema and leaked error details by accident.
+**A probe never reads the body and never runs unbounded.** `response.body.cancel()`
+replaces `arrayBuffer()`, and `MonitorLimit.probesInFlight` caps the runs a
+process holds at once; past it `checkMonitor` answers `TOO_MANY_REQUESTS` instead
+of queueing. Handing probes to a scheduler is the next step, not this one.
 
-**What PSL can and cannot say about indexes.** Composite btree yes; `type:` from
-`btree`/`gin`/`hash`/`brin` yes, **lowercase only**; per-column `sort:` and
-operator classes no. Expression indexes parse and emit correct SQL but **must
-not be used**: introspection reads the opclass back as a plain column, so
-contract and database never agree. Trigram indexes therefore live outside the
-contract, in `prisma/search-indexes/`; `db verify` tolerates them.
+**`recordOutcome` is one `UPDATE … RETURNING`** through `raw.sql`, so
+`consecutive_failures = CASE WHEN $down THEN consecutive_failures + 1 ELSE 0 END`
+and `next_check_at = $checked_at + make_interval(secs => interval_seconds)`
+happen in the row, never from a stale read; two concurrent probes count two
+failures. A `param(...)` instance is one placeholder: interpolating the same
+object twice makes PostgreSQL deduce two types for it, so build a fresh one per
+position. An empty patch to `update` is a read, because the ORM answers `null`
+for an update that sets nothing.
 
-**The planner stops at data, not at schema.** It handled a dropped column, a
-removed enum value (drop and re-add the check constraint), a new index and
-`setNotNull` without help — but making `next_check_at` non-null produced a
-`dataTransform` with `placeholder(...)` in both `check` and `run`, because only
-the author knows what the existing NULLs should become. Filling one means
-building a `SqlQueryPlan` against the end contract. With nothing but seed data
-in the database the honest move was a fresh baseline; once a deployed database
-exists, that shortcut is gone and the placeholder has to be written.
-
-**`filterable` and `sortable` default to true.** A field opts out with an
-explicit `false`, which is how `secret` stays out of the fixture's filter
-input. The flags read as exceptions now, and a definition that wants everything
-exposed says nothing at all.
-
-**Latest state is denormalised onto `Monitor`.** `lastStatus`, `lastCheckedAt`,
-`lastStatusCode`, `lastResponseTimeMs` and `consecutiveFailures` save a list of
-monitors from reaching into `MonitorCheck` for each row. The probe writes the
-check first and the monitor second, so a crash between them leaves the monitor
-one probe stale — the next probe repairs it, and nothing reads those fields as
-the source of truth. `consecutiveFailures` is what an incident engine will
-debounce on, so one stray timeout cannot open an incident.
-
-**Every index exists for one query pattern**, measured on 200k skewed rows and
-invisible on seed data: `(createdAt, id)` for the default keyset order, scanned
-backwards since all columns are DESC; `(status, createdAt, id)` for a status
-filter under that order, 23 ms without it against 7.8 ms with;
-`(monitor_id, checked_at, id)` for a page of one monitor history and for the
-nested connection window; `(is_active, next_check_at, id)` for the scheduler
-claim, which is the only reason that index exists — `(is_active, name)` was
-dropped because nothing ordered active monitors by name; trigram GIN for
-search, 140 ms against 0.3 ms on a rare term.
-
-**The bundle is built from `dist`, not `src`** — SWC has already emitted the
-decorator metadata, so esbuild never handles decorators. `keepNames` is
-mandatory: the code-first schema is built from class names. Unresolvable imports
-are externalised automatically and printed, so a new dependency needs no change.
-Anything reached through Nest's runtime package loader cannot work bundled,
-which is why `ServeStaticModule` registers only when its directory exists.
-Startup drops from 4.2 s to 1.1 s.
-
-**`DEFAULT_ORDER_BY` is global** (`createdAt DESC`, then `id DESC`); entries an
-entity cannot honour are skipped, not rejected. `orderBy` is the only sorting
-argument and each element carries exactly one path — `[{ createdAt: 'DESC' }, {
-id: 'DESC' }]`, never `[{ createdAt: 'DESC', id: 'DESC' }]`. The unique
-tiebreaker is appended automatically **in the direction of the last explicit
-key**: `[{ createdAt: 'DESC' }]` becomes `createdAt DESC, id DESC`, which the
-`(createdAt, id)` index serves as one backward scan, whereas a fixed `id ASC`
-forced a sort behind every mixed-direction order.
-
-**Cursor timestamps are strings, never `Date`.** PostgreSQL keeps microseconds
-and `Date` keeps milliseconds, so a cursor rounded through `Date` re-read the
-boundary row on one direction and skipped its microsecond neighbours on the
-other. `validateScalarValue` only checks that a date parses and passes the
-original text through; the contract types are `TimestamptzString` anyway.
-
-**`preference` is a sort key, not a filter.** A list query accepts
-`preference: [ID!]` on the root model only — no nested form — and the ids it
-carries lead the result in the order given, everything else following `orderBy`
-behind them. **A leading `CASE … END` in `ORDER BY` would defeat every index**,
-so the SQL lane never emits one — it splits the page by cursor position
-instead. The rank is discrete and small, so the pinned block is read by primary
-key (`id IN (…)`) and ordered in memory, while everything past it is a plain
-keyset query (`id NOT IN (…)` under the normal order) that still lands on
-`(createdAt, id)`; a page straddling the boundary runs both and concatenates.
-Measured on 200k rows: a single `CASE` sort costs 47.9 ms on **every** page,
-against 0.32 ms for the pinned page and 0.096 ms past it — the latter being the
-same Index Only Scan a query with no `preference` gets. Backward reverses the
-phases, and a cursor sitting on a pinned row skips the unpinned phase entirely,
-because in reversed order every unpinned row is already behind it. `preference`
-still forces the SQL lane, since the ORM lane cannot express the two-phase
-read. **The rank is the first
-element of every cursor tuple and the list is part of the fingerprint** — a
-comparison against `id` sets (`IN` the ids after the cursor's rank, or `NOT IN`
-the list at all) is what keeps page two correct, and changing the list mid-walk
-is refused rather than silently reshuffled. An id that no row matches, or whose
-row the filter excludes, simply does not appear; `totalCount` never moves.
-
-**The ORM lane can express neither a relation order nor a NULLS placement.** A
-relation accessor exposes only `some`/`every`/`none`, and `OrderByItem` carries
-`(expr, dir)` with no NULLS clause, so `ORDER BY … NULLS FIRST/LAST` is
-unreachable there. `requiresSqlLane` sends both cases to the two-phase SQL lane
-instead — `selectOrderedIds` joins, orders and returns keys, then the rows are
-re-read through the ORM. A placement other than PostgreSQL's own default
-(`ASC`→LAST, `DESC`→FIRST) is emitted there as a leading `(<column> IS NULL)`
-key: `DESC` ranks NULLs first, `ASC` ranks them last. `keysetFilter` already
-spells out the matching NULL branches, so both pages and cursors agree.
-
-**The SQL lane addresses tables by path, not by name.** `collectJoinPaths`
-returns every to-one prefix a sort reaches, shortest first, and each is joined
-under an alias derived from the path — `j_team`, `j_team_owner` — so two
-relations onto one table cannot collide. **Joins exist for `ORDER BY` only;
-every filter through a relation, whatever its cardinality, is a correlated
-subquery.** A to-one filter used to ride the join as `j_x.id IS NOT NULL AND
-j_x.col = $1`; under `NOT`, a NULL column turned the whole predicate NULL and
-the row vanished, while the ORM lane's `EXISTS` reads NULL as "no match" and
-kept it — the same filter returned different sets depending on `orderBy`.
-`sqlFieldBag` now builds each relation as `x_<path>`, correlated with a raw
-`ColumnRef` to the parent's alias: `is`/`some` is `EXISTS`, `isNot`/`none` is
-`NOT EXISTS`, `every` is `NOT EXISTS (… AND NOT p)` — which is why `every` is
-true for a parent with no children. Because the alias comes from the absolute
-path, a relation reached inside a subquery is unique without extra bookkeeping,
-and a to-one nested under a to-many resolves the same way.
-`test/query-core/lane-parity.integration-spec.ts` pins the rule: changing
-`orderBy` must never change the filtered set. **Ordering through a to-many is
-still refused** — a parent has many children, so there is no single value to
-sort by; `buildOrderInput` omits it from the schema and `orderSteps` throws if
-it is reached anyway.
-
-**Per-request loaders are cleared after every root mutation field**, so a
-later field in the same request re-reads what the mutation changed instead of
-the cached relation. **The throttling guard keeps one verdict promise per tier
-per request**: root fields resolve concurrently, and marking a tier as counted
-before its check had finished let a second field run while the first was being
-rejected. The guard skips non-GraphQL contexts entirely, and the HTTP wall is
-bound to `/graphql`, so `/health` answers behind neither layer.
-
-**`orderSteps` addresses physical columns, `ResolvedQueryField.column` does
-not.** A query definition's `column` is the *model field* name — what the ORM
-lane, `include`, and `encodeCursor` all read — so the SQL lane has to translate
-it through the contract (`created_at`, not `createdAt`). Feeding a field name to
-`scope[table][column]` yields `undefined`, and the builder then fails deep
-inside `resolveOrderBy` with `Cannot read properties of undefined (reading
-'buildAst')`.
-
-**A nested to-many is a connection, and one call declares it.**
-`NestedConnection({ parent, field, connection, definition, model, foreignKey })`
-in `core/graphql` generates the whole resolver: `first`, `last` and `orderBy`,
-deliberately no `filter` and no `search`. It pages every parent in one pass with
-`row_number() OVER (PARTITION BY fk ORDER BY ...)` issued through `db.raw.sql`,
-because the typed builder has no window functions and a plain `WHERE fk IN (...)`
-cannot take a page per parent. Identifiers come from the contract; the parent ids
-go in as ordinary bound parameters. It asks for `limit + 1` rows per parent —
-`Connection` reads `hasNextPage` off that extra row. The generated `@Args()` has
-to spell out `{ type: () => ... }`: a class built inside a factory reflects as
-`Object` and Nest refuses it.
-
-**Cursors are not offered on a nested connection.** A cursor belongs to one
-parent's sequence, and the field resolves for a whole page of parents at once.
-Paging through one monitor's history goes through the root query filtered on the
-foreign key, where the full keyset machinery applies.
-
-**`@Field(() => DateTimeScalar)`, never `@Field(() => Date)`.** The contract
-returns timestamps as ISO strings and `GraphQLISODateTime.serialize` returns
-`null` for a string without throwing, which would silently null out every
-timestamp.
+**`GET /health/ready` runs `SELECT 1`**; `GET /health` does not touch the
+database, so a database outage never restarts the process through its liveness
+probe. Unit tests run isolated: the shared module registry let a `vi.mock` hold
+only under one file order.
