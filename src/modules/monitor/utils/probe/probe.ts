@@ -5,8 +5,7 @@ import {
   CheckErrorType,
   MonitorStatus
 } from '@/modules/monitor/types'
-
-import { classifyProbeError } from './classify-probe-error'
+import { classifyProbeError } from '@/modules/monitor/utils/classify-probe-error'
 
 export type ProbeOutcome = {
   status: MonitorStatus
