@@ -123,6 +123,11 @@ jobs:
       - name: Run end-to-end tests
         run: pnpm test:e2e
 
+      - name: Run integration tests
+        env:
+          QUERY_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/incident_response
+        run: pnpm test:query:integration
+
   image:
     name: Container images
     runs-on: ubuntu-latest
