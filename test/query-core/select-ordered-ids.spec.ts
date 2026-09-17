@@ -18,14 +18,14 @@ const client = db as unknown as SqlLaneClient
 describe('selectOrderedIds', () => {
   it('refuses to filter through a to-many relation', async () => {
     await expect(
-      selectOrderedIds(client, 'Team', {
+      selectOrderedIds(client, 'Monitor', {
         where: {},
         order: [],
-        paths: [['members']],
+        paths: [['checks']],
         take: 10
       })
     ).rejects.toThrow(
-      'Filtering through the to-many relation "members" is not supported'
+      'Filtering through the to-many relation "checks" is not supported'
     )
   })
 })

@@ -19,7 +19,7 @@ function withFields<T>(build: (fields: FieldBag) => T): T {
   let captured: T | undefined
   let called = false
 
-  db.orm.public.Incident.where((fields) => {
+  db.orm.public.Monitor.where((fields) => {
     captured = build(fields)
     called = true
 
@@ -47,14 +47,14 @@ describe('whereToExpr', () => {
   })
 
   it('compiles shorthand equality', () => {
-    expect(compile({ status: 'OPEN' })).toMatchObject({ kind: 'binary' })
+    expect(compile({ method: 'GET' })).toMatchObject({ kind: 'binary' })
   })
 
   it.each([
-    ['equals', { status: { equals: 'OPEN' } }],
-    ['not', { status: { not: 'OPEN' } }],
-    ['in', { severity: { in: ['LOW', 'HIGH'] } }],
-    ['notIn', { severity: { notIn: ['LOW'] } }],
+    ['equals', { method: { equals: 'GET' } }],
+    ['not', { method: { not: 'GET' } }],
+    ['in', { method: { in: ['GET', 'HEAD'] } }],
+    ['notIn', { method: { notIn: ['GET'] } }],
     ['lt', { createdAt: { lt: '2026-01-01T00:00:00.000Z' } }],
     ['gte', { createdAt: { gte: '2026-01-01T00:00:00.000Z' } }]
   ])('compiles the %s operator', (_name, where) => {
@@ -62,21 +62,21 @@ describe('whereToExpr', () => {
   })
 
   it('maps null equality to IS NULL', () => {
-    expect(compile({ resolvedAt: { equals: null } })).toMatchObject({
+    expect(compile({ nextCheckAt: { equals: null } })).toMatchObject({
       kind: 'null-check'
     })
   })
 
   it('maps a null-valued field to IS NULL', () => {
-    expect(compile({ resolvedAt: null })).toMatchObject({ kind: 'null-check' })
+    expect(compile({ nextCheckAt: null })).toMatchObject({ kind: 'null-check' })
   })
 
   it('nests AND / OR / NOT', () => {
     const expr = compile({
       AND: [
-        { status: 'OPEN' },
-        { OR: [{ severity: 'HIGH' }, { severity: 'CRITICAL' }] },
-        { NOT: { title: { equals: 'x' } } }
+        { method: 'GET' },
+        { OR: [{ method: 'HEAD' }, { method: 'POST' }] },
+        { NOT: { name: { equals: 'x' } } }
       ]
     })
 
@@ -87,20 +87,20 @@ describe('whereToExpr', () => {
   })
 
   it('escapes LIKE wildcards so a literal % is not a wildcard', () => {
-    expect(() => compile({ title: { contains: '50%_off' } })).not.toThrow()
+    expect(() => compile({ name: { contains: '50%_off' } })).not.toThrow()
   })
 
   it('uses ILIKE for insensitive mode and LIKE otherwise', () => {
     const insensitive = compile({
-      title: { contains: 'needle', mode: 'insensitive' }
+      name: { contains: 'needle', mode: 'insensitive' }
     })
-    const sensitive = compile({ title: { contains: 'needle' } })
+    const sensitive = compile({ name: { contains: 'needle' } })
 
     expect(insensitive).not.toStrictEqual(sensitive)
   })
 
   it('rejects an unknown operator', () => {
-    expect(() => compile({ title: { spaceship: 'x' } })).toThrow(
+    expect(() => compile({ name: { spaceship: 'x' } })).toThrow(
       /Unsupported filter operator "spaceship"/
     )
   })
@@ -124,8 +124,8 @@ describe('orderPlanToSteps', () => {
   ])(
     'accepts %s ordering when NULLS %s is asked for, matching PostgreSQL',
     (sort, nulls) => {
-      expect(orderPlanToSteps([{ resolvedAt: { sort, nulls } }])).toEqual([
-        { field: 'resolvedAt', direction: sort }
+      expect(orderPlanToSteps([{ nextCheckAt: { sort, nulls } }])).toEqual([
+        { field: 'nextCheckAt', direction: sort }
       ])
     }
   )
@@ -136,9 +136,9 @@ describe('orderPlanToSteps', () => {
   ])(
     'rejects %s ordering with NULLS %s, which the builder cannot express',
     (sort, nulls) => {
-      expect(() => orderPlanToSteps([{ resolvedAt: { sort, nulls } }])).toThrow(
-        /cannot place NULLs/
-      )
+      expect(() =>
+        orderPlanToSteps([{ nextCheckAt: { sort, nulls } }])
+      ).toThrow(/cannot place NULLs/)
     }
   )
 

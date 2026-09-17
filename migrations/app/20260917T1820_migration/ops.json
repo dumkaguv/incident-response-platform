@@ -1,0 +1,334 @@
+[
+  {
+    "id": "schema.public",
+    "label": "Create schema \"public\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres"
+    },
+    "precheck": [],
+    "execute": [
+      {
+        "description": "Create schema \"public\"",
+        "sql": "CREATE SCHEMA IF NOT EXISTS \"public\"",
+        "params": []
+      }
+    ],
+    "postcheck": []
+  },
+  {
+    "id": "table.monitor",
+    "label": "Create table \"monitor\"",
+    "summary": "Creates table \"monitor\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "monitor"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"monitor\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitor\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"monitor\"",
+        "sql": "CREATE TABLE \"public\".\"monitor\" (\n  \"created_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"expected_status_code\" int4 DEFAULT 200 NOT NULL,\n  \"id\" text NOT NULL,\n  \"interval_seconds\" int4 DEFAULT 60 NOT NULL,\n  \"is_active\" bool DEFAULT true NOT NULL,\n  \"method\" text DEFAULT 'GET' NOT NULL,\n  \"name\" text NOT NULL,\n  \"next_check_at\" timestamptz,\n  \"timeout_ms\" int4 DEFAULT 5000 NOT NULL,\n  \"updated_at\" timestamptz NOT NULL,\n  \"url\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"monitor_method_check_f6b740eb\" CHECK (\"method\" IN ('GET', 'HEAD', 'POST'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"monitor\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitor\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.monitorCheck",
+    "label": "Create table \"monitorCheck\"",
+    "summary": "Creates table \"monitorCheck\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "monitorCheck"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"monitorCheck\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"monitorCheck\"",
+        "sql": "CREATE TABLE \"public\".\"monitorCheck\" (\n  \"checked_at\" timestamptz DEFAULT (now()) NOT NULL,\n  \"error_type\" text,\n  \"id\" text NOT NULL,\n  \"monitor_id\" text NOT NULL,\n  \"response_time_ms\" int4,\n  \"status\" text NOT NULL,\n  \"status_code\" int4,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"monitorCheck_error_type_check_fdb8dbfc\" CHECK (\"error_type\" IN ('TIMEOUT', 'DNS_ERROR', 'CONNECTION_REFUSED', 'TLS_ERROR', 'INVALID_STATUS_CODE', 'ASSERTION_FAILED', 'UNKNOWN')),\n  CONSTRAINT \"monitorCheck_status_check_b2b99eb4\" CHECK (\"status\" IN ('UP', 'DOWN'))\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"monitorCheck\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.monitor.monitor_created_at_id_idx_d7da240a",
+    "label": "Create index \"monitor_created_at_id_idx_d7da240a\" on \"monitor\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "monitor_created_at_id_idx_d7da240a",
+        "table": "monitor"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"monitor_created_at_id_idx_d7da240a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitor_created_at_id_idx_d7da240a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"monitor_created_at_id_idx_d7da240a\"",
+        "sql": "CREATE INDEX \"monitor_created_at_id_idx_d7da240a\" ON \"public\".\"monitor\" (\"created_at\", \"id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"monitor_created_at_id_idx_d7da240a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitor_created_at_id_idx_d7da240a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.monitor.monitor_is_active_name_idx_46b5e021",
+    "label": "Create index \"monitor_is_active_name_idx_46b5e021\" on \"monitor\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "monitor_is_active_name_idx_46b5e021",
+        "table": "monitor"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"monitor_is_active_name_idx_46b5e021\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitor_is_active_name_idx_46b5e021\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"monitor_is_active_name_idx_46b5e021\"",
+        "sql": "CREATE INDEX \"monitor_is_active_name_idx_46b5e021\" ON \"public\".\"monitor\" (\"is_active\", \"name\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"monitor_is_active_name_idx_46b5e021\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitor_is_active_name_idx_46b5e021\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.monitorCheck.monitorCheck_checked_at_id_idx_35df2f2c",
+    "label": "Create index \"monitorCheck_checked_at_id_idx_35df2f2c\" on \"monitorCheck\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "monitorCheck_checked_at_id_idx_35df2f2c",
+        "table": "monitorCheck"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"monitorCheck_checked_at_id_idx_35df2f2c\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck_checked_at_id_idx_35df2f2c\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"monitorCheck_checked_at_id_idx_35df2f2c\"",
+        "sql": "CREATE INDEX \"monitorCheck_checked_at_id_idx_35df2f2c\" ON \"public\".\"monitorCheck\" (\"checked_at\", \"id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"monitorCheck_checked_at_id_idx_35df2f2c\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck_checked_at_id_idx_35df2f2c\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.monitorCheck.monitorCheck_monitor_id_checked_at_id_idx_bbe83795",
+    "label": "Create index \"monitorCheck_monitor_id_checked_at_id_idx_bbe83795\" on \"monitorCheck\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "monitorCheck_monitor_id_checked_at_id_idx_bbe83795",
+        "table": "monitorCheck"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"monitorCheck_monitor_id_checked_at_id_idx_bbe83795\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck_monitor_id_checked_at_id_idx_bbe83795\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"monitorCheck_monitor_id_checked_at_id_idx_bbe83795\"",
+        "sql": "CREATE INDEX \"monitorCheck_monitor_id_checked_at_id_idx_bbe83795\" ON \"public\".\"monitorCheck\" (\"monitor_id\", \"checked_at\", \"id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"monitorCheck_monitor_id_checked_at_id_idx_bbe83795\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck_monitor_id_checked_at_id_idx_bbe83795\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.monitorCheck.monitorCheck_monitor_id_idx_f22a8355",
+    "label": "Create index \"monitorCheck_monitor_id_idx_f22a8355\" on \"monitorCheck\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "monitorCheck_monitor_id_idx_f22a8355",
+        "table": "monitorCheck"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"monitorCheck_monitor_id_idx_f22a8355\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck_monitor_id_idx_f22a8355\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"monitorCheck_monitor_id_idx_f22a8355\"",
+        "sql": "CREATE INDEX \"monitorCheck_monitor_id_idx_f22a8355\" ON \"public\".\"monitorCheck\" (\"monitor_id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"monitorCheck_monitor_id_idx_f22a8355\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck_monitor_id_idx_f22a8355\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.monitorCheck.monitorCheck_monitor_id_fkey",
+    "label": "Add foreign key \"monitorCheck_monitor_id_fkey\" on \"monitorCheck\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "monitorCheck_monitor_id_fkey",
+        "table": "monitorCheck"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"monitorCheck_monitor_id_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "monitorCheck_monitor_id_fkey",
+          "public",
+          "\"public\".\"monitorCheck\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"monitorCheck_monitor_id_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"monitorCheck\"\nADD CONSTRAINT \"monitorCheck_monitor_id_fkey\"\nFOREIGN KEY (\"monitor_id\")\nREFERENCES \"public\".\"monitor\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"monitorCheck_monitor_id_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "monitorCheck_monitor_id_fkey",
+          "public",
+          "\"public\".\"monitorCheck\""
+        ]
+      }
+    ]
+  }
+]

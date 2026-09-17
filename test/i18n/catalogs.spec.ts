@@ -85,13 +85,13 @@ describe('I18nModule', () => {
 
     const i18n = testingModule.get(I18nService)
     const id = 'INC-42'
-    const notFound = msg`Incident "${id}" was not found`
+    const notFound = msg`Monitor "${id}" was not found`
 
-    expect(i18n.translate(notFound, 'ru')).toBe('Инцидент «INC-42» не найден')
+    expect(i18n.translate(notFound, 'ru')).toBe('Монитор «INC-42» не найден')
     expect(i18n.translate(notFound, 'ro')).toBe(
-      'Incidentul „INC-42” nu a fost găsit'
+      'Monitorul „INC-42” nu a fost găsit'
     )
-    expect(i18n.translate(notFound)).toBe('Incident "INC-42" was not found')
+    expect(i18n.translate(notFound)).toBe('Monitor "INC-42" was not found')
   })
 })
 

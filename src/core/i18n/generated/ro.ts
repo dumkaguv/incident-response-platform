@@ -1,1 +1,1 @@
-/*eslint-disable*/import type{Messages}from"@lingui/core";export const messages=JSON.parse("{\"1SORSY\":[\"Incidentul „\",[\"id\"],\"” nu a fost găsit\"],\"4F8CUc\":[\"Limita de cereri a fost atinsă, reîncercați în \",[\"seconds\"],\" s\"],\"yWMEwr\":[\"Incidentul „\",[\"id\"],\"” este deja rezolvat\"]}")as Messages;
+/*eslint-disable*/import type{Messages}from"@lingui/core";export const messages=JSON.parse("{\"4F8CUc\":[\"Limita de cereri a fost atinsă, reîncercați în \",[\"seconds\"],\" s\"],\"GqALbj\":[\"Monitorul „\",[\"id\"],\"” nu a fost găsit\"]}")as Messages;

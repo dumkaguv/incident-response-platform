@@ -9,7 +9,7 @@ import { GraphqlConfigModule } from '@/core/graphql'
 import { I18nModule } from '@/core/i18n'
 import { PrismaModule } from '@/core/prisma/prisma.module'
 import { ThrottlerConfigModule } from '@/core/throttler'
-import { IncidentModule } from '@/modules/incident/incident.module'
+import { MonitorModule } from '@/modules/monitor/monitor.module'
 
 const DOCS_ROOT = join(process.cwd(), 'docs', 'api')
 
@@ -31,7 +31,7 @@ function apiDocs(): DynamicModule[] {
     PrismaModule,
     ThrottlerConfigModule,
     GraphqlConfigModule,
-    IncidentModule
+    MonitorModule
   ]
 })
 export class AppModule {}

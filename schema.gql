@@ -2,15 +2,74 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-input CreateIncidentInput {
-  """Any further detail worth recording (up to 2000 characters)"""
-  description: String
+input BooleanFilter {
+  """eq"""
+  eq: Boolean
 
-  """How badly the incident affects the business"""
-  severity: IncidentSeverity!
+  """is"""
+  is: FilterIs
 
-  """What happened, in one line (3-200 characters)"""
-  title: String!
+  """ne"""
+  ne: Boolean
+
+  """neq"""
+  neq: Boolean
+}
+
+"""Why a probe failed"""
+enum CheckErrorType {
+  ASSERTION_FAILED
+  CONNECTION_REFUSED
+  DNS_ERROR
+  INVALID_STATUS_CODE
+  TIMEOUT
+  TLS_ERROR
+  UNKNOWN
+}
+
+input CheckErrorTypeFilter {
+  """eq"""
+  eq: CheckErrorType
+
+  """in"""
+  in: [CheckErrorType!]
+
+  """is"""
+  is: FilterIs
+
+  """ne"""
+  ne: CheckErrorType
+
+  """neq"""
+  neq: CheckErrorType
+
+  """nin"""
+  nin: [CheckErrorType!]
+}
+
+input CreateMonitorInput {
+  """Response code that counts as healthy; defaults to 200"""
+  expectedStatusCode: Int
+
+  """How often to probe (10-86400 seconds, defaults to 60)"""
+  intervalSeconds: Int
+
+  """A paused monitor is never probed; defaults to true"""
+  isActive: Boolean
+
+  """Defaults to GET"""
+  method: MonitorMethod
+
+  """Label shown in lists and alerts (1-120 characters)"""
+  name: String!
+
+  """
+  How long a probe may take before it counts as timed out (100-60000 ms, defaults to 5000)
+  """
+  timeoutMs: Int
+
+  """Absolute http(s) address to probe"""
+  url: String!
 }
 
 """
@@ -88,27 +147,89 @@ input IdFilter {
   nin: [ID!]
 }
 
-type Incident {
-  createdAt: DateTime!
-  description: String
-  id: ID!
-  resolvedAt: DateTime
-  severity: IncidentSeverity!
-  status: IncidentStatus!
+input IntFilter {
+  """eq"""
+  eq: Int
 
-  """Team that owns the incident"""
-  team: Team
-  teamId: ID
-  title: String!
-  updatedAt: DateTime!
+  """gt"""
+  gt: Int
+
+  """gte"""
+  gte: Int
+
+  """in"""
+  in: [Int!]
+
+  """is"""
+  is: FilterIs
+
+  """lt"""
+  lt: Int
+
+  """lte"""
+  lte: Int
+
+  """ne"""
+  ne: Int
+
+  """neq"""
+  neq: Int
+
+  """nin"""
+  nin: [Int!]
 }
 
-type IncidentConnection {
+type Monitor {
+  createdAt: DateTime!
+
+  """Response code that counts as healthy"""
+  expectedStatusCode: Int!
+  id: ID!
+
+  """How often the probe should run"""
+  intervalSeconds: Int!
+
+  """A paused monitor is never probed"""
+  isActive: Boolean!
+  method: MonitorMethod!
+
+  """Label shown in lists and alerts"""
+  name: String!
+
+  """When the next probe falls due; empty until scheduled"""
+  nextCheckAt: DateTime
+
+  """How long a probe may take before it counts as timed out"""
+  timeoutMs: Int!
+  updatedAt: DateTime!
+
+  """Absolute http(s) address to probe"""
+  url: String!
+}
+
+type MonitorCheck {
+  """When the probe ran"""
+  checkedAt: DateTime!
+
+  """Set only when the probe failed"""
+  errorType: CheckErrorType
+  id: ID!
+  monitorId: ID!
+
+  """Round trip in milliseconds, absent when no response arrived"""
+  responseTimeMs: Int
+  status: MonitorStatus!
+
+  """Response code, absent when no response arrived"""
+  statusCode: Int
+}
+
+type MonitorCheckConnection {
   """Records with their keyset cursors"""
-  edges: [IncidentEdge!]!
+  edges: [MonitorCheckEdge!]!
 
   """Records of the current page"""
-  nodes: [Incident!]!
+  nodes: [MonitorCheck!]!
 
   """Cursors and page availability"""
   pageInfo: PageInfo!
@@ -117,142 +238,186 @@ type IncidentConnection {
   totalCount: Int!
 }
 
-type IncidentEdge {
+type MonitorCheckEdge {
   cursor: String!
-  node: Incident!
+  node: MonitorCheck!
 }
 
-input IncidentFilter {
-  and: [IncidentFilter!]
-  createdAt: DateTimeFilter
-  description: StringFilter
+input MonitorCheckFilter {
+  and: [MonitorCheckFilter!]
+  checkedAt: DateTimeFilter
+  errorType: CheckErrorTypeFilter
   id: IdFilter
-  not: IncidentFilter
-  or: [IncidentFilter!]
-  resolvedAt: DateTimeFilter
-  severity: IncidentSeverityFilter
-  status: IncidentStatusFilter
-  team: Incident_teamFilter
-  title: StringFilter
-  updatedAt: DateTimeFilter
+  monitor: MonitorCheck_monitorFilter
+  monitorId: IdFilter
+  not: MonitorCheckFilter
+  or: [MonitorCheckFilter!]
+  responseTimeMs: IntFilter
+  status: MonitorStatusFilter
+  statusCode: IntFilter
 }
 
-input IncidentOrderBy {
-  createdAt: OrderByDirection
-  description: OrderByDirection
+input MonitorCheckOrderBy {
+  checkedAt: OrderByDirection
+  errorType: OrderByDirection
   id: OrderByDirection
-  resolvedAt: OrderByDirection
-  severity: OrderByDirection
+  monitor: MonitorCheck_monitorOrderBy
+  monitorId: OrderByDirection
+  responseTimeMs: OrderByDirection
   status: OrderByDirection
-  team: Incident_teamOrderBy
-  title: OrderByDirection
-  updatedAt: OrderByDirection
+  statusCode: OrderByDirection
 }
 
-"""Business impact of an incident"""
-enum IncidentSeverity {
-  CRITICAL
-  HIGH
-  LOW
-  MEDIUM
-}
-
-input IncidentSeverityFilter {
-  """eq"""
-  eq: IncidentSeverity
-
-  """in"""
-  in: [IncidentSeverity!]
-
-  """is"""
-  is: FilterIs
-
-  """ne"""
-  ne: IncidentSeverity
-
-  """neq"""
-  neq: IncidentSeverity
-
-  """nin"""
-  nin: [IncidentSeverity!]
-}
-
-"""Lifecycle status of an incident"""
-enum IncidentStatus {
-  CLOSED
-  INVESTIGATING
-  OPEN
-  RESOLVED
-}
-
-input IncidentStatusFilter {
-  """eq"""
-  eq: IncidentStatus
-
-  """in"""
-  in: [IncidentStatus!]
-
-  """is"""
-  is: FilterIs
-
-  """ne"""
-  ne: IncidentStatus
-
-  """neq"""
-  neq: IncidentStatus
-
-  """nin"""
-  nin: [IncidentStatus!]
-}
-
-input Incident_teamFilter {
-  and: [Incident_teamFilter!]
-  createdAt: DateTimeFilter
-  description: StringFilter
+input MonitorCheck_monitorFilter {
+  and: [MonitorCheck_monitorFilter!]
   id: IdFilter
-  members: Incident_team_membersRelationFilter
+  isActive: BooleanFilter
   name: StringFilter
-  not: Incident_teamFilter
-  or: [Incident_teamFilter!]
-  slug: StringFilter
+  not: MonitorCheck_monitorFilter
+  or: [MonitorCheck_monitorFilter!]
+  url: StringFilter
 }
 
-input Incident_teamOrderBy {
-  createdAt: OrderByDirection
-  description: OrderByDirection
+input MonitorCheck_monitorOrderBy {
   id: OrderByDirection
+  isActive: OrderByDirection
   name: OrderByDirection
-  slug: OrderByDirection
+  url: OrderByDirection
 }
 
-input Incident_team_membersFilter {
-  and: [Incident_team_membersFilter!]
-  email: StringFilter
+type MonitorConnection {
+  """Records with their keyset cursors"""
+  edges: [MonitorEdge!]!
+
+  """Records of the current page"""
+  nodes: [Monitor!]!
+
+  """Cursors and page availability"""
+  pageInfo: PageInfo!
+
+  """Total matching records; computed only when selected"""
+  totalCount: Int!
+}
+
+type MonitorEdge {
+  cursor: String!
+  node: Monitor!
+}
+
+input MonitorFilter {
+  and: [MonitorFilter!]
+  checks: Monitor_checksRelationFilter
+  createdAt: DateTimeFilter
+  expectedStatusCode: IntFilter
   id: IdFilter
+  intervalSeconds: IntFilter
+  isActive: BooleanFilter
+  method: MonitorMethodFilter
   name: StringFilter
-  not: Incident_team_membersFilter
-  or: [Incident_team_membersFilter!]
-  role: TeamRoleFilter
+  nextCheckAt: DateTimeFilter
+  not: MonitorFilter
+  or: [MonitorFilter!]
+  timeoutMs: IntFilter
+  updatedAt: DateTimeFilter
+  url: StringFilter
 }
 
-input Incident_team_membersRelationFilter {
-  every: Incident_team_membersFilter
-  none: Incident_team_membersFilter
-  some: Incident_team_membersFilter
+"""HTTP method the probe sends"""
+enum MonitorMethod {
+  GET
+  HEAD
+  POST
+}
+
+input MonitorMethodFilter {
+  """eq"""
+  eq: MonitorMethod
+
+  """in"""
+  in: [MonitorMethod!]
+
+  """is"""
+  is: FilterIs
+
+  """ne"""
+  ne: MonitorMethod
+
+  """neq"""
+  neq: MonitorMethod
+
+  """nin"""
+  nin: [MonitorMethod!]
+}
+
+input MonitorOrderBy {
+  createdAt: OrderByDirection
+  expectedStatusCode: OrderByDirection
+  id: OrderByDirection
+  intervalSeconds: OrderByDirection
+  isActive: OrderByDirection
+  method: OrderByDirection
+  name: OrderByDirection
+  nextCheckAt: OrderByDirection
+  timeoutMs: OrderByDirection
+  updatedAt: OrderByDirection
+  url: OrderByDirection
+}
+
+"""Whether the probe reached a healthy response"""
+enum MonitorStatus {
+  DOWN
+  UP
+}
+
+input MonitorStatusFilter {
+  """eq"""
+  eq: MonitorStatus
+
+  """in"""
+  in: [MonitorStatus!]
+
+  """is"""
+  is: FilterIs
+
+  """ne"""
+  ne: MonitorStatus
+
+  """neq"""
+  neq: MonitorStatus
+
+  """nin"""
+  nin: [MonitorStatus!]
+}
+
+input Monitor_checksFilter {
+  and: [Monitor_checksFilter!]
+  checkedAt: DateTimeFilter
+  errorType: CheckErrorTypeFilter
+  id: IdFilter
+  not: Monitor_checksFilter
+  or: [Monitor_checksFilter!]
+  status: MonitorStatusFilter
+  statusCode: IntFilter
+}
+
+input Monitor_checksRelationFilter {
+  every: Monitor_checksFilter
+  none: Monitor_checksFilter
+  some: Monitor_checksFilter
 }
 
 type Mutation {
-  """Creates an incident"""
-  createIncident(input: CreateIncidentInput!): Incident!
+  """Probes the monitor once, right now, and records the result"""
+  checkMonitor(id: ID!): MonitorCheck!
 
-  """Deletes the incident and returns it as it was"""
-  deleteIncident(id: ID!): Incident!
+  """Creates a monitor"""
+  createMonitor(input: CreateMonitorInput!): Monitor!
 
-  """Marks the incident as resolved"""
-  resolveIncident(id: ID!): Incident!
+  """Deletes the monitor and its history, and returns it as it was"""
+  deleteMonitor(id: ID!): Monitor!
 
-  """Updates an incident"""
-  updateIncident(id: ID!, input: UpdateIncidentInput!): Incident!
+  """Updates a monitor"""
+  updateMonitor(id: ID!, input: UpdateMonitorInput!): Monitor!
 }
 
 """Sort direction and null placement"""
@@ -285,11 +450,11 @@ type PageInfo {
 }
 
 type Query {
-  """A single incident by id"""
-  incident(id: ID!): Incident!
+  """A single monitor by id"""
+  monitor(id: ID!): Monitor!
 
-  """Incidents, with filtering, search, sorting and pagination"""
-  incidents(
+  """Recorded probes, newest first; filter by monitorId for one monitor"""
+  monitorChecks(
     """
     Continue after pageInfo.endCursor with the same filter, search and orderBy
     """
@@ -301,7 +466,7 @@ type Query {
     before: String
 
     """Typed filters with nested and/or/not groups"""
-    filter: IncidentFilter
+    filter: MonitorCheckFilter
 
     """Forward page size; defaults to 25, max 100"""
     first: Int
@@ -310,18 +475,49 @@ type Query {
     last: Int
 
     """One scalar path per entry; array order defines precedence"""
-    orderBy: [IncidentOrderBy!]
+    orderBy: [MonitorCheckOrderBy!]
 
     """
     Ids pinned to the top of the first page, in the order given; everything else follows orderBy
     """
     preference: [ID!]
 
-    """
-    Case-insensitive search across: title, description, team.name, team.members.name
-    """
+    """Case-insensitive search across: monitor.name, monitor.url"""
     search: String
-  ): IncidentConnection!
+  ): MonitorCheckConnection!
+
+  """Monitors, with filtering, search, sorting and pagination"""
+  monitors(
+    """
+    Continue after pageInfo.endCursor with the same filter, search and orderBy
+    """
+    after: String
+
+    """
+    Continue before pageInfo.startCursor with the same filter, search and orderBy
+    """
+    before: String
+
+    """Typed filters with nested and/or/not groups"""
+    filter: MonitorFilter
+
+    """Forward page size; defaults to 25, max 100"""
+    first: Int
+
+    """Backward page size, max 100"""
+    last: Int
+
+    """One scalar path per entry; array order defines precedence"""
+    orderBy: [MonitorOrderBy!]
+
+    """
+    Ids pinned to the top of the first page, in the order given; everything else follows orderBy
+    """
+    preference: [ID!]
+
+    """Case-insensitive search across: name, url"""
+    search: String
+  ): MonitorConnection!
 }
 
 input StringFilter {
@@ -365,70 +561,27 @@ input StringFilter {
   startsWith: String
 }
 
-type Team {
-  createdAt: DateTime!
-  description: String
-  id: ID!
+input UpdateMonitorInput {
+  """Response code that counts as healthy; defaults to 200"""
+  expectedStatusCode: Int
 
-  """Incidents owned by the team"""
-  incidents: [Incident!]!
+  """How often to probe (10-86400 seconds, defaults to 60)"""
+  intervalSeconds: Int
 
-  """People who belong to the team"""
-  members: [TeamMember!]!
-  name: String!
-  slug: String!
-  updatedAt: DateTime!
-}
+  """A paused monitor is never probed; defaults to true"""
+  isActive: Boolean
 
-type TeamMember {
-  createdAt: DateTime!
-  email: String!
-  id: ID!
-  name: String!
-  role: TeamRole!
-  teamId: ID!
-  updatedAt: DateTime!
-}
+  """Defaults to GET"""
+  method: MonitorMethod
 
-"""What a member is expected to do during an incident"""
-enum TeamRole {
-  LEAD
-  OBSERVER
-  RESPONDER
-}
-
-input TeamRoleFilter {
-  """eq"""
-  eq: TeamRole
-
-  """in"""
-  in: [TeamRole!]
-
-  """is"""
-  is: FilterIs
-
-  """ne"""
-  ne: TeamRole
-
-  """neq"""
-  neq: TeamRole
-
-  """nin"""
-  nin: [TeamRole!]
-}
-
-input UpdateIncidentInput {
-  """Any further detail worth recording (up to 2000 characters)"""
-  description: String
-
-  """How badly the incident affects the business"""
-  severity: IncidentSeverity
+  """Label shown in lists and alerts (1-120 characters)"""
+  name: String
 
   """
-  Where the incident stands; resolveIncident also stamps the resolution time
+  How long a probe may take before it counts as timed out (100-60000 ms, defaults to 5000)
   """
-  status: IncidentStatus
+  timeoutMs: Int
 
-  """What happened, in one line (3-200 characters)"""
-  title: String
+  """Absolute http(s) address to probe"""
+  url: String
 }

@@ -42,11 +42,11 @@ describe('rate limiting: the GraphQL tier', () => {
   }
 
   it('counts one hit per request, not one per root field', async () => {
-    const single = await gql('{ a: incidents(first: 1) { totalCount } }')
+    const single = await gql('{ a: monitors(first: 1) { totalCount } }')
     const triple = await gql(`{
-      a: incidents(first: 1) { totalCount }
-      b: incidents(first: 1) { totalCount }
-      c: incidents(first: 1) { totalCount }
+      a: monitors(first: 1) { totalCount }
+      b: monitors(first: 1) { totalCount }
+      c: monitors(first: 1) { totalCount }
     }`)
 
     const before = Number(single.headers['x-ratelimit-remaining-burst'])
@@ -59,7 +59,7 @@ describe('rate limiting: the GraphQL tier', () => {
     let blocked: Awaited<ReturnType<typeof gql>> | undefined
 
     for (let attempt = 0; attempt < 20; attempt += 1) {
-      const response = await gql('{ incidents(first: 1) { totalCount } }')
+      const response = await gql('{ monitors(first: 1) { totalCount } }')
 
       if (response.body.errors) {
         blocked = response
@@ -146,9 +146,9 @@ describe('rate limiting: a mutation takes the write tier by itself', () => {
   }
 
   it('bills a query against the read tier and a mutation against the write tier', async () => {
-    const read = await gql('{ incidents(first: 1) { totalCount } }')
+    const read = await gql('{ monitors(first: 1) { totalCount } }')
     const write = await gql(`mutation {
-      deleteIncident(id: "00000000-0000-0000-0000-000000000000") { id }
+      deleteMonitor(id: "00000000-0000-0000-0000-000000000000") { id }
     }`)
 
     expect(Number(read.headers['x-ratelimit-limit-burst'])).toBe(9999)

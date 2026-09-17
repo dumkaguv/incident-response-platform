@@ -45,11 +45,11 @@ describe('AppErrorFilter', () => {
   it('translates a macro message into the request locale', () => {
     const id = 'INC-42'
     const graphqlError = filter.catch(
-      new NotFoundError(msg`Incident "${id}" was not found`),
+      new NotFoundError(msg`Monitor "${id}" was not found`),
       hostWithLocale('ru')
     )
 
-    expect(graphqlError.message).toBe('Инцидент «INC-42» не найден')
+    expect(graphqlError.message).toBe('Монитор «INC-42» не найден')
     expect(graphqlError.extensions.code).toBe('NOT_FOUND')
   })
 
