@@ -1,8 +1,7 @@
 import { Connection } from '@/core/pagination'
 import { keysetFilter } from '@/core/pagination/utils/query-cursor'
 import type { QuerySpec } from '@/core/pagination/utils/query-spec'
-
-import type { FieldOutputTypes } from '../contract'
+import type { FieldOutputTypes } from '@/core/prisma/contract'
 
 import { modelFields, primaryKeyOf, relationLocalFields } from './contract-meta'
 import { collectJoinPaths } from './relation-path'

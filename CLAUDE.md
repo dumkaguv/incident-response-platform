@@ -17,7 +17,7 @@ landmines.
 - **oxfmt + oxlint only.** Do not reintroduce Prettier or ESLint. `.prettierrc`
   is a leftover that nothing reads.
 - Aliases are `@/*` → `src/*` and `~/*` → repo root. A relative import may not
-  climb two levels — `../../x` is a lint error.
+  climb at all — any `../` is a lint error.
 - Commit messages are conventional commits. **Two configs exist and only
   `.commitlintrc` is read**, so the `type-enum` in `commitlint.config.cts` is
   dead.
@@ -64,15 +64,20 @@ src/
     services/   rules and errors
     repositories/  the only place that touches the database
     types/      row types, enum value maps, repository write shapes
+    utils/      pure helpers of the feature — no DI, no database
     index.ts    in every folder; imports go to the folder, not the file
 ```
 
-Every layer above `constants/` is split one folder per entity — `models/monitor/`
-and `models/monitor-check/`, not two files side by side. A layer holding one
-entity keeps the folder anyway, so the shape does not change when a second
-arrives. The cost is that a file two levels down cannot reach a sibling layer
-with `../../`, which lint forbids: it imports `@/modules/<feature>/<layer>`
-instead.
+Every layer above is split one folder per entity — `models/monitor/` and
+`models/monitor-check/`, not two files side by side. A layer holding one entity
+keeps the folder anyway, so the shape does not change when a second arrives.
+`constants/` and `utils/` stay flat: what is in them belongs to the whole
+feature, not to one entity.
+
+**A relative import may not climb.** `./` for the same folder, `@/` for anything
+else — `../` is a lint error everywhere, at any depth. It is the only rule that
+keeps an import readable once layers nest two deep, and it means moving a file
+between folders never rewrites the imports inside it.
 
 Two layers under the resolver. The **repository** is the only place that
 touches the database and returns rows or `null`; it is a plain `@Injectable()`

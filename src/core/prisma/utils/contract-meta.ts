@@ -1,6 +1,5 @@
 import { BadUserInputError } from '@/common/utils'
-
-import contractJson from '../contract.json' with { type: 'json' }
+import contractJson from '@/core/prisma/contract.json' with { type: 'json' }
 
 export type RelationMeta = {
   cardinality: string

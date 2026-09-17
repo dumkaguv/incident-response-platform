@@ -1,12 +1,10 @@
 import { Injectable } from '@nestjs/common'
 
 import { MonitorCheckRepository } from '@/modules/monitor/repositories'
+import { MonitorService } from '@/modules/monitor/services/monitor'
+import { probe } from '@/modules/monitor/utils'
 import type { Connection, QuerySpec } from '@/core/pagination'
 import type { MonitorCheck } from '@/modules/monitor/types'
-
-import { MonitorService } from '../monitor'
-
-import { probe } from './probe'
 
 @Injectable()
 export class MonitorCheckService {

@@ -65,8 +65,8 @@
       {
         "patterns": [
           {
-            "regex": "^(\\./)*(\\.\\./){2,}",
-            "message": "Do not use 2+ parent relative imports. Use @/alias instead."
+            "regex": "^(\\./)*\\.\\./",
+            "message": "Do not import through a parent directory. Use the @/ alias, or ./ for the same folder."
           }
         ]
       }

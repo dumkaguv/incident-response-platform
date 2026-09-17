@@ -9,10 +9,9 @@ import {
 import type { Type } from '@nestjs/common'
 import type { GraphQLScalarType } from 'graphql'
 
+import { DateTimeScalar } from '@/core/graphql/scalars/date-time.scalar'
 import { operatorsFor } from '@/core/pagination/utils/query-filter'
 import type { ScalarQueryField } from '@/core/pagination/utils/query-definition'
-
-import { DateTimeScalar } from '../scalars/date-time.scalar'
 
 import { registerQueryEnum } from './enum-filter.factory'
 

@@ -4,8 +4,7 @@ import { GraphQLError } from 'graphql'
 
 import { AppError } from '@/common/utils'
 import { I18nService } from '@/core/i18n'
-
-import type { GqlContext } from '../graphql-context'
+import type { GqlContext } from '@/core/graphql/graphql-context'
 
 @Catch(AppError)
 export class AppErrorFilter implements GqlExceptionFilter {
