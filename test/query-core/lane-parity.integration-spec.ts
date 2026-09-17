@@ -107,6 +107,50 @@ describe('the two query lanes agree on relation filters', () => {
     expect(viaSql.total).toBe(viaOrm.total)
   })
 
+  it('walks a row-comparison keyset forward and backward without gaps or repeats', async () => {
+    const filter = { monitor: { name: { startsWith: prefix } } }
+    const expected = (await pageIds({ filter, first: 50 })).ids
+    const forward: string[] = []
+    let after: string | undefined
+
+    for (let page = 0; page < 5; page += 1) {
+      const connection = await listConnection(
+        db,
+        'MonitorCheck',
+        normalizeQuery(checkQuery, { filter, first: 3, after })
+      )
+
+      forward.push(...connection.nodes.map((row) => row.id))
+      if (!connection.pageInfo.hasNextPage) {
+        break
+      }
+
+      after = connection.pageInfo.endCursor ?? undefined
+    }
+
+    const backward: string[] = []
+    let before: string | undefined
+
+    for (let page = 0; page < 5; page += 1) {
+      const connection = await listConnection(
+        db,
+        'MonitorCheck',
+        normalizeQuery(checkQuery, { filter, last: 3, before })
+      )
+
+      backward.unshift(...connection.nodes.map((row) => row.id))
+      if (!connection.pageInfo.hasPreviousPage) {
+        break
+      }
+
+      before = connection.pageInfo.startCursor ?? undefined
+    }
+
+    expect(forward).toHaveLength(4)
+    expect([...forward].sort()).toEqual(expected)
+    expect(backward).toEqual(forward)
+  })
+
   it('answers a null check on the related column the same way in both lanes', async () => {
     const filter = {
       monitor: { name: { startsWith: prefix }, lastCheckedAt: { is: 'NULL' } }

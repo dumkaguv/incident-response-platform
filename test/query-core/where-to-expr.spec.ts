@@ -99,6 +99,43 @@ describe('whereToExpr', () => {
     expect(insensitive).not.toStrictEqual(sensitive)
   })
 
+  it('compiles a ROW comparison into row(...) < row(...) with typed parameters', () => {
+    const expr = compile({
+      ROW: {
+        fields: ['createdAt', 'id'],
+        operator: 'lt',
+        values: ['2026-01-01T00:00:00.000Z', 'm1']
+      }
+    })
+
+    expect(expr).toMatchObject({
+      kind: 'binary',
+      op: 'lt',
+      left: {
+        kind: 'function-call',
+        fn: 'row',
+        args: [
+          { kind: 'column-ref', column: 'created_at' },
+          { kind: 'column-ref', column: 'id' }
+        ]
+      },
+      right: {
+        kind: 'function-call',
+        fn: 'row',
+        args: [
+          { kind: 'param-ref', codec: { codecId: 'pg/timestamptz-string@1' } },
+          { kind: 'param-ref', codec: { codecId: 'pg/text@1' } }
+        ]
+      }
+    })
+  })
+
+  it('rejects a ROW comparison over an unknown field', () => {
+    expect(() =>
+      compile({ ROW: { fields: ['nope'], operator: 'gt', values: [1] } })
+    ).toThrow(/Unknown filter field "nope"/)
+  })
+
   it('rejects an unknown operator', () => {
     expect(() => compile({ name: { spaceship: 'x' } })).toThrow(
       /Unsupported filter operator "spaceship"/

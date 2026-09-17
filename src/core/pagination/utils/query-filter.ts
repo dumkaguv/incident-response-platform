@@ -39,10 +39,10 @@ export function negate(child: FilterNode): FilterNode {
 }
 
 export function operatorsFor(field: ScalarQueryField): string[] {
-  const operators = ['eq', 'ne', 'neq', 'in', 'nin', 'is']
+  const operators = ['eq', 'ne', 'in', 'nin', 'is']
 
   if (field.type === 'boolean') {
-    return ['eq', 'ne', 'neq', 'is']
+    return ['eq', 'ne', 'is']
   }
 
   if (['string', 'id', 'int', 'float', 'date'].includes(field.type)) {
@@ -259,12 +259,7 @@ export function parseFilter(fields: QueryFields, input: unknown): FilterNode {
             )
           }
 
-          if (
-            rawValue === null &&
-            operator !== 'eq' &&
-            operator !== 'ne' &&
-            operator !== 'neq'
-          ) {
+          if (rawValue === null && operator !== 'eq' && operator !== 'ne') {
             throw new BadUserInputError(
               `Operator "${operator}" does not accept null`
             )
@@ -279,7 +274,7 @@ export function parseFilter(fields: QueryFields, input: unknown): FilterNode {
           children.push({
             kind: 'condition',
             field: field.column ?? key,
-            operator: (operator === 'neq' ? 'ne' : operator) as FilterOperator,
+            operator: operator as FilterOperator,
             value: parsed
           })
         }

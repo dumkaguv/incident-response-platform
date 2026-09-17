@@ -184,7 +184,9 @@ async function listPinnedThenRest(
       cursor?.[0] === null
         ? [
             filterToPrisma(
-              keysetFilter(spec.sort, cursor.slice(1), backward, unranked)
+              keysetFilter(spec.sort, cursor.slice(1), backward, unranked, {
+                rowComparison: true
+              })
             )
           ]
         : []
@@ -255,7 +257,7 @@ export async function listConnection<M extends ModelName>(
   spec: QuerySpec,
   requested?: readonly string[]
 ): Promise<Connection<RowOf<M>>> {
-  const { args, countWhere } = specToPrisma(spec)
+  const { args, countWhere } = specToPrisma(spec, { rowComparison: true })
   const fields = projectionFor(model, spec, requested)
   const rows = requiresSqlLane(spec.sort, spec.preference)
     ? await listThroughSqlLane(

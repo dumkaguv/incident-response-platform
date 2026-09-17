@@ -106,4 +106,34 @@ describe('SQL lane relation filters', () => {
     expect(plan.joins).toHaveLength(1)
     expect(kinds(plan.where)).toContain('exists')
   })
+
+  it('compiles a ROW comparison against the physical columns', () => {
+    const plan = planFor({
+      ROW: {
+        fields: ['checkedAt', 'id'],
+        operator: 'lt',
+        values: ['2026-01-01T00:00:00.000Z', 'c1']
+      }
+    })
+
+    expect(plan.where).toMatchObject({
+      kind: 'binary',
+      op: 'lt',
+      left: {
+        kind: 'function-call',
+        fn: 'row',
+        args: [
+          { kind: 'column-ref', table: 'monitorCheck', column: 'checked_at' },
+          { kind: 'column-ref', table: 'monitorCheck', column: 'id' }
+        ]
+      },
+      right: { kind: 'function-call', fn: 'row' }
+    })
+  })
+
+  it('compiles a case-sensitive LIKE as LIKE, not ILIKE', () => {
+    const plan = planFor({ id: { startsWith: 'c' } })
+
+    expect(plan.where).toMatchObject({ kind: 'binary', op: 'like' })
+  })
 })

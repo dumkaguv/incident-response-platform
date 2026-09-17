@@ -296,11 +296,47 @@ function rankEquality(
     : { kind: 'condition', field, operator: 'eq', value: ids[rank] }
 }
 
+export type KeysetOptions = { rowComparison?: boolean }
+
+const ROW_COMPARABLE = new Set(['string', 'id', 'int', 'float', 'date'])
+
+function rowComparable(
+  sort: SortClause[],
+  values: unknown[],
+  backward: boolean
+): FilterNode | null {
+  const directions = new Set(
+    sort.map((clause) => (clause.direction === 'ASC') !== backward)
+  )
+  const plain = sort.every(
+    (clause) =>
+      !clause.field.relations.length &&
+      !fieldIsNullable(clause.field) &&
+      ROW_COMPARABLE.has(clause.field.scalar.type)
+  )
+
+  if (
+    !plain ||
+    directions.size !== 1 ||
+    values.some((value) => value === null)
+  ) {
+    return null
+  }
+
+  return {
+    kind: 'tuple',
+    fields: sort.map((clause) => clause.field.column),
+    operator: directions.has(true) ? 'gt' : 'lt',
+    values
+  }
+}
+
 export function keysetFilter(
   sort: SortClause[],
   values: unknown[],
   backward: boolean,
-  preference: PreferenceSpec
+  preference: PreferenceSpec,
+  options: KeysetOptions = {}
 ): FilterNode {
   const branches: FilterNode[] = []
   const equalities: FilterNode[] = []
@@ -311,6 +347,16 @@ export function keysetFilter(
 
     branches.push(rankReached(preference, rank, backward))
     equalities.push(rankEquality(preference, rank))
+  }
+
+  const tuple = options.rowComparison
+    ? rowComparable(sort, values.slice(ranked ? 1 : 0), backward)
+    : null
+
+  if (tuple) {
+    branches.push(group('and', [...equalities, tuple]))
+
+    return group('or', branches)
   }
 
   for (const [index, clause] of sort.entries()) {

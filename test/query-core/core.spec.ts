@@ -252,6 +252,66 @@ describe('query core', () => {
     )
   })
 
+  it('turns a same-direction keyset over non-null columns into one row comparison', () => {
+    const input = { orderBy: [{ createdAt: 'DESC' as const }] }
+    const base = normalizeQuery(fixtureQuery, input)
+    const cursor = encodeCursor(
+      { id: 'r5', createdAt: '2026-01-02T00:00:00.000Z' },
+      base
+    )
+    const spec = normalizeQuery(fixtureQuery, { ...input, after: cursor })
+
+    expect(specToPrisma(spec, { rowComparison: true }).args.where).toEqual({
+      ROW: {
+        fields: ['createdAt', 'id'],
+        operator: 'lt',
+        values: ['2026-01-02T00:00:00.000Z', 'r5']
+      }
+    })
+    expect(specToPrisma(spec).args.where).toEqual({
+      OR: [
+        { createdAt: { lt: '2026-01-02T00:00:00.000Z' } },
+        {
+          AND: [
+            { createdAt: { equals: '2026-01-02T00:00:00.000Z' } },
+            { id: { lt: 'r5' } }
+          ]
+        }
+      ]
+    })
+    expect(
+      specToPrisma(normalizeQuery(fixtureQuery, { ...input, before: cursor }), {
+        rowComparison: true
+      }).args.where
+    ).toMatchObject({ ROW: { operator: 'gt' } })
+  })
+
+  it('keeps the branch form when a sort key is nullable or directions differ', () => {
+    const nullable = normalizeQuery(fixtureQuery, {
+      orderBy: [{ rank: 'ASC' }]
+    })
+    const nullableCursor = encodeCursor({ id: 'r1', rank: 2 }, nullable)
+    const mixed = normalizeQuery(fixtureQuery, {
+      orderBy: [{ title: 'DESC' }, { createdAt: 'ASC' }]
+    })
+    const mixedCursor = encodeCursor(
+      { id: 'r1', title: 'B', createdAt: '2026-01-02T00:00:00.000Z' },
+      mixed
+    )
+
+    for (const [definitionInput, cursor] of [
+      [{ orderBy: [{ rank: 'ASC' }] }, nullableCursor],
+      [{ orderBy: [{ title: 'DESC' }, { createdAt: 'ASC' }] }, mixedCursor]
+    ] as const) {
+      const where = specToPrisma(
+        normalizeQuery(fixtureQuery, { ...definitionInput, after: cursor }),
+        { rowComparison: true }
+      ).args.where
+
+      expect(JSON.stringify(where)).not.toContain('ROW')
+    }
+  })
+
   it('appends the tiebreaker in the direction of the last explicit key', () => {
     function directions(orderBy: unknown): [string, string][] {
       return normalizeQuery(fixtureQuery, { orderBy }).sort.map((clause) => [

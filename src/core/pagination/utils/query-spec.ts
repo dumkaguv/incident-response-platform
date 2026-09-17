@@ -29,8 +29,14 @@ export type FilterNode =
   | {
       kind: 'relation'
       field: string
-      quantifier: 'is' | 'isNot' | 'some' | 'every' | 'none'
+      quantifier: 'is' | 'some' | 'every' | 'none'
       child: FilterNode | null
+    }
+  | {
+      kind: 'tuple'
+      fields: string[]
+      operator: 'lt' | 'gt'
+      values: unknown[]
     }
 
 export type SortClause = {

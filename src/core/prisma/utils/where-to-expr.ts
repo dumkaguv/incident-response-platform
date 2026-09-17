@@ -1,11 +1,23 @@
 import {
   AndExpr,
+  BinaryExpr,
+  FunctionCallExpr,
   NotExpr,
   OrderByItem,
   OrExpr
 } from '@prisma/orm-postgres/relational-core/ast'
 
 import { BadUserInputError } from '@/common/utils/errors'
+
+export type RowOperator = 'lt' | 'gt'
+
+export type RowComparison = {
+  fields: string[]
+  operator: RowOperator
+  values: unknown[]
+}
+
+type Comparison = { left: never; right: never }
 
 type FieldOps = {
   eq: (value: unknown) => Expr
@@ -35,12 +47,33 @@ export type Combinators = {
   and(parts: Expr[]): Expr
   or(parts: Expr[]): Expr
   not(part: Expr): Expr
+  row(probes: Expr[], operator: RowOperator): Expr
+}
+
+export function rowComparison(
+  probes: readonly unknown[],
+  operator: RowOperator
+): Expr {
+  const sides = probes as Comparison[]
+
+  return new BinaryExpr(
+    operator,
+    new FunctionCallExpr(
+      'row',
+      sides.map((side) => side.left)
+    ),
+    new FunctionCallExpr(
+      'row',
+      sides.map((side) => side.right)
+    )
+  )
 }
 
 export const AST_COMBINATORS: Combinators = {
   and: (parts) => AndExpr.of(parts),
   or: (parts) => OrExpr.of(parts),
-  not: (part) => new NotExpr(part)
+  not: (part) => new NotExpr(part),
+  row: rowComparison
 }
 
 function join(parts: Expr[], combinators: Combinators): Expr {
@@ -70,11 +103,6 @@ function relationToExpr(
         continue
       }
 
-      if (quantifier === 'isNot') {
-        parts.push(relation.some(anyRow))
-        continue
-      }
-
       throw new BadUserInputError(
         `Relation quantifier "${quantifier}" on "${fieldName}" requires a filter`
       )
@@ -96,8 +124,6 @@ function relationToExpr(
         break
 
       case 'none':
-
-      case 'isNot':
         parts.push(relation.none(build))
         break
 
@@ -210,6 +236,24 @@ function predicateToExpr(
   return join(parts, combinators)
 }
 
+function rowToExpr(
+  fields: FieldBag,
+  row: RowComparison,
+  combinators: Combinators
+): Expr {
+  const probes = row.fields.map((name, index) => {
+    const accessor = fields[name]
+
+    if (accessor === null || typeof accessor !== 'object') {
+      throw new BadUserInputError(`Unknown filter field "${name}"`)
+    }
+
+    return (accessor as FieldOps)[row.operator](row.values[index])
+  })
+
+  return combinators.row(probes, row.operator)
+}
+
 export function whereToExpr(
   fields: FieldBag,
   where: Record<string, unknown>,
@@ -245,6 +289,10 @@ export function whereToExpr(
             whereToExpr(fields, value as Record<string, unknown>, combinators)
           )
         )
+        break
+
+      case 'ROW':
+        parts.push(rowToExpr(fields, value as RowComparison, combinators))
         break
 
       default: {

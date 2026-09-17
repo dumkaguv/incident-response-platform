@@ -1,5 +1,6 @@
 import {
   AndExpr,
+  BinaryExpr,
   CaseExpr,
   ColumnRef,
   ExistsExpr,
@@ -35,6 +36,7 @@ import {
   type Combinators,
   type Expr,
   type FieldBag,
+  rowComparison,
   whereToExpr
 } from './where-to-expr'
 
@@ -69,17 +71,20 @@ function nullCheck(expr: unknown, negated: boolean): Expr {
   } as unknown as Expr
 }
 
+function built(part: Expr): Expr {
+  return (part as unknown as BuilderExpr).buildAst()
+}
+
 function sqlCombinators(fns: SqlFns): Combinators {
   return {
     and: (parts) => (parts.length ? fns.and(...parts) : alwaysTrue()),
     or: (parts) => fns.or(...parts),
-    not: (part) => {
-      const inner = part as unknown as BuilderExpr
-
-      return {
-        buildAst: () => new NotExpr(inner.buildAst())
-      } as unknown as Expr
-    }
+    not: (part) =>
+      ({ buildAst: () => new NotExpr(built(part)) }) as unknown as Expr,
+    row: (probes, operator) =>
+      ({
+        buildAst: () => rowComparison(probes.map(built), operator)
+      }) as unknown as Expr
   }
 }
 
@@ -210,7 +215,17 @@ function fieldOps(expr: unknown, fns: SqlFns): Record<string, unknown> {
     gt: (value: unknown) => fns.gt(expr, value),
     gte: (value: unknown) => fns.gte(expr, value),
     ilike: (pattern: string) => fns.ilike(expr, pattern),
-    like: (pattern: string) => fns.ilike(expr, pattern),
+    like: (pattern: string) =>
+      ({
+        buildAst: () => {
+          const probe = built(fns.eq(expr, pattern)) as unknown as {
+            left: never
+            right: never
+          }
+
+          return new BinaryExpr('like', probe.left, probe.right)
+        }
+      }) as unknown as Expr,
     isNull: () => nullCheck(expr, false),
     isNotNull: () => nullCheck(expr, true)
   }
@@ -306,7 +321,6 @@ export function sqlFieldBag(
     bag[name] = {
       is: through('some'),
       some: through('some'),
-      isNot: through('none'),
       none: through('none'),
       every: through('every')
     }

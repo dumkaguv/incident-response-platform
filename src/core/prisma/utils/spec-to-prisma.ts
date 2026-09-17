@@ -1,4 +1,7 @@
-import { keysetFilter } from '@/core/pagination/utils/query-cursor'
+import {
+  type KeysetOptions,
+  keysetFilter
+} from '@/core/pagination/utils/query-cursor'
 import { group } from '@/core/pagination/utils/query-filter'
 import type {
   FilterNode,
@@ -65,6 +68,15 @@ export function filterToPrisma(node: FilterNode): Record<string, unknown> {
 
       return { [node.field]: predicate }
     }
+
+    case 'tuple':
+      return {
+        ROW: {
+          fields: node.fields,
+          operator: node.operator,
+          values: node.values
+        }
+      }
   }
 }
 
@@ -113,7 +125,10 @@ function includeOrderFields(
   return Object.keys(include).length ? include : undefined
 }
 
-export function specToPrisma(spec: QuerySpec): PrismaQueryPlan {
+export function specToPrisma(
+  spec: QuerySpec,
+  options: KeysetOptions = {}
+): PrismaQueryPlan {
   const pagination = spec.pagination
   const backward = pagination.direction === 'backward'
   const countWhere = filterToPrisma(spec.filter)
@@ -123,7 +138,13 @@ export function specToPrisma(spec: QuerySpec): PrismaQueryPlan {
   const filter = pagination.values
     ? group('and', [
         spec.filter,
-        keysetFilter(spec.sort, pagination.values, backward, spec.preference)
+        keysetFilter(
+          spec.sort,
+          pagination.values,
+          backward,
+          spec.preference,
+          options
+        )
       ])
     : spec.filter
 
