@@ -58,9 +58,9 @@ planned from the diff between the contract and the database, so a schema change
 that needs a migration cannot be applied by accident.
 
 `src` has four parts: `app` for the root module, `common` for leaf utilities
-(errors, environment readers),
-`core` for the machinery every feature runs on — GraphQL, Prisma, i18n,
-pagination, rate limiting — and `modules` for the features.
+(errors), `core` for the machinery every feature runs on — config, GraphQL,
+Prisma, i18n, pagination, rate limiting, the health probe — and `modules` for
+the features.
 
 A feature module is four thin layers:
 
@@ -71,10 +71,11 @@ repositories/  the only place that talks to the database
 types/       row types and enum value maps, both derived from the contract
 ```
 
-Repository contracts are abstract classes so Nest can inject them and tests can
-replace them. Enum values, relation joins, column projections and the delete
-order used by the seed are all read out of the generated contract rather than
-written by hand, so adding a model rarely means editing plumbing.
+Repositories are plain injectable classes and their own DI tokens; a unit test
+replaces one with a structural fake. Enum values, relation joins, column
+projections and the delete order used by the seed are all read out of the
+generated contract rather than written by hand, so adding a model rarely means
+editing plumbing.
 
 ## What the API does
 

@@ -49,6 +49,7 @@ src/
   core/         machinery every feature runs on
     config/     the env schema and one registerAs namespace per concern
     graphql/    driver config, dataloaders, filters, scalars, query limits
+    health/     GET /health liveness probe, outside both rate limiters
     i18n/       I18nService, locales, generated catalogs (committed)
     pagination/ the query engine: spec, filters, order, cursors, connection
     prisma/     generated contract + db/query/enum/where adapters
@@ -107,7 +108,24 @@ every call on purpose: `ConfigModule.forRoot` is evaluated once when the
 decorator runs, so a cached copy would freeze the environment of whichever app
 booted first and break any test that overrides a variable. An empty variable
 counts as absent, so `GRAPHIQL=` in `.env` falls back to its default rather
-than coercing to `0`.
+than coercing to `0`. `TRUST_PROXY` is tried as a hop count, then a boolean,
+then an address list, in that order: express reads a *string* `1` as the IP
+`0.0.0.1` and throws on the string `true`, so the number and boolean forms have
+to win before the string one.
+
+**`graphqlConfig.debug` is the only switch for what an error reveals.** It is
+`NODE_ENV !== 'production'` and drives stack traces, the masking of unexpected
+errors and whether `schema.gql` is written at boot; the error formatter is built
+once from it, so nothing re-parses the environment per error.
+
+**`class-validator` guards mutation inputs only.** Query arguments are
+validated by `normalizeQuery`, which already knows every limit, so decorators
+that duplicated them produced a second error shape for the same mistake and are
+gone. `whitelist` is off: GraphQL rejects unknown fields itself, and `whitelist`
+silently deletes any field without a decorator. A field that is nullable in the
+schema but `NOT NULL` in the database takes `@Omittable()`, because
+`IsOptional` waves an explicit `null` through, and `UpdateXInput` extends
+`PartialType(CreateXInput, { skipNullProperties: false })` for the same reason.
 
 **A GraphQL type name is written once, in `constants/`.** `XTypeName` feeds
 `@ObjectType`, `registerQueryEnum` and the `QueryDefinition` — the same string
@@ -197,7 +215,16 @@ Startup drops from 4.2 s to 1.1 s.
 entity cannot honour are skipped, not rejected. `orderBy` is the only sorting
 argument and each element carries exactly one path — `[{ createdAt: 'DESC' }, {
 id: 'DESC' }]`, never `[{ createdAt: 'DESC', id: 'DESC' }]`. The unique
-tiebreaker is appended automatically.
+tiebreaker is appended automatically **in the direction of the last explicit
+key**: `[{ createdAt: 'DESC' }]` becomes `createdAt DESC, id DESC`, which the
+`(createdAt, id)` index serves as one backward scan, whereas a fixed `id ASC`
+forced a sort behind every mixed-direction order.
+
+**Cursor timestamps are strings, never `Date`.** PostgreSQL keeps microseconds
+and `Date` keeps milliseconds, so a cursor rounded through `Date` re-read the
+boundary row on one direction and skipped its microsecond neighbours on the
+other. `validateScalarValue` only checks that a date parses and passes the
+original text through; the contract types are `TimestamptzString` anyway.
 
 **`preference` is a sort key, not a filter.** A list query accepts
 `preference: [ID!]` on the root model only — no nested form — and the ids it
@@ -232,18 +259,33 @@ key: `DESC` ranks NULLs first, `ASC` ranks them last. `keysetFilter` already
 spells out the matching NULL branches, so both pages and cursors agree.
 
 **The SQL lane addresses tables by path, not by name.** `collectJoinPaths`
-returns every to-one prefix a sort and a where tree reach, shortest first, and
-each is joined under an alias derived from the path — `j_team`,
-`j_team_owner` — so two relations onto one table cannot collide. A to-many hop
-is never joined: joining one multiplies rows and destroys keyset pagination.
-`sqlFieldBag` builds it as a correlated subquery instead, keyed `x_<path>` and
-correlated with a raw `ColumnRef` to the parent's alias: `some` is `EXISTS`,
-`none` is `NOT EXISTS`, `every` is `NOT EXISTS (… AND NOT p)` — which is why
-`every` is true for a parent with no children. Because the alias comes from the
-absolute path, a relation reached inside a subquery is unique without extra
-bookkeeping. **Ordering through a to-many is still refused** — a parent has many
-children, so there is no single value to sort by; `buildOrderInput` omits it
-from the schema and `orderSteps` throws if it is reached anyway.
+returns every to-one prefix a sort reaches, shortest first, and each is joined
+under an alias derived from the path — `j_team`, `j_team_owner` — so two
+relations onto one table cannot collide. **Joins exist for `ORDER BY` only;
+every filter through a relation, whatever its cardinality, is a correlated
+subquery.** A to-one filter used to ride the join as `j_x.id IS NOT NULL AND
+j_x.col = $1`; under `NOT`, a NULL column turned the whole predicate NULL and
+the row vanished, while the ORM lane's `EXISTS` reads NULL as "no match" and
+kept it — the same filter returned different sets depending on `orderBy`.
+`sqlFieldBag` now builds each relation as `x_<path>`, correlated with a raw
+`ColumnRef` to the parent's alias: `is`/`some` is `EXISTS`, `isNot`/`none` is
+`NOT EXISTS`, `every` is `NOT EXISTS (… AND NOT p)` — which is why `every` is
+true for a parent with no children. Because the alias comes from the absolute
+path, a relation reached inside a subquery is unique without extra bookkeeping,
+and a to-one nested under a to-many resolves the same way.
+`test/query-core/lane-parity.integration-spec.ts` pins the rule: changing
+`orderBy` must never change the filtered set. **Ordering through a to-many is
+still refused** — a parent has many children, so there is no single value to
+sort by; `buildOrderInput` omits it from the schema and `orderSteps` throws if
+it is reached anyway.
+
+**Per-request loaders are cleared after every root mutation field**, so a
+later field in the same request re-reads what the mutation changed instead of
+the cached relation. **The throttling guard keeps one verdict promise per tier
+per request**: root fields resolve concurrently, and marking a tier as counted
+before its check had finished let a second field run while the first was being
+rejected. The guard skips non-GraphQL contexts entirely, and the HTTP wall is
+bound to `/graphql`, so `/health` answers behind neither layer.
 
 **`orderSteps` addresses physical columns, `ResolvedQueryField.column` does
 not.** A query definition's `column` is the *model field* name — what the ORM
