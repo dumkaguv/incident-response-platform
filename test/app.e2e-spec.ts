@@ -40,6 +40,33 @@ describe('the application surface', () => {
     expect(response.headers['x-ratelimit-limit-burst']).toBeUndefined()
   })
 
+  it('reports readiness only after the database answered', async () => {
+    const response = await request(app.getHttpServer() as Server).get(
+      '/health/ready'
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.body).toEqual({ status: 'ok', database: 'ok' })
+  })
+
+  it('accepts an empty patch and leaves the monitor as it was', async () => {
+    const created = await gql(`mutation {
+      createMonitor(input: { name: "Untouched", url: "https://example.com" }) { id name }
+    }`)
+    const id = created.body.data.createMonitor.id as string
+
+    try {
+      const patched = await gql(`mutation {
+        updateMonitor(id: "${id}", input: {}) { id name }
+      }`)
+
+      expect(patched.body.errors).toBeUndefined()
+      expect(patched.body.data.updateMonitor).toEqual({ id, name: 'Untouched' })
+    } finally {
+      await gql(`mutation { deleteMonitor(id: "${id}") { id } }`)
+    }
+  })
+
   it('rejects a page size outside the allowed range as user input', async () => {
     const response = await gql('{ monitors(first: 0) { totalCount } }')
 
