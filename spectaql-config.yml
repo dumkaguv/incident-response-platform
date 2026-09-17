@@ -15,7 +15,7 @@ info:
     List queries support typed recursive filters (`filter`, `and`/`or`/`not`),
     nested multi-column sorting (`orderBy`) and case-insensitive search (`search`).
     Static definitions can expose composite fields and relation paths.
-    The legacy `sort` argument remains available for scalar fields.
+    `preference` pins chosen ids to the top of the first page.
     Cursor pagination:
     (`first`/`after` or `last`/`before`, response is `edges` + `nodes` + `pageInfo` + `totalCount`).
     Cursors contain every ordering value and are bound to the resource, filter,
@@ -24,7 +24,8 @@ info:
     query runs only when the field is selected.
 
     Errors carry a stable code in `extensions.code`:
-    `NOT_FOUND`, `CONFLICT`, `BAD_USER_INPUT`, `INTERNAL_SERVER_ERROR`.
+    `NOT_FOUND`, `CONFLICT`, `BAD_USER_INPUT`, `TOO_MANY_REQUESTS`,
+    `INTERNAL_SERVER_ERROR`.
   contact:
     name: API team
   x-hidePoweredBy: true
