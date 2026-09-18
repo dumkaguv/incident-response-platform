@@ -5,6 +5,20 @@ import { PrismaService } from '@/core/prisma/prisma.service'
 
 type Readiness = { status: 'ok' | 'error'; database: 'ok' | 'unreachable' }
 
+export const READINESS_TIMEOUT_MS = 3000
+
+function rejectAfter(milliseconds: number): Promise<never> {
+  return new Promise((_resolve, reject) => {
+    setTimeout(() => {
+      reject(
+        new Error(
+          `The database did not answer within ${String(milliseconds)} ms`
+        )
+      )
+    }, milliseconds).unref()
+  })
+}
+
 @Controller('health')
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
@@ -29,7 +43,10 @@ export class HealthController {
 
   private async readiness(): Promise<Readiness> {
     try {
-      await this.prisma.ping()
+      await Promise.race([
+        this.prisma.ping(),
+        rejectAfter(READINESS_TIMEOUT_MS)
+      ])
 
       return { status: 'ok', database: 'ok' }
     } catch {
