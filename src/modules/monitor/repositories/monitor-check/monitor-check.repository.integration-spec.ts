@@ -16,6 +16,7 @@ const SECOND = '2026-03-01T12:02:00.000Z'
 const THIRD = '2026-03-01T12:04:00.000Z'
 const LATE = '2026-03-01T12:03:00.000Z'
 const FOURTH = '2026-03-01T12:06:00.000Z'
+const BEHIND = '2026-03-01T12:05:00.000Z'
 
 function failure(checkedAt: string) {
   return {
@@ -141,6 +142,18 @@ describe('MonitorCheckRepository.recordOutcome', () => {
 
     expect(stored).toMatchObject({
       consecutiveFailures: 2,
+      lastStatus: MonitorStatus.DOWN
+    })
+    expect(Date.parse(stored?.lastCheckedAt ?? '')).toBe(Date.parse(FOURTH))
+  })
+
+  it('counts a failure that lands late while the monitor is already down', async () => {
+    await checks.recordOutcome({ monitorId: monitor.id, ...failure(BEHIND) })
+
+    const stored = await monitors.findById(monitor.id)
+
+    expect(stored).toMatchObject({
+      consecutiveFailures: 3,
       lastStatus: MonitorStatus.DOWN
     })
     expect(Date.parse(stored?.lastCheckedAt ?? '')).toBe(Date.parse(FOURTH))

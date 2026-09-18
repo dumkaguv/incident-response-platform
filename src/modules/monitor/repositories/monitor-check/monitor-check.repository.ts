@@ -73,26 +73,50 @@ export class MonitorCheckRepository {
           ${check.id}, ${check.monitorId}, ${check.status}, ${check.statusCode},
           ${check.responseTimeMs}, ${check.errorType}, ${check.errorMessage},
           ${check.checkedAt}
-      ), rolled AS (
-        UPDATE ${monitors} m SET
-          ${monitor.lastStatus} = i.${check.status},
-          ${monitor.lastCheckedAt} = i.${check.checkedAt},
-          ${monitor.lastStatusCode} = i.${check.statusCode},
-          ${monitor.lastResponseTimeMs} = i.${check.responseTimeMs},
-          ${monitor.consecutiveFailures} = CASE
-            WHEN i.${check.status} = ${MonitorStatus.DOWN}
-            THEN m.${monitor.consecutiveFailures} + 1
-            ELSE 0
-          END,
-          ${monitor.nextCheckAt} = i.${check.checkedAt}
-            + make_interval(secs => m.${monitor.intervalSeconds}),
-          ${monitor.updatedAt} = now()
-        FROM inserted i
-        WHERE m.${monitor.id} = i.${check.monitorId}
-          AND (
+      ), stamped AS (
+        SELECT
+          i.*,
+          (
             m.${monitor.lastCheckedAt} IS NULL
             OR m.${monitor.lastCheckedAt} <= i.${check.checkedAt}
-          )
+          ) AS newest
+        FROM inserted i
+        JOIN ${monitors} m ON m.${monitor.id} = i.${check.monitorId}
+      ), rolled AS (
+        UPDATE ${monitors} m SET
+          ${monitor.lastStatus} = CASE
+            WHEN s.newest THEN s.${check.status} ELSE m.${monitor.lastStatus}
+          END,
+          ${monitor.lastCheckedAt} = CASE
+            WHEN s.newest THEN s.${check.checkedAt}
+            ELSE m.${monitor.lastCheckedAt}
+          END,
+          ${monitor.lastStatusCode} = CASE
+            WHEN s.newest THEN s.${check.statusCode}
+            ELSE m.${monitor.lastStatusCode}
+          END,
+          ${monitor.lastResponseTimeMs} = CASE
+            WHEN s.newest THEN s.${check.responseTimeMs}
+            ELSE m.${monitor.lastResponseTimeMs}
+          END,
+          ${monitor.consecutiveFailures} = CASE
+            WHEN s.newest AND s.${check.status} = ${MonitorStatus.DOWN}
+            THEN m.${monitor.consecutiveFailures} + 1
+            WHEN s.newest THEN 0
+            WHEN s.${check.status} = ${MonitorStatus.DOWN}
+              AND m.${monitor.lastStatus} = ${MonitorStatus.DOWN}
+            THEN m.${monitor.consecutiveFailures} + 1
+            ELSE m.${monitor.consecutiveFailures}
+          END,
+          ${monitor.nextCheckAt} = CASE
+            WHEN s.newest
+            THEN s.${check.checkedAt}
+              + make_interval(secs => m.${monitor.intervalSeconds})
+            ELSE m.${monitor.nextCheckAt}
+          END,
+          ${monitor.updatedAt} = now()
+        FROM stamped s
+        WHERE m.${monitor.id} = s.${check.monitorId}
         RETURNING m.${monitor.id}
       )
       SELECT
