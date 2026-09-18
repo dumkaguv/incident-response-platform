@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import { msg } from '@lingui/core/macro'
 import { type ExecutionContext, HttpStatus, Injectable } from '@nestjs/common'
 import { type GqlContextType, GqlExecutionContext } from '@nestjs/graphql'
@@ -12,6 +14,7 @@ import { TooManyRequestsError } from '@/common/utils'
 import type { GqlContext } from '@/core/graphql/graphql-context'
 
 import { type IdentifiedRequest, clientTracker } from './client-tracker'
+import { isMutation } from './operation'
 
 const VERDICTS = Symbol('throttler.verdicts')
 
@@ -52,6 +55,18 @@ export class GqlThrottlerGuard extends ThrottlerGuard {
 
   protected getTracker(req: IdentifiedRequest): Promise<string> {
     return Promise.resolve(clientTracker(req))
+  }
+
+  protected generateKey(
+    context: ExecutionContext,
+    suffix: string,
+    name: string
+  ): string {
+    const operation = isMutation(context) ? 'write' : 'read'
+
+    return createHash('sha256')
+      .update(`${name}:${operation}:${suffix}`)
+      .digest('hex')
   }
 
   protected throwThrottlingException(

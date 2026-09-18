@@ -12,6 +12,10 @@ class ExposedGuard extends GqlThrottlerGuard {
   public run(request: ThrottlerRequest): Promise<boolean> {
     return this.handleRequest(request)
   }
+
+  public key(context: ExecutionContext, suffix: string, name: string): string {
+    return this.generateKey(context, suffix, name)
+  }
 }
 
 function later<T>(value: T): Promise<T> {
@@ -31,15 +35,19 @@ function storageAnswering(record: ThrottlerStorageRecord): {
   return { storage: { increment }, increment }
 }
 
-function contextFor(req: Record<string, unknown>): ExecutionContext {
+function contextFor(
+  req: Record<string, unknown>,
+  operation: 'query' | 'mutation' = 'query',
+  handler: () => unknown = () => 'field'
+): ExecutionContext {
   const res = { header: vi.fn(), status: vi.fn() }
-  const args = [{}, {}, { req, res }, {}]
+  const args = [{}, {}, { req, res }, { operation: { operation } }]
 
   return {
     getArgs: () => args,
     getArgByIndex: (index: number) => args[index],
     getClass: () => ExposedGuard,
-    getHandler: () => contextFor,
+    getHandler: () => handler,
     getType: () => 'graphql'
   } as unknown as ExecutionContext
 }
@@ -146,5 +154,34 @@ describe('GqlThrottlerGuard', () => {
     ])
 
     expect(increment).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('GqlThrottlerGuard keys', () => {
+  it('keys a tier by client and operation kind, not by the resolver method', async () => {
+    const guard = await guardWith(
+      storageAnswering({
+        totalHits: 1,
+        timeToExpire: 1,
+        isBlocked: false,
+        timeToBlockExpire: 0
+      }).storage
+    )
+    const monitors = contextFor({}, 'query', () => 'monitors')
+    const checks = contextFor({}, 'query', () => 'monitorChecks')
+    const mutation = contextFor({}, 'mutation', () => 'createMonitor')
+
+    expect(guard.key(monitors, 'ip:test', 'burst')).toBe(
+      guard.key(checks, 'ip:test', 'burst')
+    )
+    expect(guard.key(monitors, 'ip:test', 'burst')).not.toBe(
+      guard.key(mutation, 'ip:test', 'burst')
+    )
+    expect(guard.key(monitors, 'ip:test', 'burst')).not.toBe(
+      guard.key(monitors, 'ip:other', 'burst')
+    )
+    expect(guard.key(monitors, 'ip:test', 'burst')).not.toBe(
+      guard.key(monitors, 'ip:test', 'hourly')
+    )
   })
 })

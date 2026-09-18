@@ -37,7 +37,9 @@ export class BadUserInputError extends AppError {
 }
 
 export class TooManyRequestsError extends AppError {
-  public readonly code = 'TOO_MANY_REQUESTS'
+  public static readonly code = 'TOO_MANY_REQUESTS'
+
+  public readonly code = TooManyRequestsError.code
 
   constructor(
     message: ErrorMessage = 'Too many requests',

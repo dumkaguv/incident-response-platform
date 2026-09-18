@@ -15,6 +15,7 @@ import { GRAPHQL_PATH } from '@/core/graphql/graphql.constants'
 import { GqlThrottlerGuard } from './gql-throttler.guard'
 import { HttpThrottlerHook } from './http-throttler.hook'
 import { isMutation } from './operation'
+import { ThrottleStatusPlugin } from './throttle-status.plugin'
 
 function tiers(
   config: ConfigType<typeof throttleConfig>
@@ -58,7 +59,8 @@ function tiers(
   ],
   providers: [
     { provide: APP_GUARD, useClass: GqlThrottlerGuard },
-    HttpThrottlerHook
+    HttpThrottlerHook,
+    ThrottleStatusPlugin
   ]
 })
 export class ThrottlerConfigModule implements OnApplicationBootstrap {

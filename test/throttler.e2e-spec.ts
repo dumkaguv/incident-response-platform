@@ -54,8 +54,8 @@ describe('rate limiting: the GraphQL tier', () => {
       c: monitors(first: 1) { totalCount }
     }`)
 
-    const before = Number(single.headers['x-ratelimit-remaining-burst'])
-    const after = Number(triple.headers['x-ratelimit-remaining-burst'])
+    const before = Number(single.headers['x-ratelimit-remaining-sustained'])
+    const after = Number(triple.headers['x-ratelimit-remaining-sustained'])
 
     expect(before - after).toBe(1)
   })
@@ -73,6 +73,7 @@ describe('rate limiting: the GraphQL tier', () => {
     }
 
     expect(blocked).toBeDefined()
+    expect(blocked?.status).toBe(429)
     expect(blocked?.body.errors[0].extensions.code).toBe('TOO_MANY_REQUESTS')
     expect(blocked?.body.errors[0].message).toMatch(/retry in \d+ seconds/)
     expect(Number(blocked?.headers['retry-after'])).toBeGreaterThan(0)
@@ -160,5 +161,40 @@ describe('rate limiting: a mutation takes the write tier by itself', () => {
     expect(Number(write.headers['x-ratelimit-limit-burst'])).toBe(
       WRITE_TIERS.burst.limit
     )
+  })
+})
+
+describe('rate limiting: one budget per client across root fields', () => {
+  let app: INestApplication
+
+  beforeAll(async () => {
+    process.env.THROTTLE_HTTP_LIMIT = '10000'
+    process.env.THROTTLE_BURST_LIMIT = '1'
+    app = await createApp()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env.THROTTLE_BURST_LIMIT
+    delete process.env.THROTTLE_HTTP_LIMIT
+  })
+
+  function gql(query: string) {
+    return request(app.getHttpServer() as Server)
+      .post('/graphql')
+      .send({ query })
+  }
+
+  it('cannot be sidestepped by leading with a field nobody has asked for yet', async () => {
+    const first = await gql('{ monitors(first: 1) { totalCount } }')
+    const second = await gql(`{
+      monitorChecks(first: 1) { totalCount }
+      monitors(first: 1) { totalCount }
+    }`)
+
+    expect(first.body.errors).toBeUndefined()
+    expect(second.status).toBe(429)
+    expect(second.body.errors[0].extensions.code).toBe('TOO_MANY_REQUESTS')
+    expect(second.body.data).toBeNull()
   })
 })
