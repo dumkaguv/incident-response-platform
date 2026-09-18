@@ -1,17 +1,17 @@
 import { msg } from '@lingui/core/macro'
 import { Injectable } from '@nestjs/common'
 
-import {
-  ConflictError,
-  NotFoundError,
-  TooManyRequestsError
-} from '@/common/utils'
+import { ConflictError, TooManyRequestsError, found } from '@/common/utils'
 import { MonitorLimit } from '@/modules/monitor/constants'
 import { MonitorCheckRepository } from '@/modules/monitor/repositories'
 import { MonitorService } from '@/modules/monitor/services/monitor'
 import { probe } from '@/modules/monitor/utils'
-import type { Connection, QuerySpec } from '@/core/pagination'
-import type { MonitorCheck } from '@/modules/monitor/types'
+import type {
+  Connection,
+  ConnectionSelection,
+  QuerySpec
+} from '@/core/pagination'
+import type { Monitor, MonitorCheck } from '@/modules/monitor/types'
 
 @Injectable()
 export class MonitorCheckService {
@@ -24,9 +24,9 @@ export class MonitorCheckService {
 
   public list(
     spec: QuerySpec,
-    fields?: readonly string[]
+    selection?: ConnectionSelection
   ): Promise<Connection<MonitorCheck>> {
-    return this.checks.list(spec, fields)
+    return this.checks.list(spec, selection)
   }
 
   public async run(id: string): Promise<MonitorCheck> {
@@ -45,21 +45,33 @@ export class MonitorCheckService {
         throw new ConflictError(msg`Monitor "${id}" is paused`)
       }
 
-      const checkedAt = new Date().toISOString()
-      const outcome = await probe(monitor)
-      const check = await this.checks.recordOutcome({
-        monitorId: monitor.id,
-        checkedAt,
-        ...outcome
-      })
-
-      if (!check) {
-        throw new NotFoundError(msg`Monitor "${id}" was not found`)
-      }
-
-      return check
+      return found(
+        await this.record(monitor),
+        msg`Monitor "${id}" was not found`
+      )
     } finally {
       this.probesInFlight -= 1
     }
+  }
+
+  public async runScheduled(id: string): Promise<MonitorCheck | null> {
+    const monitor = await this.monitors.findById(id)
+
+    if (!monitor?.isActive) {
+      return null
+    }
+
+    return this.record(monitor)
+  }
+
+  private async record(monitor: Monitor): Promise<MonitorCheck | null> {
+    const checkedAt = new Date().toISOString()
+    const outcome = await probe(monitor)
+
+    return this.checks.recordOutcome({
+      monitorId: monitor.id,
+      checkedAt,
+      ...outcome
+    })
   }
 }

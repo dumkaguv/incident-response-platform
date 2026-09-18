@@ -100,6 +100,67 @@ describe('the application surface', () => {
     )
   })
 
+  it('stops a document with more tokens than the parser allows', async () => {
+    const aliases = Array.from(
+      { length: 3000 },
+      (_, index) => `a${String(index)}: id`
+    ).join(' ')
+    const response = await gql(`{ monitors { nodes { ${aliases} } } }`)
+
+    expect(response.status).toBe(400)
+    expect(JSON.stringify(response.body.errors)).toMatch(/tokens/)
+  })
+
+  it('refuses a document with more fields than the limit before validating it', async () => {
+    const aliases = Array.from(
+      { length: 1200 },
+      (_, index) => `a${String(index)}: id`
+    ).join(' ')
+    const response = await gql(`{ monitors { nodes { ${aliases} } } }`)
+
+    expect(response.body.errors[0].extensions.code).toBe('BAD_USER_INPUT')
+    expect(response.body.errors[0].message).toMatch(
+      /^Query selects 1202 fields, which exceeds the limit of 1000$/
+    )
+  })
+
+  it('refuses one response key repeated past the limit', async () => {
+    const aliases = Array.from({ length: 30 }, () => 'a: id').join(' ')
+    const response = await gql(`{ monitors { nodes { ${aliases} } } }`)
+
+    expect(response.body.errors[0].extensions.code).toBe('BAD_USER_INPUT')
+    expect(response.body.errors[0].message).toMatch(/repeats the field "a"/)
+  })
+
+  it('answers a count-only page without asking for its rows', async () => {
+    const response = await gql('{ monitors { totalCount } }')
+
+    expect(response.body.errors).toBeUndefined()
+    expect(typeof response.body.data.monitors.totalCount).toBe('number')
+  })
+
+  it('refuses a filter that spends more values than the budget', async () => {
+    const values = Array.from(
+      { length: 3 },
+      () =>
+        `{ name: { in: [${Array.from({ length: 1000 }, (_, index) => `"n${String(index)}"`).join(', ')}] } }`
+    ).join(', ')
+    const response = await gql(
+      `{ monitors(filter: { and: [${values}] }) { totalCount } }`
+    )
+
+    expect(response.body.errors[0].extensions.code).toBe('BAD_USER_INPUT')
+    expect(response.body.errors[0].message).toMatch(/at most 2000 values/)
+  })
+
+  it('refuses a date-time whose offset no database could store', async () => {
+    const response = await gql(
+      '{ monitors(filter: { createdAt: { gt: "2026-09-18T12:30:00+99:99" } }) { totalCount } }'
+    )
+
+    expect(JSON.stringify(response.body.errors)).toMatch(/RFC 3339/)
+  })
+
   it('still reports a missing monitor when the patch is valid', async () => {
     const response = await gql(`mutation {
       updateMonitor(id: "${MISSING_ID}", input: { name: "Renamed" }) { id }

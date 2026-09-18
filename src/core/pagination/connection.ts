@@ -7,6 +7,8 @@ export {
   InvalidCursorError
 } from '@/core/pagination/utils/query-cursor'
 
+export type ConnectionSelection = { fields: string[]; page: boolean }
+
 export type PageInfo = {
   hasNextPage: boolean
   hasPreviousPage: boolean

@@ -17,6 +17,7 @@ import { MonitorCheckService, MonitorService } from './services'
     MonitorResolver,
     MonitorCheckResolver,
     MonitorChecksResolver
-  ]
+  ],
+  exports: [MonitorService, MonitorCheckService]
 })
 export class MonitorModule {}

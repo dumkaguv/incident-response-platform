@@ -13,7 +13,11 @@ import { graphqlConfig } from '@/core/config'
 import { AppErrorFilter } from './errors/app-error.filter'
 import { createErrorFormatter } from './errors/format-graphql-error'
 import { createGqlContext } from './graphql-context'
-import { guardQueryLimits } from './limits/query-limits.hook'
+import { MAX_QUERY_TOKENS } from './limits/query-limits.constants'
+import {
+  guardDocumentShape,
+  guardQueryLimits
+} from './limits/query-limits.hook'
 import { ResetLoadersInterceptor } from './reset-loaders.interceptor'
 
 export function driverConfig(
@@ -27,7 +31,11 @@ export function driverConfig(
     graphiql: config.explorer,
     validationRules: config.explorer ? [] : [NoSchemaIntrospectionCustomRule],
     errorFormatter: createErrorFormatter(config),
-    hooks: { preExecution: guardQueryLimits },
+    graphql: { parseOptions: { maxTokens: MAX_QUERY_TOKENS } },
+    hooks: {
+      preValidation: guardDocumentShape,
+      preExecution: guardQueryLimits
+    },
     context: (request: FastifyRequest, reply: FastifyReply) =>
       createGqlContext(request, reply)
   }

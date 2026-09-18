@@ -381,6 +381,32 @@ describe('query core', () => {
     ).toThrow('must be a string')
   })
 
+  it('refuses a filter that spends more values than the budget', () => {
+    const list = Array.from(
+      { length: 1000 },
+      (_, index) => `id-${String(index)}`
+    )
+    const filter = {
+      and: Array.from({ length: 3 }, () => ({ id: { in: list } }))
+    }
+
+    expect(() => normalizeQuery(fixtureQuery, { filter })).toThrow(
+      'Filter conditions may hold at most 2000 values in total'
+    )
+  })
+
+  it('lets a filter that stays inside the value budget through', () => {
+    const list = Array.from(
+      { length: 1000 },
+      (_, index) => `id-${String(index)}`
+    )
+    const filter = {
+      and: Array.from({ length: 2 }, () => ({ id: { in: list } }))
+    }
+
+    expect(() => normalizeQuery(fixtureQuery, { filter })).not.toThrow()
+  })
+
   it('refuses a search term too short for the trigram index', () => {
     expect(() => normalizeQuery(fixtureQuery, { search: 'ab' })).toThrow(
       'at least 3 characters'

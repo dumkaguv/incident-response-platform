@@ -2,7 +2,11 @@ import { NoSchemaIntrospectionCustomRule } from 'graphql'
 import { describe, expect, it } from 'vitest'
 
 import { driverConfig } from '@/core/graphql/graphql.module'
-import { guardQueryLimits } from '@/core/graphql/limits/query-limits.hook'
+import { MAX_QUERY_TOKENS } from '@/core/graphql/limits/query-limits.constants'
+import {
+  guardDocumentShape,
+  guardQueryLimits
+} from '@/core/graphql/limits/query-limits.hook'
 
 describe('driverConfig', () => {
   it('writes the schema file only in debug mode', () => {
@@ -30,9 +34,23 @@ describe('driverConfig', () => {
     expect(driverConfig({ explorer: false, debug: false }).jit).toBe(0)
   })
 
-  it('measures depth and complexity before the query executes', () => {
+  it('measures complexity before the query executes', () => {
     expect(
       driverConfig({ explorer: false, debug: false }).hooks?.preExecution
     ).toBe(guardQueryLimits)
+  })
+
+  it('measures the shape of the document before it is validated', () => {
+    const { hooks } = driverConfig({ explorer: false, debug: false })
+
+    expect(hooks?.preValidation).toBeTypeOf('function')
+    expect(hooks?.preValidation).toBe(guardDocumentShape)
+  })
+
+  it('stops the parser before an oversized document is built', () => {
+    const { graphql } = driverConfig({ explorer: false, debug: false })
+
+    expect(graphql?.parseOptions?.maxTokens).toBeTypeOf('number')
+    expect(graphql?.parseOptions?.maxTokens).toBe(MAX_QUERY_TOKENS)
   })
 })

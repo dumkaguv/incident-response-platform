@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { QUEUE_DEFAULTS } from '@/core/queue/queue.constants'
 import {
   HTTP_TIER,
   THROTTLE_TIERS,
@@ -45,6 +46,7 @@ export const envSchema = z.preprocess(
       .default('development'),
     PORT: positive(3000),
     DATABASE_URL: z.url(),
+    REDIS_URL: z.url().default('redis://localhost:56379'),
     GRAPHIQL: z.stringbool().optional(),
     TRUST_PROXY: trustProxy.optional(),
     THROTTLE_HTTP_LIMIT: positive(HTTP_TIER.limit),
@@ -52,7 +54,12 @@ export const envSchema = z.preprocess(
     THROTTLE_SUSTAINED_LIMIT: positive(THROTTLE_TIERS.sustained.limit),
     THROTTLE_HOURLY_LIMIT: positive(THROTTLE_TIERS.hourly.limit),
     THROTTLE_WRITE_BURST_LIMIT: positive(WRITE_TIERS.burst.limit),
-    THROTTLE_WRITE_SUSTAINED_LIMIT: positive(WRITE_TIERS.sustained.limit)
+    THROTTLE_WRITE_SUSTAINED_LIMIT: positive(WRITE_TIERS.sustained.limit),
+    QUEUE_TICK_MS: positive(QUEUE_DEFAULTS.tickMs),
+    QUEUE_BATCH_SIZE: positive(QUEUE_DEFAULTS.batchSize),
+    QUEUE_CONCURRENCY: positive(QUEUE_DEFAULTS.concurrency),
+    QUEUE_ATTEMPTS: positive(QUEUE_DEFAULTS.attempts),
+    QUEUE_BACKOFF_MS: positive(QUEUE_DEFAULTS.backoffMs)
   })
 )
 

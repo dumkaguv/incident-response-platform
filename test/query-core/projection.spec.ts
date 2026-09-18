@@ -30,7 +30,7 @@ function infoFor(query: string): GraphQLResolveInfo {
 
 describe('connectionSelection', () => {
   it('collects fields requested under nodes', () => {
-    const fields = connectionSelection(
+    const { fields } = connectionSelection(
       infoFor('{ incidents { nodes { id title } } }')
     )
 
@@ -38,7 +38,7 @@ describe('connectionSelection', () => {
   })
 
   it('collects fields requested under edges.node', () => {
-    const fields = connectionSelection(
+    const { fields } = connectionSelection(
       infoFor('{ incidents { edges { node { id severity } cursor } } }')
     )
 
@@ -46,7 +46,7 @@ describe('connectionSelection', () => {
   })
 
   it('follows fragment spreads and inline fragments', () => {
-    const fields = connectionSelection(
+    const { fields } = connectionSelection(
       infoFor(`
         fragment Row on Incident { id status }
         { incidents { nodes { ...Row ... on Incident { title } } } }
@@ -57,7 +57,7 @@ describe('connectionSelection', () => {
   })
 
   it('merges nodes and edges and keeps relation fields', () => {
-    const fields = connectionSelection(
+    const { fields } = connectionSelection(
       infoFor(`{
         incidents {
           nodes { id team { name } }
@@ -71,7 +71,7 @@ describe('connectionSelection', () => {
   })
 
   it('returns nothing when only pagination metadata is requested', () => {
-    const fields = connectionSelection(
+    const { fields } = connectionSelection(
       infoFor('{ incidents { totalCount pageInfo { endCursor } } }')
     )
 
@@ -79,7 +79,7 @@ describe('connectionSelection', () => {
   })
 
   it('merges a selection repeated under the same response key', () => {
-    const fields = connectionSelection(
+    const { fields } = connectionSelection(
       infoFor('{ incidents { nodes { id } nodes { title } } }')
     )
 
@@ -87,7 +87,7 @@ describe('connectionSelection', () => {
   })
 
   it('merges edges repeated under the same response key', () => {
-    const fields = connectionSelection(
+    const { fields } = connectionSelection(
       infoFor(
         '{ incidents { edges { node { id } } edges { node { severity } } } }'
       )
@@ -97,7 +97,7 @@ describe('connectionSelection', () => {
   })
 
   it('merges every field node the root field was requested through', () => {
-    const fields = connectionSelection(
+    const { fields } = connectionSelection(
       infoFor(
         '{ incidents { nodes { id } } incidents { edges { node { title } } } }'
       )
@@ -107,7 +107,7 @@ describe('connectionSelection', () => {
   })
 
   it('merges a repeated selection reached through fragments', () => {
-    const fields = connectionSelection(
+    const { fields } = connectionSelection(
       infoFor(`
         fragment Ids on IncidentConnection { nodes { id } }
         { incidents { ...Ids nodes { status } } }
@@ -115,6 +115,32 @@ describe('connectionSelection', () => {
     )
 
     expect(fields.sort()).toEqual(['id', 'status'])
+  })
+
+  it.each([
+    '{ incidents { nodes { id } } }',
+    '{ incidents { edges { cursor } } }',
+    '{ incidents { pageInfo { endCursor } } }',
+    '{ incidents { totalCount pageInfo { endCursor } } }'
+  ])('reports a page read for %s', (query) => {
+    expect(connectionSelection(infoFor(query)).page).toBe(true)
+  })
+
+  it('reports no page read when only the count is requested', () => {
+    expect(
+      connectionSelection(infoFor('{ incidents { totalCount } }')).page
+    ).toBe(false)
+  })
+
+  it('reports a page read reached through a fragment', () => {
+    expect(
+      connectionSelection(
+        infoFor(`
+          fragment Ids on IncidentConnection { nodes { id } }
+          { incidents { totalCount ...Ids } }
+        `)
+      ).page
+    ).toBe(true)
   })
 })
 
@@ -130,7 +156,7 @@ describe('connectionSelection on repeated fragment spreads', () => {
     }
 
     const started = performance.now()
-    const fields = connectionSelection(
+    const { fields } = connectionSelection(
       infoFor(
         `{ incidents { nodes { ...F${levels} } edges { node { ...F${levels} } } } }\n${fragments.join('\n')}`
       )

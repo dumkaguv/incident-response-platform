@@ -56,3 +56,14 @@ export class NotFoundError extends AppError {
     super(message, options)
   }
 }
+
+export function found<T>(
+  value: T | null | undefined,
+  message: ErrorMessage
+): T {
+  if (value === null || value === undefined) {
+    throw new NotFoundError(message)
+  }
+
+  return value
+}

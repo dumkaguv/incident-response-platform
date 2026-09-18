@@ -132,8 +132,11 @@ describe('MonitorService', () => {
     const service = serviceWith({ list })
     const spec = { fingerprint: 'f' }
 
-    await service.list(spec as never, ['id', 'name'])
+    await service.list(spec as never, { fields: ['id', 'name'], page: true })
 
-    expect(list).toHaveBeenCalledWith(spec, ['id', 'name'])
+    expect(list).toHaveBeenCalledWith(spec, {
+      fields: ['id', 'name'],
+      page: true
+    })
   })
 })

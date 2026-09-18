@@ -1,6 +1,8 @@
 import { isStoredDateTime } from '@/common/utils/date-time'
 import { BadUserInputError } from '@/common/utils/errors'
 import {
+  MAX_FILTER_LIST,
+  MAX_FILTER_VALUES,
   MAX_SEARCH_TERM,
   MIN_SEARCH_TERM
 } from '@/core/pagination/pagination.constants'
@@ -190,6 +192,7 @@ export function validateScalarValue(
 
 export function parseFilter(fields: QueryFields, input: unknown): FilterNode {
   let nodes = 0
+  let values = 0
 
   function walk(
     currentFields: QueryFields,
@@ -319,9 +322,20 @@ export function parseFilter(fields: QueryFields, input: unknown): FilterNode {
 
           const list = operator === 'in' || operator === 'nin'
 
-          if (list && (!Array.isArray(rawValue) || rawValue.length > 1000)) {
+          if (
+            list &&
+            (!Array.isArray(rawValue) || rawValue.length > MAX_FILTER_LIST)
+          ) {
             throw new BadUserInputError(
-              'Filter lists must contain at most 1000 values'
+              `Filter lists must contain at most ${String(MAX_FILTER_LIST)} values`
+            )
+          }
+
+          values += list ? (rawValue as unknown[]).length : 1
+
+          if (values > MAX_FILTER_VALUES) {
+            throw new BadUserInputError(
+              `Filter conditions may hold at most ${String(MAX_FILTER_VALUES)} values in total`
             )
           }
 

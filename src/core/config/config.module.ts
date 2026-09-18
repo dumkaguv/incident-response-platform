@@ -5,6 +5,8 @@ import { appConfig } from './app.config'
 import { databaseConfig } from './database.config'
 import { parseEnv } from './env.schema'
 import { graphqlConfig } from './graphql.config'
+import { queueConfig } from './queue.config'
+import { redisConfig } from './redis.config'
 import { throttleConfig } from './throttle.config'
 
 @Module({
@@ -13,7 +15,14 @@ import { throttleConfig } from './throttle.config'
       isGlobal: true,
       envFilePath: '.env',
       validate: parseEnv,
-      load: [appConfig, databaseConfig, graphqlConfig, throttleConfig]
+      load: [
+        appConfig,
+        databaseConfig,
+        graphqlConfig,
+        queueConfig,
+        redisConfig,
+        throttleConfig
+      ]
     })
   ]
 })

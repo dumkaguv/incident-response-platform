@@ -186,8 +186,100 @@ describe('MonitorCheckService', () => {
     )
     const spec = { fingerprint: 'f' }
 
-    await service.list(spec as never, ['id', 'status'])
+    await service.list(spec as never, { fields: ['id', 'status'], page: true })
 
-    expect(list).toHaveBeenCalledWith(spec, ['id', 'status'])
+    expect(list).toHaveBeenCalledWith(spec, {
+      fields: ['id', 'status'],
+      page: true
+    })
+  })
+})
+
+function scheduledServiceWith(
+  recorded: MonitorCheckCreateData[],
+  found: Monitor | null = monitor
+): MonitorCheckService {
+  const monitors = { findById: () => Promise.resolve(found) }
+  const checks = {
+    recordOutcome: (data: MonitorCheckCreateData) => {
+      recorded.push(data)
+
+      return Promise.resolve({ id: 'c1', ...data })
+    }
+  }
+
+  return new MonitorCheckService(
+    monitors as unknown as MonitorService,
+    checks as unknown as MonitorCheckRepository
+  )
+}
+
+describe('MonitorCheckService.runScheduled', () => {
+  it('records the probe the same way a manual check does', async () => {
+    vi.stubGlobal('fetch', () => Promise.resolve(upstream()))
+
+    const recorded: MonitorCheckCreateData[] = []
+    const check = await scheduledServiceWith(recorded).runScheduled('m1')
+
+    expect(check?.status).toBe(MonitorStatus.UP)
+    expect(recorded).toHaveLength(1)
+    expect(recorded[0].monitorId).toBe('m1')
+    expect(recorded[0].statusCode).toBe(200)
+  })
+
+  it('skips a paused monitor instead of failing the job', async () => {
+    const fetched = vi.fn()
+    const recorded: MonitorCheckCreateData[] = []
+
+    vi.stubGlobal('fetch', fetched)
+
+    const service = scheduledServiceWith(recorded, {
+      ...monitor,
+      isActive: false
+    })
+
+    await expect(service.runScheduled('m1')).resolves.toBeNull()
+    expect(fetched).not.toHaveBeenCalled()
+    expect(recorded).toEqual([])
+  })
+
+  it('skips a monitor deleted between the claim and the probe', async () => {
+    const fetched = vi.fn()
+    const recorded: MonitorCheckCreateData[] = []
+
+    vi.stubGlobal('fetch', fetched)
+
+    await expect(
+      scheduledServiceWith(recorded, null).runScheduled('gone')
+    ).resolves.toBeNull()
+    expect(fetched).not.toHaveBeenCalled()
+  })
+
+  it('answers null when the monitor disappears while the probe runs', async () => {
+    vi.stubGlobal('fetch', () => Promise.resolve(upstream()))
+
+    const service = new MonitorCheckService(
+      { findById: () => Promise.resolve(monitor) } as unknown as MonitorService,
+      {
+        recordOutcome: () => Promise.resolve(null)
+      } as unknown as MonitorCheckRepository
+    )
+
+    await expect(service.runScheduled('m1')).resolves.toBeNull()
+  })
+
+  it('is not bounded by the in-flight cap the mutation answers with', async () => {
+    vi.stubGlobal('fetch', () => Promise.resolve(upstream()))
+
+    const recorded: MonitorCheckCreateData[] = []
+    const service = scheduledServiceWith(recorded)
+    const running = Array.from(
+      { length: MonitorLimit.probesInFlight + 4 },
+      () => service.runScheduled('m1')
+    )
+
+    await expect(Promise.all(running)).resolves.toHaveLength(
+      MonitorLimit.probesInFlight + 4
+    )
   })
 })

@@ -67,11 +67,32 @@ describe('MonitorCheckRepository', () => {
   it('addresses the MonitorCheck model, not the Monitor one', async () => {
     const spec = { fingerprint: 'f' }
 
-    await repositoryWith([]).repository.list(spec as never, ['status'])
+    await repositoryWith([]).repository.list(spec as never, {
+      fields: ['status'],
+      page: true
+    })
 
     expect(vi.mocked(listConnection).mock.calls[0][1]).toBe('MonitorCheck')
     expect(vi.mocked(listConnection).mock.calls[0][2]).toBe(spec)
-    expect(vi.mocked(listConnection).mock.calls[0][3]).toEqual(['status'])
+    expect(vi.mocked(listConnection).mock.calls[0][3]).toEqual({
+      fields: ['status'],
+      page: true
+    })
+  })
+
+  it('answers the row the write produced, without reading it back', async () => {
+    const { repository, executed, lookedUp } = repositoryWith(['c1'])
+
+    await repository.recordOutcome({
+      monitorId: 'm1',
+      checkedAt: '2026-09-18T10:00:00.000Z',
+      status: MonitorStatus.UP,
+      statusCode: 200,
+      responseTimeMs: 12
+    })
+
+    expect(executed).toHaveLength(1)
+    expect(lookedUp).toEqual([])
   })
 
   it('inserts the check and rolls the monitor summary forward in one statement', async () => {
@@ -91,7 +112,7 @@ describe('MonitorCheckRepository', () => {
     expect(executed[0].sql).toMatch(/INSERT INTO "monitorCheck"/)
     expect(executed[0].sql).toMatch(/UPDATE "monitor" m SET/)
     expect(executed[0].sql).toMatch(
-      /"last_checked_at" IS NULL OR m\."last_checked_at" <= i\."checked_at"/
+      /"last_checked_at" IS NULL\s+OR m\."last_checked_at" <= i\."checked_at"/
     )
     expect(executed[0].sql).toMatch(
       /make_interval\(secs => m\."interval_seconds"\)/
@@ -99,7 +120,7 @@ describe('MonitorCheckRepository', () => {
     expect(executed[0].values[0]).toBe(MonitorStatus.DOWN)
     expect(executed[0].values[6]).toBe('m1')
     expect(executed[0].values[7]).toBe(MonitorStatus.DOWN)
-    expect(lookedUp).toEqual(['c1'])
+    expect(lookedUp).toEqual([])
     expect(recorded).toEqual({ id: 'c1' })
   })
 

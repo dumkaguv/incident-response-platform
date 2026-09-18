@@ -13,8 +13,9 @@ reused by every entity.
 | Area     | Choice                                                |
 | -------- | ----------------------------------------------------- |
 | Runtime  | Node 24, NestJS 12, Fastify 5                         |
-| API      | Apollo Server 5, code-first GraphQL schema            |
+| API      | Mercurius 16, code-first GraphQL schema               |
 | Database | PostgreSQL 17, Prisma Next (`@prisma/orm-postgres` 8) |
+| Jobs     | Redis 8, BullMQ 6 through `@nestjs/bullmq`            |
 | Build    | SWC (no `tsc` emit), TypeScript 7 for type checking   |
 | Quality  | oxfmt, oxlint, Vitest, commitlint                     |
 | i18n     | lingui 6 with the SWC macro plugin (`en`, `ro`, `ru`) |
@@ -22,14 +23,20 @@ reused by every entity.
 ## Quick start
 
 ```bash
-docker compose up -d          # PostgreSQL on :55432
+docker compose up -d          # PostgreSQL on :55432, Redis on :56379
 cp .env.example .env          # set DATABASE_URL and PORT
 pnpm install                  # also emits the Prisma contract
 pnpm prisma:migrate           # apply migrations
 pnpm prisma:search-indexes    # trigram indexes for search
 pnpm prisma:seed              # 6 monitors with 40 checks each
-pnpm dev
+pnpm dev                      # the API
+pnpm worker                   # the background worker, in a second shell
 ```
+
+The worker is what makes monitoring happen on its own: it scans for monitors
+whose slot has come, probes them and records the results. The API answers
+queries and mutations and never probes on a schedule. Start as many workers as
+you like — they share the queue and claim disjoint batches.
 
 GraphiQL is served at `http://localhost:$PORT/graphiql` in development, and
 `/` redirects there; `/graphql` is the endpoint itself.
@@ -39,8 +46,9 @@ GraphiQL is served at `http://localhost:$PORT/graphiql` in development, and
 ## Commands
 
 ```bash
-pnpm dev / start / build / prod
-pnpm bundle                          # one-file build for the container image
+pnpm dev / start / build / prod       # the API
+pnpm worker / worker:dev / worker:prod  # the background worker
+pnpm bundle                          # lib/main.mjs and lib/worker.mjs for the image
 pnpm typecheck                       # TypeScript 7
 pnpm format / format:check
 pnpm lint / lint:check
@@ -79,6 +87,14 @@ types/         row types, enum value maps and repository write shapes
 utils/         pure helpers, one folder per helper with its spec beside it
 ```
 
+The process boundary is the second axis. `src/main.ts` serves GraphQL and
+nothing else; `src/worker/main.ts` boots the same modules as an application
+context with no HTTP server and consumes the queues. A feature exposes its API
+through `<feature>.module.ts` and its background work through
+`<feature>-jobs.module.ts`, and only the worker loads the second one — so the API
+cannot accidentally start probing, and another worker process is the only thing
+horizontal scaling needs.
+
 Repositories are plain injectable classes and their own DI tokens; a unit test
 replaces one with a structural fake. Enum values, column defaults, relation
 joins, column projections and the delete order used by the seed are all read
@@ -93,6 +109,15 @@ and records a `MonitorCheck`, and the monitor carries its latest state:
 `lastStatus`, `lastCheckedAt`, `lastResponseTimeMs`, `consecutiveFailures`
 and the next due time. Probe failures are classified (timeout, DNS, refused,
 TLS, unexpected status) rather than collapsed into one error.
+
+**Monitoring runs on its own.** A repeating BullMQ tick, scheduled once in Redis
+no matter how many workers are up, claims the monitors whose `nextCheckAt` has
+passed with `FOR UPDATE SKIP LOCKED` and moves each one forward by its own
+interval in the same statement, so two workers never take the same monitor and a
+slot is handed out once. Each claim becomes one job on the probe queue, keyed by
+monitor and slot so a duplicate is ignored, and a worker runs up to
+`QUEUE_CONCURRENCY` probes at a time. A monitor paused or deleted mid-flight
+completes the job quietly instead of failing it.
 
 **Keyset pagination** on every list: `first`/`after`, `last`/`before`, opaque
 cursors, `edges`, `nodes`, `pageInfo` and a `totalCount` that is only computed
@@ -134,6 +159,8 @@ Every request passes three gates before it can cost anything:
 A probe never reads the response body, and the number of probes in flight is
 capped; a `checkMonitor` past that cap is refused with `TOO_MANY_REQUESTS`
 instead of queueing. A paused monitor answers `CONFLICT` instead of probing.
+Scheduled probes are bounded separately, by `QUEUE_CONCURRENCY` per worker
+process, so manual checks and a full scan cannot starve each other.
 
 **Operating condition.** The API has no authentication, and a monitor may
 point at any http(s) URL, so whoever reaches the API can have the server probe
@@ -148,7 +175,7 @@ lanes), the i18n service and catalogs, the relation loaders, the nested
 connection and the seed's delete ordering. End-to-end and integration tests run
 against a real PostgreSQL instance and cover pagination walks, filter
 combinations, mutations, the parity of the two query lanes, the atomic probe
-bookkeeping, the complexity and depth limits and both rate-limiting layers.
+bookkeeping, the concurrent claim two connections compete for, the complexity and depth limits and both rate-limiting layers.
 
 ## License
 

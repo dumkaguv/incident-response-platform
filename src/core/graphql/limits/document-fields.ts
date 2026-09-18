@@ -20,6 +20,55 @@ export function fragmentsOf(document: DocumentNode): Fragments {
   return fragments
 }
 
+export type RepeatedField = { field: string; count: number }
+
+export type DocumentShape = { selections: number; repeated: RepeatedField }
+
+export function documentShape(document: DocumentNode): DocumentShape {
+  const pending: SelectionSetNode[] = []
+
+  for (const definition of document.definitions) {
+    if ('selectionSet' in definition) {
+      pending.push(definition.selectionSet)
+    }
+  }
+
+  let selections = 0
+  let repeated: RepeatedField = { field: '', count: 0 }
+
+  while (pending.length) {
+    const selectionSet = pending.pop() as SelectionSetNode
+    const keys = new Map<string, number>()
+
+    for (const selection of selectionSet.selections) {
+      selections += 1
+
+      if (selection.kind === Kind.FRAGMENT_SPREAD) {
+        continue
+      }
+
+      if (selection.selectionSet) {
+        pending.push(selection.selectionSet)
+      }
+
+      if (selection.kind !== Kind.FIELD) {
+        continue
+      }
+
+      const field = (selection.alias ?? selection.name).value
+      const count = (keys.get(field) ?? 0) + 1
+
+      keys.set(field, count)
+
+      if (count > repeated.count) {
+        repeated = { field, count }
+      }
+    }
+  }
+
+  return { selections, repeated }
+}
+
 export function selectsField(
   selectionSet: SelectionSetNode | undefined,
   name: string,

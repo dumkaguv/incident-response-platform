@@ -5,6 +5,8 @@ import {
   Kind
 } from 'graphql'
 
+import type { ConnectionSelection } from '@/core/pagination'
+
 type Fragments = Record<string, FragmentDefinitionNode>
 
 type SelectionSets = (SelectionSetNode | undefined)[]
@@ -86,19 +88,26 @@ function childSelectionSets(
   return found
 }
 
-export function connectionSelection(info: GraphQLResolveInfo): string[] {
+export function connectionSelection(
+  info: GraphQLResolveInfo
+): ConnectionSelection {
   const fragments = info.fragments
   const roots = info.fieldNodes.map((node) => node.selectionSet)
   const names = new Set<string>()
+  const nodes = childSelectionSets(roots, fragments, 'nodes')
   const edges = childSelectionSets(roots, fragments, 'edges')
+  const pageInfo = childSelectionSets(roots, fragments, 'pageInfo')
   const walk: SelectionWalk = { fragments, expanded: new Set() }
 
-  for (const nodes of [
-    ...childSelectionSets(roots, fragments, 'nodes'),
+  for (const selected of [
+    ...nodes,
     ...childSelectionSets(edges, fragments, 'node')
   ]) {
-    fieldNames(nodes, walk, names)
+    fieldNames(selected, walk, names)
   }
 
-  return [...names]
+  return {
+    fields: [...names],
+    page: nodes.length > 0 || edges.length > 0 || pageInfo.length > 0
+  }
 }

@@ -18,3 +18,17 @@ export type MonitorCheckCreateData = {
   errorType?: CheckErrorType | null
   errorMessage?: string | null
 }
+
+export type MonitorCheckJob = {
+  monitorId: string
+  dueAt: string
+}
+
+export type MonitorScanResult = {
+  claimed: number
+}
+
+export type MonitorCheckResult = {
+  checkId: string | null
+  status: MonitorStatus | null
+}

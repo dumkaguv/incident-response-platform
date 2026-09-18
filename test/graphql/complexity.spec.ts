@@ -7,7 +7,19 @@ import { fragmentsOf } from '@/core/graphql/limits/document-fields'
 
 const schema = buildSchema(`
   type Query {
-    items(first: Int, last: Int): ItemConnection!
+    items(first: Int, last: Int, filter: ItemFilter): ItemConnection!
+  }
+
+  input ItemFilter {
+    and: [ItemFilter!]
+    or: [ItemFilter!]
+    not: ItemFilter
+    id: IdFilter
+  }
+
+  input IdFilter {
+    eq: ID
+    in: [ID!]
   }
 
   type ItemConnection {
@@ -79,6 +91,26 @@ describe('shapeComplexity', () => {
     expect(cost('{ items(first: 0) { nodes { id } } }')).toBe(26)
     expect(cost('{ items(first: -100) { nodes { id } } }')).toBe(26)
     expect(cost('{ items { nodes { id } } }')).toBe(26)
+  })
+
+  it('charges a page for every value its filter carries', () => {
+    expect(
+      cost(
+        '{ items(first: 1, filter: { id: { in: ["a", "b", "c"] } }) { nodes { id } } }'
+      )
+    ).toBe(5)
+  })
+
+  it('charges a filter group for everything nested under it', () => {
+    expect(
+      cost(
+        '{ items(first: 1, filter: { and: [{ id: { eq: "a" } }, { not: { id: { in: ["b", "c"] } } }] }) { nodes { id } } }'
+      )
+    ).toBe(5)
+  })
+
+  it('leaves a page with no filter unbilled for one', () => {
+    expect(cost('{ items(first: 1, filter: null) { nodes { id } } }')).toBe(2)
   })
 
   it('multiplies nested connections', () => {

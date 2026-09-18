@@ -1,5 +1,6 @@
 import { Connection } from '@/core/pagination'
 import { keysetFilter } from '@/core/pagination/utils/query-cursor'
+import type { ConnectionSelection } from '@/core/pagination'
 import type { QuerySpec } from '@/core/pagination/utils/query-spec'
 import type { FieldOutputTypes } from '@/core/prisma/contract'
 
@@ -244,7 +245,11 @@ async function listThroughSqlLane(
   }
 
   const rows = await table
-    .where((fields) => whereToExpr(fields, { [key.field]: { in: ids } }))
+    .where((fields) =>
+      whereToExpr(fields, {
+        AND: [countWhere, { [key.field]: { in: ids } }]
+      })
+    )
     .all()
   const byId = new Map(rows.map((row) => [row[key.field], row]))
 
@@ -255,10 +260,19 @@ export async function listConnection<M extends ModelName>(
   db: Db,
   model: M,
   spec: QuerySpec,
-  requested?: readonly string[]
+  selection?: ConnectionSelection
 ): Promise<Connection<RowOf<M>>> {
   const { args, countWhere } = specToPrisma(spec, { rowComparison: true })
-  const fields = projectionFor(model, spec, requested)
+
+  function count(): Promise<number> {
+    return countRows(db, model, countWhere)
+  }
+
+  if (selection && !selection.page) {
+    return new Connection([], spec, count)
+  }
+
+  const fields = projectionFor(model, spec, selection?.fields)
   const rows = requiresSqlLane(spec.sort, spec.preference)
     ? await listThroughSqlLane(
         db,
@@ -276,7 +290,5 @@ export async function listConnection<M extends ModelName>(
         args.take
       )
 
-  return new Connection(rows as RowOf<M>[], spec, () =>
-    countRows(db, model, countWhere)
-  )
+  return new Connection(rows as RowOf<M>[], spec, count)
 }

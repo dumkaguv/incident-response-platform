@@ -15,8 +15,27 @@ type DateTimeParts = {
   offset: string
 }
 
+const OFFSET = /^[+-](\d{2}):(\d{2})$/
+
+const MAX_OFFSET_HOURS = 15
+const MAX_OFFSET_MINUTES = 59
+
 function zeroOffsetAsZulu(offset: string): string {
   return /^[+-]00:00$/.test(offset) ? 'Z' : offset
+}
+
+function isOffset(offset: string): boolean {
+  const parsed = OFFSET.exec(offset)
+
+  if (!parsed) {
+    return offset === 'Z'
+  }
+
+  const [, hours, minutes] = parsed
+
+  return (
+    Number(hours) <= MAX_OFFSET_HOURS && Number(minutes) <= MAX_OFFSET_MINUTES
+  )
 }
 
 function isCalendarDay(year: number, month: number, day: number): boolean {
@@ -89,7 +108,8 @@ function validParts(value: string): DateTimeParts | null {
   if (
     !parts ||
     !isCalendarDay(parts.year, parts.month, parts.day) ||
-    !isClockTime(parts.hour, parts.minute, parts.second)
+    !isClockTime(parts.hour, parts.minute, parts.second) ||
+    !isOffset(parts.offset)
   ) {
     return null
   }

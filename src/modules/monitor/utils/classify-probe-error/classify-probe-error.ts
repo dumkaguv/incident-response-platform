@@ -1,5 +1,7 @@
 import { CheckErrorType } from '@/modules/monitor/types'
 
+const MESSAGE_MAX = 200
+
 const DNS_CODES = new Set(['ENOTFOUND', 'EAI_AGAIN', 'EAI_FAIL'])
 
 const REFUSED_CODES = new Set(['ECONNREFUSED'])
@@ -20,11 +22,7 @@ const TLS_CODES = new Set([
 ])
 
 function stringProperty(value: unknown, key: string): string | null {
-  if (typeof value !== 'object' || value === null || !(key in value)) {
-    return null
-  }
-
-  const held = (value as Record<string, unknown>)[key]
+  const held = (value as Record<string, unknown> | null | undefined)?.[key]
 
   return typeof held === 'string' ? held : null
 }
@@ -64,13 +62,9 @@ export function classifyProbeError(error: unknown): CheckErrorType {
 }
 
 export function probeErrorMessage(error: unknown): string | null {
-  const code = errorCode(error)
-
-  if (code !== null) {
-    return code
-  }
-
-  const message = stringProperty(error, 'message')
-
-  return message === null ? null : message.slice(0, 200)
+  return (
+    errorCode(error) ??
+    stringProperty(error, 'message')?.slice(0, MESSAGE_MAX) ??
+    null
+  )
 }

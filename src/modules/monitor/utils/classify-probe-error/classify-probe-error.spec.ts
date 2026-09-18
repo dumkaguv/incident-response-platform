@@ -63,5 +63,14 @@ describe('probeErrorMessage', () => {
 
   it('has nothing to say about a value that is not an error', () => {
     expect(probeErrorMessage(null)).toBeNull()
+    expect(probeErrorMessage(undefined)).toBeNull()
+    expect(probeErrorMessage('thrown string')).toBeNull()
+  })
+
+  it('ignores a property that is there but is not a string', () => {
+    expect(probeErrorMessage({ code: 42, message: 7 })).toBeNull()
+    expect(probeErrorMessage({ code: 42, message: 'readable' })).toBe(
+      'readable'
+    )
   })
 })

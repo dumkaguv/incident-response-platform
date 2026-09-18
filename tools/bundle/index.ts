@@ -14,7 +14,10 @@ const CJS_SHIM =
   'const __dirname = nodeDirname(__filename);'
 
 const BUNDLE_DIR = 'bundle'
-const ENTRY_FILE = join(BUNDLE_DIR, 'lib', 'main.mjs')
+const ENTRY_POINTS = {
+  'lib/main': 'dist/main.js',
+  'lib/worker': 'dist/worker/main.js'
+}
 const EXPLORER_ASSETS = join(
   dirname(createRequire(import.meta.url).resolve('mercurius')),
   'static'
@@ -56,8 +59,9 @@ async function main(): Promise<void> {
 
   const externalized = new Set<string>()
   const result = await build({
-    entryPoints: ['dist/main.js'],
-    outfile: ENTRY_FILE,
+    entryPoints: ENTRY_POINTS,
+    outdir: BUNDLE_DIR,
+    outExtension: { '.js': '.mjs' },
     bundle: true,
     platform: 'node',
     target: 'node24',

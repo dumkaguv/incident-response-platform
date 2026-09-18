@@ -63,6 +63,20 @@ function pageSize(args: Record<string, unknown>): number {
   return requested
 }
 
+function filterCost(value: unknown): number {
+  if (value === null || value === undefined) {
+    return 0
+  }
+
+  if (typeof value !== 'object') {
+    return 1
+  }
+
+  const entries = Array.isArray(value) ? value : Object.values(value)
+
+  return entries.reduce<number>((total, entry) => total + filterCost(entry), 0)
+}
+
 function countCharge(node: FieldNode, fragments: Fragments): number {
   return selectsField(node.selectionSet, COUNT_FIELD, fragments)
     ? COUNT_COMPLEXITY
@@ -88,7 +102,8 @@ export function shapeComplexity(fragments: Fragments): ComplexityEstimator {
       return (
         1 +
         pageSize(args) * Math.max(1, childComplexity) +
-        countCharge(node, fragments)
+        countCharge(node, fragments) +
+        filterCost(args.filter)
       )
     }
 
