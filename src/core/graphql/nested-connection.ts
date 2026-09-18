@@ -16,6 +16,7 @@ import {
   MAX_FIRST
 } from '@/core/pagination/pagination.constants'
 import { normalizeQuery } from '@/core/pagination/utils/normalize-query'
+import { isProvided } from '@/core/pagination/utils/query-definition'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import {
   countNestedRows,
@@ -29,8 +30,8 @@ import { orderInputFor } from './filtering/query-args.factory'
 import type { GqlContext } from './graphql-context'
 
 export type NestedConnectionArgs = {
-  first?: number
-  last?: number
+  first?: number | null
+  last?: number | null
   orderBy?: unknown
 }
 
@@ -97,7 +98,7 @@ export function NestedConnection(options: {
     constructor(private readonly prisma: PrismaService) {}
 
     @ResolveField(options.field, () => options.connection, {
-      description: options.description
+      description: `${options.description}; first and last size the page, a later page is read through the root query`
     })
     public page(
       @Parent() parent: { id: string },
@@ -107,7 +108,7 @@ export function NestedConnection(options: {
       const spec = normalizeQuery(definition, {
         first:
           args.first ??
-          (args.last === undefined ? DEFAULT_NESTED_FIRST : undefined),
+          (isProvided(args.last) ? undefined : DEFAULT_NESTED_FIRST),
         last: args.last,
         orderBy: args.orderBy
       })
@@ -127,7 +128,7 @@ export function NestedConnection(options: {
       )
       const pages = getLoader(
         context,
-        `nested:${model}:${field}:${spec.fingerprint}`,
+        `nested:${model}:${field}:${spec.fingerprint}:${spec.pagination.direction}:${spec.pagination.limit}`,
         async (parentIds: readonly string[]) => {
           const page = await selectNestedPage(db, {
             model,

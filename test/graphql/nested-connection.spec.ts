@@ -46,12 +46,17 @@ function fakePrisma(): { prisma: PrismaService; executed: Statement[] } {
         }))
     }
 
-    return parents.flatMap((parent) =>
-      rows
-        .filter((row) => row.monitorId === parent)
-        .slice(0, 2)
+    const take = Number(/LIMIT (\d+)/.exec(statement.sql)?.[1] ?? 2)
+    const ascending = statement.sql.includes('"checked_at" ASC')
+
+    return parents.flatMap((parent) => {
+      const matching = rows.filter((row) => row.monitorId === parent)
+      const ordered = ascending ? [...matching].reverse() : matching
+
+      return ordered
+        .slice(0, take)
         .map((row) => ({ id: row.id, monitor_id: row.monitorId }))
-    )
+    })
   }
 
   const db = {
@@ -105,7 +110,7 @@ const Resolver = NestedConnection({
 }) as new (prisma: PrismaService) => {
   page(
     parent: { id: string },
-    args: { first?: number; last?: number; orderBy?: unknown },
+    args: { first?: number | null; last?: number | null; orderBy?: unknown },
     context: GqlContext
   ): Promise<Connection<Row>>
 }
@@ -152,5 +157,35 @@ describe('NestedConnection', () => {
     expect(() =>
       normalizeQuery(definition, { after: cursor ?? undefined })
     ).toThrow('Invalid pagination cursor')
+  })
+})
+
+describe('NestedConnection page identity', () => {
+  it('keeps aliases with different page sizes and directions apart within one request', async () => {
+    const { prisma } = fakePrisma()
+    const resolver = new Resolver(prisma)
+    const ctx = context()
+
+    const [one, three, oldest] = await Promise.all([
+      resolver.page({ id: 'm1' }, { first: 1 }, ctx),
+      resolver.page({ id: 'm1' }, { first: 3 }, ctx),
+      resolver.page({ id: 'm1' }, { last: 1 }, ctx)
+    ])
+
+    expect(one.nodes.map((row) => row.id)).toEqual(['c1'])
+    expect(three.nodes.map((row) => row.id)).toEqual(['c1', 'c2', 'c3'])
+    expect(oldest.nodes.map((row) => row.id)).toEqual(['c3'])
+  })
+
+  it('falls back to the nested default when first and last are explicit nulls', async () => {
+    const { prisma, executed } = fakePrisma()
+
+    await new Resolver(prisma).page(
+      { id: 'm1' },
+      { first: null, last: null },
+      context()
+    )
+
+    expect(executed[0].sql).toMatch(/LIMIT 11\b/)
   })
 })

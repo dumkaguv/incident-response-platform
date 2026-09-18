@@ -1,3 +1,4 @@
+import { BadUserInputError } from '@/common/utils'
 import type { SortClause } from '@/core/pagination/utils/query-spec'
 
 import { columnOf, primaryKeyOf, tableOf } from './contract-meta'
@@ -24,7 +25,7 @@ function orderFragment(
 ): string {
   const steps = sort.map((clause) => {
     if (clause.field.relations.length) {
-      throw new Error(
+      throw new BadUserInputError(
         `Ordering a nested connection through the relation "${clause.field.name}" is not supported`
       )
     }
