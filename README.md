@@ -122,14 +122,22 @@ Every request passes three gates before it can cost anything:
 
 1. An HTTP-level rate limit that answers a real `429` before the query is
    parsed.
-2. Per-operation rate-limit tiers (burst, sustained, hourly) tracked per IP,
-   with a tighter budget for mutations.
+2. Rate-limit tiers (burst, sustained, hourly) with one budget per client and
+   operation kind, so a request cannot borrow another root field's budget; a
+   limited request answers `429` with `Retry-After`. Reads and writes have
+   separate limits, both configurable through `THROTTLE_*_LIMIT`.
 3. A query depth limit and a query cost limit, both checked before execution,
-   so an expensive shape is rejected without touching the database.
+   so an expensive shape is rejected without touching the database. Fragments
+   are measured once each, so repeated spreads cannot inflate the check.
 
 A probe never reads the response body, and the number of probes in flight is
 capped; a `checkMonitor` past that cap is refused with `TOO_MANY_REQUESTS`
-instead of queueing.
+instead of queueing. A paused monitor answers `CONFLICT` instead of probing.
+
+**Operating condition.** The API has no authentication, and a monitor may
+point at any http(s) URL, so whoever reaches the API can have the server probe
+addresses inside its own network and read back status, timing and error class.
+Run it behind a perimeter, or add an auth layer and a target policy first.
 
 ## Testing
 

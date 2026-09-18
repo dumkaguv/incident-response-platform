@@ -142,14 +142,22 @@ replaces `arrayBuffer()`, and `MonitorLimit.probesInFlight` caps the runs a
 process holds at once; past it `checkMonitor` answers `TOO_MANY_REQUESTS` instead
 of queueing. Handing probes to a scheduler is the next step, not this one.
 
-**`recordOutcome` is one `UPDATE … RETURNING`** through `raw.sql`, so
-`consecutive_failures = CASE WHEN $down THEN consecutive_failures + 1 ELSE 0 END`
-and `next_check_at = $checked_at + make_interval(secs => interval_seconds)`
-happen in the row, never from a stale read; two concurrent probes count two
-failures. A `param(...)` instance is one placeholder: interpolating the same
-object twice makes PostgreSQL deduce two types for it, so build a fresh one per
-position. An empty patch to `update` is a read, because the ORM answers `null`
-for an update that sets nothing.
+**A probe outcome is one data-modifying CTE** in
+`MonitorCheckRepository.recordOutcome`: `INSERT … RETURNING` the check, then
+`UPDATE monitor … FROM inserted` for the summary, in one statement through
+`raw.sql`, so a failure between the two can no longer leave a check without a
+summary. The check is stamped with the moment the probe *started*, and the
+summary moves only when `last_checked_at IS NULL OR last_checked_at <=
+checked_at`: a slow probe that finishes after a newer one stays in the history
+and leaves the state alone. `consecutive_failures = CASE WHEN … THEN + 1 ELSE 0
+END` and `next_check_at = checked_at + make_interval(secs => interval_seconds)`
+still happen in the row, never from a stale read. A monitor deleted mid-probe
+inserts nothing and answers `null`. A `param(...)` instance is one placeholder:
+interpolating the same object twice makes PostgreSQL deduce two types for it,
+so build a fresh one per position. An empty patch to `update` is a read,
+because the ORM answers `null` for an update that sets nothing. `checkMonitor`
+on a paused monitor is `CONFLICT`, and `expectedStatusMin` may not exceed
+`expectedStatusMax`, checked on create and against the stored bounds on update.
 
 **`GET /health/ready` runs `SELECT 1`**; `GET /health` does not touch the
 database, so a database outage never restarts the process through its liveness
@@ -172,3 +180,51 @@ is passed explicitly. And `fastify` is held by a pnpm override at the exact
 version `@nestjs/platform-fastify` depends on: two copies in the tree break
 plugin registration and make every `FastifyRequest` structurally incompatible
 with itself.
+
+**Fragment walkers memoize by name.** `queryDepth` and `connectionSelection`
+visit each fragment once per document. Without that, 20 levels of doubling
+spreads in an 884-byte valid document cost 3.5 s of synchronous CPU before
+`getComplexity`, which has its own node budget, ever ran. The cycle guard stays
+for documents that never reached validation.
+
+**One rate-limit bucket per tier, operation kind and client.**
+`GqlThrottlerGuard.generateKey` hashes `tier:read|write:client`. The parent
+guard keyed by resolver class and method, which handed every root field its own
+budget and let a request sidestep an exhausted bucket by leading with a field
+nobody had asked for yet; the per-request verdict cache is keyed by tier, so
+bucket and verdict now cover the same thing. A rate-limited GraphQL response is
+an HTTP 429 through `ThrottleStatusPlugin`, because the Apollo integration
+overwrites any status a guard sets. Write tiers read `THROTTLE_WRITE_*_LIMIT`;
+the e2e suites raise the write burst because they create, probe and delete back
+to back.
+
+**A nested page loader is keyed by fingerprint, direction and limit.** The
+cursor fingerprint deliberately excludes the page size, so two aliases of one
+field with different `first` shared a loader, and a page, until the loader key
+carried both. Nested connections issue cursors but take no `after`/`before`:
+a later page is read through the root query with a filter on the foreign key.
+
+**`DateTime` is exact text, never a JavaScript `Date`.** `common/utils/date-time.ts`
+formats the PostgreSQL text form as RFC 3339 with every fractional digit and
+accepts only an RFC 3339 date-time with an offset and a real calendar day;
+filters and cursors validate with the same rules. Round-tripping through `Date`
+lost microseconds, so an `eq` filter with a value the API had just returned
+matched nothing, and `March 5, 2020` was a valid input.
+
+**The validation pipe is `APP_PIPE` in `GraphqlConfigModule`.** Every generated
+args class answers `toSpec()` only after class-transformer instantiated it, so a
+host without the pipe fails every list query with `args.toSpec is not a
+function`. `AppErrorFilter` checks the host type: an `AppError` from an HTTP
+controller gets a JSON body under the status its code maps to instead of a
+`GraphQLError` nobody sends. `GET /health/ready` races `SELECT 1` against a
+three second timer and answers 503 when the timer wins.
+
+**There is no authentication, and a probe target is any http(s) URL.** Anyone
+who reaches the API can create a monitor pointing at an internal address and
+have the server probe it; the body is never read, but status, timing and error
+class leak. Running behind a perimeter is the operating condition until an auth
+layer and a target policy exist. Deferred with it: translating the English
+`BadUserInputError` texts in `core/pagination`, a shared throttler store for
+several replicas, and `include` of a second relation hop on the SQL lane, which
+today includes only `path[0]` of a sort path and would break cursor encoding
+for a two-hop relation sort that no module exposes yet.
