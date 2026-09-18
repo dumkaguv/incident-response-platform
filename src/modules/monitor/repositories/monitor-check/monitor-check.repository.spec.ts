@@ -9,19 +9,54 @@ vi.mock('@/core/prisma/utils/query-table', () => ({
   listConnection: vi.fn(() => Promise.resolve({ nodes: [] }))
 }))
 
-function repositoryWith(created: unknown[]): MonitorCheckRepository {
-  const table = {
-    create: (data: unknown) => {
-      created.push(data)
+type Statement = { sql: string; values: unknown[] }
 
-      return Promise.resolve({ id: 'c1' })
+function repositoryWith(insertedIds: string[]): {
+  repository: MonitorCheckRepository
+  executed: Statement[]
+  lookedUp: string[]
+} {
+  const executed: Statement[] = []
+  const lookedUp: string[] = []
+  const db = {
+    raw: {
+      sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({
+        returnsRow: () => ({
+          build: () => ({ sql: strings.join('$'), values })
+        })
+      })
+    },
+    runtime: () => ({
+      query: (statement: Statement) => {
+        executed.push(statement)
+
+        return (function* rows() {
+          for (const id of insertedIds) {
+            yield { id }
+          }
+        })()
+      }
+    }),
+    orm: {
+      public: {
+        MonitorCheck: {
+          where: (build: (fields: unknown) => unknown) => {
+            build({ id: { eq: (id: string) => lookedUp.push(id) } })
+
+            return {
+              first: () => Promise.resolve({ id: lookedUp.at(-1) })
+            }
+          }
+        }
+      }
     }
   }
-  const prisma = {
-    db: { orm: { public: { MonitorCheck: table } } }
-  } as unknown as PrismaService
 
-  return new MonitorCheckRepository(prisma)
+  return {
+    repository: new MonitorCheckRepository({ db } as unknown as PrismaService),
+    executed,
+    lookedUp
+  }
 }
 
 beforeEach(() => {
@@ -32,25 +67,55 @@ describe('MonitorCheckRepository', () => {
   it('addresses the MonitorCheck model, not the Monitor one', async () => {
     const spec = { fingerprint: 'f' }
 
-    await repositoryWith([]).list(spec as never, ['status'])
+    await repositoryWith([]).repository.list(spec as never, ['status'])
 
     expect(vi.mocked(listConnection).mock.calls[0][1]).toBe('MonitorCheck')
     expect(vi.mocked(listConnection).mock.calls[0][2]).toBe(spec)
     expect(vi.mocked(listConnection).mock.calls[0][3]).toEqual(['status'])
   })
 
-  it('writes the probe outcome through untouched', async () => {
-    const created: unknown[] = []
-    const outcome = {
+  it('inserts the check and rolls the monitor summary forward in one statement', async () => {
+    const { repository, executed, lookedUp } = repositoryWith(['c1'])
+
+    const recorded = await repository.recordOutcome({
       monitorId: 'm1',
+      checkedAt: '2026-09-18T10:00:00.000Z',
       status: MonitorStatus.DOWN,
-      statusCode: null,
-      responseTimeMs: 1017,
-      errorType: null
-    }
+      statusCode: 503,
+      responseTimeMs: 40,
+      errorType: 'INVALID_STATUS_CODE',
+      errorMessage: 'expected 200-299'
+    })
 
-    await repositoryWith(created).create(outcome)
+    expect(executed).toHaveLength(1)
+    expect(executed[0].sql).toMatch(/INSERT INTO "monitorCheck"/)
+    expect(executed[0].sql).toMatch(/UPDATE "monitor" m SET/)
+    expect(executed[0].sql).toMatch(
+      /"last_checked_at" IS NULL OR m\."last_checked_at" <= i\."checked_at"/
+    )
+    expect(executed[0].sql).toMatch(
+      /make_interval\(secs => m\."interval_seconds"\)/
+    )
+    expect(executed[0].values[0]).toBe(MonitorStatus.DOWN)
+    expect(executed[0].values[6]).toBe('m1')
+    expect(executed[0].values[7]).toBe(MonitorStatus.DOWN)
+    expect(lookedUp).toEqual(['c1'])
+    expect(recorded).toEqual({ id: 'c1' })
+  })
 
-    expect(created).toEqual([outcome])
+  it('answers null without a lookup when the monitor does not exist', async () => {
+    const { repository, executed, lookedUp } = repositoryWith([])
+
+    const recorded = await repository.recordOutcome({
+      monitorId: 'gone',
+      checkedAt: '2026-09-18T10:00:00.000Z',
+      status: MonitorStatus.UP,
+      statusCode: 200,
+      responseTimeMs: 12
+    })
+
+    expect(executed).toHaveLength(1)
+    expect(lookedUp).toEqual([])
+    expect(recorded).toBeNull()
   })
 })

@@ -8,7 +8,7 @@ import type {
   MonitorCreateData,
   MonitorUpdateData
 } from '@/modules/monitor/inputs'
-import type { Monitor, RecordedOutcome } from '@/modules/monitor/types'
+import type { Monitor } from '@/modules/monitor/types'
 
 @Injectable()
 export class MonitorService {
@@ -47,16 +47,6 @@ export class MonitorService {
 
   public async remove(id: string): Promise<Monitor> {
     return this.found(await this.monitors.delete(id), id)
-  }
-
-  public async recordOutcome(
-    monitor: Monitor,
-    outcome: RecordedOutcome
-  ): Promise<Monitor> {
-    return this.found(
-      await this.monitors.recordOutcome(monitor.id, outcome),
-      monitor.id
-    )
   }
 
   private found(monitor: Monitor | null, id: string): Monitor {

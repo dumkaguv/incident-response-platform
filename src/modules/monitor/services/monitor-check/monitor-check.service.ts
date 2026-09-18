@@ -1,7 +1,7 @@
 import { msg } from '@lingui/core/macro'
 import { Injectable } from '@nestjs/common'
 
-import { TooManyRequestsError } from '@/common/utils'
+import { NotFoundError, TooManyRequestsError } from '@/common/utils'
 import { MonitorLimit } from '@/modules/monitor/constants'
 import { MonitorCheckRepository } from '@/modules/monitor/repositories'
 import { MonitorService } from '@/modules/monitor/services/monitor'
@@ -25,7 +25,7 @@ export class MonitorCheckService {
     return this.checks.list(spec, fields)
   }
 
-  public async run(monitorId: string): Promise<MonitorCheck> {
+  public async run(id: string): Promise<MonitorCheck> {
     if (this.probesInFlight >= MonitorLimit.probesInFlight) {
       throw new TooManyRequestsError(
         msg`Too many probes are running right now, retry in a moment`
@@ -35,14 +35,18 @@ export class MonitorCheckService {
     this.probesInFlight += 1
 
     try {
-      const monitor = await this.monitors.getById(monitorId)
+      const monitor = await this.monitors.getById(id)
+      const checkedAt = new Date().toISOString()
       const outcome = await probe(monitor)
-      const check = await this.checks.create({
+      const check = await this.checks.recordOutcome({
         monitorId: monitor.id,
+        checkedAt,
         ...outcome
       })
 
-      await this.monitors.recordOutcome(monitor, check)
+      if (!check) {
+        throw new NotFoundError(msg`Monitor "${id}" was not found`)
+      }
 
       return check
     } finally {

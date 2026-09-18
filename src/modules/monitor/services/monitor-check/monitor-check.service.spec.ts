@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { TooManyRequestsError } from '@/common/utils'
+import { NotFoundError, TooManyRequestsError } from '@/common/utils'
 import { MonitorLimit } from '@/modules/monitor/constants'
 import { MonitorCheckService } from '@/modules/monitor/services'
 import { CheckErrorType, MonitorStatus } from '@/modules/monitor/types'
@@ -16,23 +16,20 @@ const monitor = {
   intervalSeconds: 60,
   expectedStatusMin: 200,
   expectedStatusMax: 299,
-  consecutiveFailures: 0
+  consecutiveFailures: 0,
+  isActive: true
 } as Monitor
 
-function serviceWith(created: MonitorCheckCreateData[]): MonitorCheckService {
-  const monitors = {
-    getById: () => Promise.resolve(monitor),
-    recordOutcome: () => Promise.resolve(monitor)
-  }
+function serviceWith(
+  recorded: MonitorCheckCreateData[],
+  found: Monitor = monitor
+): MonitorCheckService {
+  const monitors = { getById: () => Promise.resolve(found) }
   const checks = {
-    create: (data: MonitorCheckCreateData) => {
-      created.push(data)
+    recordOutcome: (data: MonitorCheckCreateData) => {
+      recorded.push(data)
 
-      return Promise.resolve({
-        id: 'c1',
-        checkedAt: '2026-09-17T00:00:00.000Z',
-        ...data
-      })
+      return Promise.resolve({ id: 'c1', ...data })
     }
   }
 
@@ -83,15 +80,15 @@ describe('MonitorCheckService', () => {
     await expect(service.run('m1')).resolves.toMatchObject({ monitorId: 'm1' })
   })
 
-  it('stores the probe outcome against the monitor it probed', async () => {
-    const created: MonitorCheckCreateData[] = []
+  it('records the probe outcome against the monitor it probed', async () => {
+    const recorded: MonitorCheckCreateData[] = []
 
     vi.stubGlobal('fetch', () => Promise.resolve(upstream()))
 
-    const check = await serviceWith(created).run('m1')
+    const check = await serviceWith(recorded).run('m1')
 
-    expect(created).toHaveLength(1)
-    expect(created[0]).toMatchObject({
+    expect(recorded).toHaveLength(1)
+    expect(recorded[0]).toMatchObject({
       monitorId: 'm1',
       status: MonitorStatus.UP,
       statusCode: 200,
@@ -100,8 +97,22 @@ describe('MonitorCheckService', () => {
     expect(check).toMatchObject({ id: 'c1', monitorId: 'm1' })
   })
 
-  it('stores a failure rather than letting it escape', async () => {
-    const created: MonitorCheckCreateData[] = []
+  it('stamps the check with the moment the probe started', async () => {
+    const recorded: MonitorCheckCreateData[] = []
+    const before = Date.now()
+
+    vi.stubGlobal('fetch', () => Promise.resolve(upstream()))
+
+    await serviceWith(recorded).run('m1')
+
+    const stamped = Date.parse(recorded[0].checkedAt)
+
+    expect(stamped).toBeGreaterThanOrEqual(before)
+    expect(stamped).toBeLessThanOrEqual(Date.now())
+  })
+
+  it('records a failure rather than letting it escape', async () => {
+    const recorded: MonitorCheckCreateData[] = []
 
     vi.stubGlobal('fetch', () =>
       Promise.reject(
@@ -111,9 +122,9 @@ describe('MonitorCheckService', () => {
       )
     )
 
-    await serviceWith(created).run('m1')
+    await serviceWith(recorded).run('m1')
 
-    expect(created[0]).toMatchObject({
+    expect(recorded[0]).toMatchObject({
       status: MonitorStatus.DOWN,
       statusCode: null,
       errorType: CheckErrorType.CONNECTION_REFUSED
@@ -135,6 +146,19 @@ describe('MonitorCheckService', () => {
 
     await expect(service.run('missing')).rejects.toThrow('NOT_FOUND')
     expect(fetched).not.toHaveBeenCalled()
+  })
+
+  it('reports a monitor deleted while it was being probed as NOT_FOUND', async () => {
+    vi.stubGlobal('fetch', () => Promise.resolve(upstream()))
+
+    const service = new MonitorCheckService(
+      { getById: () => Promise.resolve(monitor) } as unknown as MonitorService,
+      {
+        recordOutcome: () => Promise.resolve(null)
+      } as unknown as MonitorCheckRepository
+    )
+
+    await expect(service.run('m1')).rejects.toBeInstanceOf(NotFoundError)
   })
 
   it('passes the requested fields down when listing history', async () => {

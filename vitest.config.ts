@@ -68,7 +68,10 @@ export default defineConfig({
       {
         test: {
           name: 'integration',
-          include: ['test/**/*.integration-spec.ts'],
+          include: [
+            'test/**/*.integration-spec.ts',
+            'src/**/*.integration-spec.ts'
+          ],
           ...databaseBound
         }
       }
