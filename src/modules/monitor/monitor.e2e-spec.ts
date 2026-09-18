@@ -389,6 +389,70 @@ describe('monitor module (e2e)', () => {
     expect(code).toBe('GRAPHQL_VALIDATION_FAILED')
   })
 
+  it('counts a check with no status code as one that fails every', async () => {
+    const created = await data(
+      `mutation ($input: CreateMonitorInput!) {
+        createMonitor(input: $input) { id }
+      }`,
+      { input: { name: 'Refused target', url: 'http://127.0.0.1:1/nothing' } }
+    )
+    const refused = (created.createMonitor as { id: string }).id
+    const run = await data(
+      `mutation ($id: ID!) {
+        checkMonitor(id: $id) { statusCode errorType }
+      }`,
+      { id: refused }
+    )
+
+    expect(run.checkMonitor).toMatchObject({ statusCode: null })
+
+    const healthy = await data(
+      `query {
+        monitors(filter: { checks: { every: { statusCode: { eq: 200 } } } }) {
+          nodes { id }
+        }
+      }`
+    )
+    const ids = (healthy.monitors as { nodes: { id: string }[] }).nodes.map(
+      (row) => row.id
+    )
+
+    expect(ids).not.toContain(refused)
+    expect(ids).toContain(monitorId)
+  })
+
+  it('refuses more root fields than one request may ask for', async () => {
+    const aliases = Array.from(
+      { length: 21 },
+      (_, index) => `a${String(index)}: monitorChecks(first: 1) { totalCount }`
+    ).join(' ')
+    const response = await gql(`{ ${aliases} }`)
+
+    expect(response.body.errors[0].extensions.code).toBe('BAD_USER_INPUT')
+    expect(response.body.errors[0].message).toMatch(/root fields/)
+  })
+
+  it('prices a count per connection, so a wide page of counts is refused', async () => {
+    const affordable = await gql(`{
+      monitors(first: 20) { nodes { id checks(first: 1) { totalCount } } }
+    }`)
+    const refused = await gql(`{
+      monitors(first: 40) { nodes { id checks(first: 1) { totalCount } } }
+    }`)
+
+    expect(affordable.body.errors).toBeUndefined()
+    expect(refused.body.errors[0].extensions.code).toBe('BAD_USER_INPUT')
+    expect(refused.body.errors[0].message).toMatch(/Query complexity/)
+  })
+
+  it('refuses a search term too short to use the trigram index', async () => {
+    const code = await failure(
+      `query { monitors(search: "ab") { totalCount } }`
+    )
+
+    expect(code).toBe('BAD_USER_INPUT')
+  })
+
   it('deletes the monitor and takes its history with it', async () => {
     await data(`mutation ($id: ID!) { deleteMonitor(id: $id) { id } }`, {
       id: monitorId

@@ -6,8 +6,13 @@ import type { MercuriusContext } from 'mercurius'
 import { BadUserInputError } from '@/common/utils'
 
 import { shapeComplexity } from './complexity.estimator'
+import { fragmentsOf, rootFieldCount } from './document-fields'
 import { queryDepth } from './query-depth'
-import { MAX_QUERY_COMPLEXITY, MAX_QUERY_DEPTH } from './query-limits.constants'
+import {
+  MAX_QUERY_COMPLEXITY,
+  MAX_QUERY_DEPTH,
+  MAX_ROOT_FIELDS
+} from './query-limits.constants'
 
 type NamedOperationRequest = { operationName?: string | null }
 
@@ -45,8 +50,19 @@ export function guardQueryLimits(
     )
   }
 
-  if (!getOperationAST(document, operationName)) {
+  const operation = getOperationAST(document, operationName)
+
+  if (!operation) {
     return
+  }
+
+  const fragments = fragmentsOf(document)
+  const rootFields = rootFieldCount(operation, fragments)
+
+  if (rootFields > MAX_ROOT_FIELDS) {
+    refuse(
+      `Query selects ${String(rootFields)} root fields, which exceeds the limit of ${String(MAX_ROOT_FIELDS)}`
+    )
   }
 
   const complexity = getComplexity({
@@ -54,7 +70,7 @@ export function guardQueryLimits(
     operationName,
     query: document,
     variables,
-    estimators: [shapeComplexity]
+    estimators: [shapeComplexity(fragments)]
   })
 
   if (complexity > MAX_QUERY_COMPLEXITY) {

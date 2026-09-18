@@ -134,7 +134,7 @@ describe('query core', () => {
     const input = {
       orderBy: [{ owner: { name: 'ASC' as const } }],
       filter: { active: { eq: true } },
-      search: 'A'
+      search: 'Alpha'
     }
     const spec = normalizeQuery(fixtureQuery, input)
     const cursor = encodeCursor({ id: 'a', assignee: { name: null } }, spec)
@@ -153,7 +153,7 @@ describe('query core', () => {
       normalizeQuery(fixtureQuery, { ...input, filter: {}, after: cursor })
     ).toThrow('Invalid pagination cursor')
     expect(() =>
-      normalizeQuery(fixtureQuery, { ...input, search: 'B', after: cursor })
+      normalizeQuery(fixtureQuery, { ...input, search: 'Bravo', after: cursor })
     ).toThrow('Invalid pagination cursor')
     expect(() =>
       normalizeQuery(
@@ -379,5 +379,27 @@ describe('query core', () => {
     expect(() =>
       validateQueryDefinition({ ...fixtureQuery, searchable: ['rank'] })
     ).toThrow('must be a string')
+  })
+
+  it('refuses a search term too short for the trigram index', () => {
+    expect(() => normalizeQuery(fixtureQuery, { search: 'ab' })).toThrow(
+      'at least 3 characters'
+    )
+    expect(() => normalizeQuery(fixtureQuery, { search: '  a  ' })).toThrow(
+      'at least 3 characters'
+    )
+  })
+
+  it('reads a blank search as no search at all', () => {
+    expect(normalizeQuery(fixtureQuery, { search: '   ' }).filter).toEqual({
+      kind: 'constant',
+      value: true
+    })
+  })
+
+  it('refuses a search term past the ceiling', () => {
+    expect(() =>
+      normalizeQuery(fixtureQuery, { search: 'a'.repeat(201) })
+    ).toThrow('at most 200 characters')
   })
 })

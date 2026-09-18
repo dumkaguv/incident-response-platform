@@ -3,6 +3,7 @@ import { getComplexity } from 'graphql-query-complexity'
 import { describe, expect, it } from 'vitest'
 
 import { shapeComplexity } from '@/core/graphql/limits/complexity.estimator'
+import { fragmentsOf } from '@/core/graphql/limits/document-fields'
 
 const schema = buildSchema(`
   type Query {
@@ -34,10 +35,12 @@ const schema = buildSchema(`
 `)
 
 function cost(query: string): number {
+  const document = parse(query)
+
   return getComplexity({
     schema,
-    query: parse(query),
-    estimators: [shapeComplexity],
+    query: document,
+    estimators: [shapeComplexity(fragmentsOf(document))],
     variables: {}
   })
 }
@@ -51,8 +54,21 @@ describe('shapeComplexity', () => {
     expect(cost('{ items(first: 10) { nodes { tags } } }')).toBe(261)
   })
 
-  it('charges for totalCount, which is its own COUNT query', () => {
-    expect(cost('{ items(first: 10) { totalCount } }')).toBe(11)
+  it('charges totalCount beside the page, not through it', () => {
+    expect(cost('{ items(first: 10) { totalCount } }')).toBe(261)
+    expect(cost('{ items(first: 1) { totalCount } }')).toBe(252)
+  })
+
+  it('charges the count a fragment spread asked for', () => {
+    expect(
+      cost(
+        '{ items(first: 1) { ...Counted } } fragment Counted on ItemConnection { totalCount }'
+      )
+    ).toBe(252)
+  })
+
+  it('leaves a page that does not ask for the count unbilled for it', () => {
+    expect(cost('{ items(first: 1) { nodes { id } } }')).toBe(2)
   })
 
   it('does not apply the unbounded fanout to edges', () => {

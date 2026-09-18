@@ -587,6 +587,25 @@
                   "name": "monitor_is_active_next_check_at_id_idx_3556133e",
                   "prefix": "monitor_is_active_next_check_at_id_idx",
                   "unique": false
+                },
+                {
+                  "columns": [
+                    "last_status",
+                    "created_at",
+                    "id"
+                  ],
+                  "name": "monitor_last_status_created_at_id_idx_e95a53d0",
+                  "prefix": "monitor_last_status_created_at_id_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "name",
+                    "id"
+                  ],
+                  "name": "monitor_name_id_idx_69098186",
+                  "prefix": "monitor_name_id_idx",
+                  "unique": false
                 }
               ],
               "primaryKey": {
@@ -698,6 +717,16 @@
                 },
                 {
                   "columns": [
+                    "error_type",
+                    "checked_at",
+                    "id"
+                  ],
+                  "name": "monitorCheck_error_type_checked_at_id_idx_09d592cb",
+                  "prefix": "monitorCheck_error_type_checked_at_id_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
                     "monitor_id",
                     "checked_at",
                     "id"
@@ -712,6 +741,16 @@
                   ],
                   "name": "monitorCheck_monitor_id_idx_f22a8355",
                   "prefix": "monitorCheck_monitor_id_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "status",
+                    "checked_at",
+                    "id"
+                  ],
+                  "name": "monitorCheck_status_checked_at_id_idx_7a19b2ee",
+                  "prefix": "monitorCheck_status_checked_at_id_idx",
                   "unique": false
                 }
               ],
@@ -757,7 +796,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "1f8ab6752507632128c254bca3d1b59f246dca9883347ef776a9699d23522b7b"
+    "storageHash": "cdf3d02fbd3dc806b826d973e018c6bb328bb58e103263bfab4d81dae2456d39"
   },
   "execution": {
     "executionHash": "05bf92c870ad09f9c2bab6a0463a90ae666aabe5eeb41e6cae1b2c0fbe37162d",

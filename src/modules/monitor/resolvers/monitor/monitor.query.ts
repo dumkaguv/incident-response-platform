@@ -11,28 +11,30 @@ export const monitorQuery: QueryDefinition = {
   fields: {
     id: { type: 'id' },
     name: { type: 'string' },
-    url: { type: 'string' },
+    url: { type: 'string', sortable: false },
     method: {
       type: 'enum',
-      enum: { name: MonitorTypeName.method, values: MonitorMethod }
+      enum: { name: MonitorTypeName.method, values: MonitorMethod },
+      sortable: false
     },
-    intervalSeconds: { type: 'int' },
-    timeoutMs: { type: 'int' },
-    expectedStatusMin: { type: 'int' },
-    expectedStatusMax: { type: 'int' },
-    isActive: { type: 'boolean' },
-    nextCheckAt: { type: 'date' },
+    intervalSeconds: { type: 'int', sortable: false },
+    timeoutMs: { type: 'int', sortable: false },
+    expectedStatusMin: { type: 'int', sortable: false },
+    expectedStatusMax: { type: 'int', sortable: false },
+    isActive: { type: 'boolean', sortable: false },
+    nextCheckAt: { type: 'date', sortable: false },
     lastStatus: {
       type: 'enum',
       nullable: true,
-      enum: { name: MonitorTypeName.status, values: MonitorStatus }
+      enum: { name: MonitorTypeName.status, values: MonitorStatus },
+      sortable: false
     },
-    lastCheckedAt: { type: 'date', nullable: true },
-    lastStatusCode: { type: 'int', nullable: true },
-    lastResponseTimeMs: { type: 'int', nullable: true },
-    consecutiveFailures: { type: 'int' },
+    lastCheckedAt: { type: 'date', nullable: true, sortable: false },
+    lastStatusCode: { type: 'int', nullable: true, sortable: false },
+    lastResponseTimeMs: { type: 'int', nullable: true, sortable: false },
+    consecutiveFailures: { type: 'int', sortable: false },
     createdAt: { type: 'date' },
-    updatedAt: { type: 'date' },
+    updatedAt: { type: 'date', sortable: false },
     checks: {
       type: 'relation',
       field: 'checks',

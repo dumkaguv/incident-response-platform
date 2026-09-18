@@ -46,6 +46,8 @@ model Monitor {
 
   @@index([createdAt, id])
   @@index([isActive, nextCheckAt, id])
+  @@index([lastStatus, createdAt, id])
+  @@index([name, id])
 }
 
 model MonitorCheck {
@@ -62,4 +64,6 @@ model MonitorCheck {
 
   @@index([checkedAt, id])
   @@index([monitorId, checkedAt, id])
+  @@index([status, checkedAt, id])
+  @@index([errorType, checkedAt, id])
 }

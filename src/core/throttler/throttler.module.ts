@@ -10,7 +10,7 @@ import type { ThrottlerModuleOptions } from '@nestjs/throttler'
 import type { FastifyInstance } from 'fastify'
 
 import { AppConfigModule, throttleConfig } from '@/core/config'
-import { GRAPHQL_PATH } from '@/core/graphql/graphql.constants'
+import { LIVENESS_PATH } from '@/core/health/health.constants'
 
 import { GqlThrottlerGuard } from './gql-throttler.guard'
 import { HttpThrottlerHook } from './http-throttler.hook'
@@ -71,7 +71,7 @@ export class ThrottlerConfigModule implements OnApplicationBootstrap {
     const instance = this.adapterHost.httpAdapter.getInstance<FastifyInstance>()
 
     instance.addHook('onRequest', async (request, reply) => {
-      if (request.routeOptions.url !== GRAPHQL_PATH) {
+      if (request.routeOptions.url === LIVENESS_PATH) {
         return
       }
 

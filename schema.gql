@@ -364,23 +364,9 @@ input MonitorMethodFilter {
 }
 
 input MonitorOrderBy {
-  consecutiveFailures: OrderByDirection
   createdAt: OrderByDirection
-  expectedStatusMax: OrderByDirection
-  expectedStatusMin: OrderByDirection
   id: OrderByDirection
-  intervalSeconds: OrderByDirection
-  isActive: OrderByDirection
-  lastCheckedAt: OrderByDirection
-  lastResponseTimeMs: OrderByDirection
-  lastStatus: OrderByDirection
-  lastStatusCode: OrderByDirection
-  method: OrderByDirection
   name: OrderByDirection
-  nextCheckAt: OrderByDirection
-  timeoutMs: OrderByDirection
-  updatedAt: OrderByDirection
-  url: OrderByDirection
 }
 
 """Whether the probe reached a healthy response"""
@@ -499,7 +485,9 @@ type Query {
     """
     preference: [ID!]
 
-    """Case-insensitive search across: monitor.name, monitor.url"""
+    """
+    Case-insensitive search across: monitor.name, monitor.url; 3 to 200 characters
+    """
     search: String
   ): MonitorCheckConnection!
 
@@ -532,7 +520,7 @@ type Query {
     """
     preference: [ID!]
 
-    """Case-insensitive search across: name, url"""
+    """Case-insensitive search across: name, url; 3 to 200 characters"""
     search: String
   ): MonitorConnection!
 }

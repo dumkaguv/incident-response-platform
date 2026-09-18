@@ -23,6 +23,7 @@ export type FilterNode =
       field: string
       operator: FilterOperator
       value: unknown
+      nullable?: boolean
     }
   | { kind: 'and' | 'or'; children: FilterNode[] }
   | { kind: 'not'; child: FilterNode }

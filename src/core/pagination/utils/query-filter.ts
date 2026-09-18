@@ -1,5 +1,9 @@
 import { isStoredDateTime } from '@/common/utils/date-time'
 import { BadUserInputError } from '@/common/utils/errors'
+import {
+  MAX_SEARCH_TERM,
+  MIN_SEARCH_TERM
+} from '@/core/pagination/pagination.constants'
 
 import {
   type QueryDefinition,
@@ -37,6 +41,63 @@ export function negate(child: FilterNode): FilterNode {
   return child.kind === 'constant'
     ? { kind: 'constant', value: !child.value }
     : { kind: 'not', child }
+}
+
+function columnIsNull(node: {
+  field: string
+  nullable?: boolean
+  value: unknown
+}): boolean {
+  return Boolean(node.nullable) && node.value !== null
+}
+
+function nullValue(field: string): FilterNode {
+  return { kind: 'condition', field, operator: 'eq', value: null }
+}
+
+export function strictlyFalse(node: FilterNode): FilterNode {
+  switch (node.kind) {
+    case 'constant':
+      return { kind: 'constant', value: !node.value }
+
+    case 'and':
+      return group('or', node.children.map(strictlyFalse))
+
+    case 'or':
+      return group('and', node.children.map(strictlyFalse))
+
+    case 'not':
+      return notFalse(node.child)
+
+    case 'condition':
+      return columnIsNull(node)
+        ? group('or', [negate(node), nullValue(node.field)])
+        : negate(node)
+
+    default:
+      return negate(node)
+  }
+}
+
+export function notFalse(node: FilterNode): FilterNode {
+  switch (node.kind) {
+    case 'and':
+      return group('and', node.children.map(notFalse))
+
+    case 'or':
+      return group('or', node.children.map(notFalse))
+
+    case 'not':
+      return strictlyFalse(node.child)
+
+    case 'condition':
+      return columnIsNull(node)
+        ? group('or', [node, nullValue(node.field)])
+        : node
+
+    default:
+      return node
+  }
 }
 
 export function operatorsFor(field: ScalarQueryField): string[] {
@@ -196,12 +257,19 @@ export function parseFilter(fields: QueryFields, input: unknown): FilterNode {
               continue
             }
 
-            children.push({
-              kind: 'relation',
-              field: field.field ?? key,
-              quantifier,
-              child: walk(field.fields, nested, depth + 1)
-            })
+            const relation = field.field ?? key
+            const child = walk(field.fields, nested, depth + 1)
+
+            children.push(
+              quantifier === 'every'
+                ? {
+                    kind: 'relation',
+                    field: relation,
+                    quantifier: 'none',
+                    child: strictlyFalse(child)
+                  }
+                : { kind: 'relation', field: relation, quantifier, child }
+            )
           }
         } else {
           children.push({
@@ -273,7 +341,8 @@ export function parseFilter(fields: QueryFields, input: unknown): FilterNode {
             kind: 'condition',
             field: field.column ?? key,
             operator: operator as FilterOperator,
-            value: parsed
+            value: parsed,
+            nullable: field.nullable
           })
         }
       }
@@ -308,9 +377,9 @@ export function searchFilter(
     return group('and', [])
   }
 
-  if (typeof search !== 'string' || search.length > 200) {
+  if (typeof search !== 'string' || search.length > MAX_SEARCH_TERM) {
     throw new BadUserInputError(
-      'Search must be a string of at most 200 characters'
+      `Search must be a string of at most ${MAX_SEARCH_TERM} characters`
     )
   }
 
@@ -322,6 +391,12 @@ export function searchFilter(
 
   if (!definition.searchable?.length) {
     throw new BadUserInputError('Search is not enabled')
+  }
+
+  if (term.length < MIN_SEARCH_TERM) {
+    throw new BadUserInputError(
+      `Search needs at least ${MIN_SEARCH_TERM} characters; a shorter term cannot use the trigram index and scans every row`
+    )
   }
 
   return group(

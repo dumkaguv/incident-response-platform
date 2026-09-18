@@ -3,6 +3,8 @@ import type { FastifyReply } from 'fastify'
 
 import { PrismaService } from '@/core/prisma/prisma.service'
 
+import { LIVENESS_PATH, READINESS_ROUTE } from './health.constants'
+
 type Readiness = { status: 'ok' | 'error'; database: 'ok' | 'unreachable' }
 
 export const READINESS_TIMEOUT_MS = 3000
@@ -19,7 +21,7 @@ function rejectAfter(milliseconds: number): Promise<never> {
   })
 }
 
-@Controller('health')
+@Controller(LIVENESS_PATH)
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -28,7 +30,7 @@ export class HealthController {
     return { status: 'ok' }
   }
 
-  @Get('ready')
+  @Get(READINESS_ROUTE)
   public async ready(@Res() response: FastifyReply): Promise<void> {
     const readiness = await this.readiness()
 

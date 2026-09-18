@@ -163,6 +163,60 @@ describe('rate limiting: a mutation takes the write tier by itself', () => {
   })
 })
 
+describe('rate limiting: readiness shares the wall, liveness does not', () => {
+  let app: INestApplication
+
+  beforeAll(async () => {
+    process.env.THROTTLE_HTTP_LIMIT = '4'
+    process.env.THROTTLE_BURST_LIMIT = '10000'
+    app = await createApp()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env.THROTTLE_BURST_LIMIT
+    delete process.env.THROTTLE_HTTP_LIMIT
+  })
+
+  function get(path: string) {
+    return request(app.getHttpServer() as Server).get(path)
+  }
+
+  it('stops a flood of readiness probes before it reaches the database', async () => {
+    let blocked: { status: number; code: unknown } | null = null
+
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const response = await get('/health/ready')
+
+      if (response.status === 429) {
+        blocked = {
+          status: response.status,
+          code: (
+            response.body as {
+              errors: { extensions: { code: string } }[]
+            }
+          ).errors[0].extensions.code
+        }
+        break
+      }
+    }
+
+    expect(blocked).not.toBe(null)
+    expect(blocked?.code).toBe('TOO_MANY_REQUESTS')
+  })
+
+  it('never answers the liveness probe with a 429, whatever the client spent', async () => {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      await get('/health/ready')
+    }
+
+    const live = await get('/health')
+
+    expect(live.status).toBe(200)
+    expect(live.body).toEqual({ status: 'ok' })
+  })
+})
+
 describe('rate limiting: one budget per client across root fields', () => {
   let app: INestApplication
 

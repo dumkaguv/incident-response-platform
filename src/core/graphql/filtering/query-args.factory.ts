@@ -8,6 +8,10 @@ import {
 import type { Type } from '@nestjs/common'
 
 import { CursorPaginationArgs } from '@/core/pagination/cursor-pagination.args'
+import {
+  MAX_SEARCH_TERM,
+  MIN_SEARCH_TERM
+} from '@/core/pagination/pagination.constants'
 import { normalizeQuery } from '@/core/pagination/utils/normalize-query'
 import {
   type QueryDefinition,
@@ -88,7 +92,7 @@ export function QueryArgsFor(definition: QueryDefinition): Type<QueryArgs> {
   if (definition.searchable?.length) {
     Field(() => String, {
       nullable: true,
-      description: `Case-insensitive search across: ${definition.searchable.join(', ')}`
+      description: `Case-insensitive search across: ${definition.searchable.join(', ')}; ${String(MIN_SEARCH_TERM)} to ${String(MAX_SEARCH_TERM)} characters`
     })(GeneratedQueryArgs.prototype, 'search')
   }
 

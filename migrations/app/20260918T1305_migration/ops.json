@@ -1,0 +1,158 @@
+[
+  {
+    "id": "index.monitor.monitor_last_status_created_at_id_idx_e95a53d0",
+    "label": "Create index \"monitor_last_status_created_at_id_idx_e95a53d0\" on \"monitor\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "monitor_last_status_created_at_id_idx_e95a53d0",
+        "table": "monitor"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"monitor_last_status_created_at_id_idx_e95a53d0\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitor_last_status_created_at_id_idx_e95a53d0\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"monitor_last_status_created_at_id_idx_e95a53d0\"",
+        "sql": "CREATE INDEX \"monitor_last_status_created_at_id_idx_e95a53d0\" ON \"public\".\"monitor\" (\"last_status\", \"created_at\", \"id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"monitor_last_status_created_at_id_idx_e95a53d0\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitor_last_status_created_at_id_idx_e95a53d0\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.monitor.monitor_name_id_idx_69098186",
+    "label": "Create index \"monitor_name_id_idx_69098186\" on \"monitor\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "monitor_name_id_idx_69098186",
+        "table": "monitor"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"monitor_name_id_idx_69098186\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitor_name_id_idx_69098186\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"monitor_name_id_idx_69098186\"",
+        "sql": "CREATE INDEX \"monitor_name_id_idx_69098186\" ON \"public\".\"monitor\" (\"name\", \"id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"monitor_name_id_idx_69098186\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitor_name_id_idx_69098186\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.monitorCheck.monitorCheck_error_type_checked_at_id_idx_09d592cb",
+    "label": "Create index \"monitorCheck_error_type_checked_at_id_idx_09d592cb\" on \"monitorCheck\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "monitorCheck_error_type_checked_at_id_idx_09d592cb",
+        "table": "monitorCheck"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"monitorCheck_error_type_checked_at_id_idx_09d592cb\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck_error_type_checked_at_id_idx_09d592cb\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"monitorCheck_error_type_checked_at_id_idx_09d592cb\"",
+        "sql": "CREATE INDEX \"monitorCheck_error_type_checked_at_id_idx_09d592cb\" ON \"public\".\"monitorCheck\" (\"error_type\", \"checked_at\", \"id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"monitorCheck_error_type_checked_at_id_idx_09d592cb\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck_error_type_checked_at_id_idx_09d592cb\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.monitorCheck.monitorCheck_status_checked_at_id_idx_7a19b2ee",
+    "label": "Create index \"monitorCheck_status_checked_at_id_idx_7a19b2ee\" on \"monitorCheck\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "monitorCheck_status_checked_at_id_idx_7a19b2ee",
+        "table": "monitorCheck"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"monitorCheck_status_checked_at_id_idx_7a19b2ee\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck_status_checked_at_id_idx_7a19b2ee\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"monitorCheck_status_checked_at_id_idx_7a19b2ee\"",
+        "sql": "CREATE INDEX \"monitorCheck_status_checked_at_id_idx_7a19b2ee\" ON \"public\".\"monitorCheck\" (\"status\", \"checked_at\", \"id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"monitorCheck_status_checked_at_id_idx_7a19b2ee\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"monitorCheck_status_checked_at_id_idx_7a19b2ee\""
+        ]
+      }
+    ]
+  }
+]

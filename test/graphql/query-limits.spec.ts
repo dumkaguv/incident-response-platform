@@ -7,7 +7,7 @@ import { guardQueryLimits } from '@/core/graphql/limits/query-limits.hook'
 
 const schema = buildSchema(`
   type Query { monitors(first: Int): MonitorConnection!, root: Node! }
-  type MonitorConnection { nodes: [Monitor!]!, pageInfo: PageInfo! }
+  type MonitorConnection { nodes: [Monitor!]!, pageInfo: PageInfo!, totalCount: Int! }
   type PageInfo { hasNextPage: Boolean! }
   type Monitor { id: ID!, name: String! }
   type Node { child: Node!, id: ID! }
@@ -54,6 +54,39 @@ describe('guardQueryLimits', () => {
 
   it('refuses as user input, not as a server fault', () => {
     expect(refusalOf(deep).extensions.code).toBe('BAD_USER_INPUT')
+  })
+
+  it('refuses more root fields than the limit, however cheap each one looks', () => {
+    const aliases = Array.from(
+      { length: 21 },
+      (_, index) => `a${String(index)}: monitors(first: 1) { totalCount }`
+    ).join(' ')
+
+    expect(() => guard(`{ ${aliases} }`)).toThrow(
+      /Query selects 21 root fields, which exceeds the limit of 20/
+    )
+  })
+
+  it('lets a request that stays at the root field limit through', () => {
+    const aliases = Array.from(
+      { length: 20 },
+      (_, index) => `a${String(index)}: monitors(first: 1) { totalCount }`
+    ).join(' ')
+
+    expect(() => guard(`{ ${aliases} }`)).not.toThrow()
+  })
+
+  it('counts the root fields of the operation the client named', () => {
+    const document = `
+      query Narrow { monitors(first: 1) { totalCount } }
+      query Wide { ${Array.from(
+        { length: 21 },
+        (_, index) => `a${String(index)}: monitors(first: 1) { totalCount }`
+      ).join(' ')} }
+    `
+
+    expect(() => guard(document, 'Narrow')).not.toThrow()
+    expect(() => guard(document, 'Wide')).toThrow(/root fields/)
   })
 
   it('measures the operation the client named', () => {
