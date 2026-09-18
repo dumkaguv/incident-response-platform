@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { NotFoundError, TooManyRequestsError } from '@/common/utils'
+import {
+  ConflictError,
+  NotFoundError,
+  TooManyRequestsError
+} from '@/common/utils'
 import { MonitorLimit } from '@/modules/monitor/constants'
 import { MonitorCheckService } from '@/modules/monitor/services'
 import { CheckErrorType, MonitorStatus } from '@/modules/monitor/types'
@@ -129,6 +133,19 @@ describe('MonitorCheckService', () => {
       statusCode: null,
       errorType: CheckErrorType.CONNECTION_REFUSED
     })
+  })
+
+  it('refuses to probe a paused monitor and never reaches the network', async () => {
+    const fetched = vi.fn()
+    const recorded: MonitorCheckCreateData[] = []
+
+    vi.stubGlobal('fetch', fetched)
+
+    await expect(
+      serviceWith(recorded, { ...monitor, isActive: false }).run('m1')
+    ).rejects.toBeInstanceOf(ConflictError)
+    expect(fetched).not.toHaveBeenCalled()
+    expect(recorded).toEqual([])
   })
 
   it('never probes a monitor the service could not find', async () => {

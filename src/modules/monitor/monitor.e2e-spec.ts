@@ -196,6 +196,22 @@ describe('monitor module (e2e)', () => {
     })
   })
 
+  it('refuses to probe a paused monitor', async () => {
+    const code = await failure(
+      `mutation ($id: ID!) { checkMonitor(id: $id) { id } }`,
+      { id: monitorId }
+    )
+
+    expect(code).toBe('CONFLICT')
+
+    await data(
+      `mutation ($id: ID!) {
+        updateMonitor(id: $id, input: { isActive: true }) { isActive }
+      }`,
+      { id: monitorId }
+    )
+  })
+
   it('probes the target and records an UP check', async () => {
     const run = await data(
       `mutation ($id: ID!) {

@@ -1,7 +1,11 @@
 import { msg } from '@lingui/core/macro'
 import { Injectable } from '@nestjs/common'
 
-import { NotFoundError, TooManyRequestsError } from '@/common/utils'
+import {
+  ConflictError,
+  NotFoundError,
+  TooManyRequestsError
+} from '@/common/utils'
 import { MonitorLimit } from '@/modules/monitor/constants'
 import { MonitorCheckRepository } from '@/modules/monitor/repositories'
 import { MonitorService } from '@/modules/monitor/services/monitor'
@@ -36,6 +40,11 @@ export class MonitorCheckService {
 
     try {
       const monitor = await this.monitors.getById(id)
+
+      if (!monitor.isActive) {
+        throw new ConflictError(msg`Monitor "${id}" is paused`)
+      }
+
       const checkedAt = new Date().toISOString()
       const outcome = await probe(monitor)
       const check = await this.checks.recordOutcome({

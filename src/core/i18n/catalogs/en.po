@@ -13,6 +13,12 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#: src/modules/monitor/services/monitor-check/monitor-check.service.ts
+msgid "Monitor \"{id}\" is paused"
+msgstr "Monitor \"{id}\" is paused"
+
+#: src/modules/monitor/resolvers/monitor-check/monitor-check.resolver.ts
+#: src/modules/monitor/services/monitor-check/monitor-check.service.ts
 #: src/modules/monitor/services/monitor/monitor.service.ts
 msgid "Monitor \"{id}\" was not found"
 msgstr "Monitor \"{id}\" was not found"
