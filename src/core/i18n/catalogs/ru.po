@@ -13,7 +13,7 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
-#: src/modules/monitor/services/monitor/monitor.service.ts
+#: src/modules/monitor/utils/assert-status-range/assert-status-range.ts
 msgid "expectedStatusMin must not exceed expectedStatusMax"
 msgstr "expectedStatusMin не может быть больше expectedStatusMax"
 
