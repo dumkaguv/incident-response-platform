@@ -1,5 +1,7 @@
 import { minutes, seconds } from '@nestjs/throttler'
 
+export const THROTTLE_KEY_PREFIX = 'throttler'
+
 export const HTTP_TIER = { limit: 600, ttl: seconds(10) } as const
 
 export const THROTTLE_TIERS = {

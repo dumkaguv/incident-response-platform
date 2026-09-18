@@ -23,11 +23,13 @@ function rejectAfter(milliseconds: number): Promise<never> {
 
 @Controller(LIVENESS_PATH)
 export class HealthController {
+  private readonly okStatus = 'ok'
+
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  public live(): { status: 'ok' } {
-    return { status: 'ok' }
+  public live(): { status: string } {
+    return { status: this.okStatus }
   }
 
   @Get(READINESS_ROUTE)
@@ -36,7 +38,7 @@ export class HealthController {
 
     response
       .status(
-        readiness.status === 'ok'
+        readiness.status === this.okStatus
           ? HttpStatus.OK
           : HttpStatus.SERVICE_UNAVAILABLE
       )

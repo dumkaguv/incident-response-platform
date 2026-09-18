@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import { INestApplication } from '@nestjs/common'
 import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { Test } from '@nestjs/testing'
@@ -11,6 +13,8 @@ import { WRITE_TIERS } from '@/core/throttler'
 type Server = Parameters<typeof request>[0]
 
 async function createApp(): Promise<INestApplication> {
+  process.env.THROTTLE_KEY_PREFIX = `e2e-${randomUUID()}`
+
   const fixture = await Test.createTestingModule({
     imports: [AppModule]
   }).compile()

@@ -62,6 +62,7 @@ export default defineConfig({
         test: {
           name: 'e2e',
           include: ['test/**/*.e2e-spec.ts', 'src/**/*.e2e-spec.ts'],
+          setupFiles: ['test/e2e-setup.ts'],
           ...databaseBound
         }
       },

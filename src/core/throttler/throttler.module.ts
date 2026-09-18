@@ -6,19 +6,23 @@ import {
 import { APP_GUARD, HttpAdapterHost } from '@nestjs/core'
 import { ThrottlerModule } from '@nestjs/throttler'
 import type { ConfigType } from '@nestjs/config'
-import type { ThrottlerModuleOptions } from '@nestjs/throttler'
+import type {
+  ThrottlerModuleOptions,
+  ThrottlerOptions
+} from '@nestjs/throttler'
 import type { FastifyInstance } from 'fastify'
+import type { Redis } from 'ioredis'
 
 import { AppConfigModule, throttleConfig } from '@/core/config'
 import { LIVENESS_PATH } from '@/core/health/health.constants'
+import { REDIS_THROTTLER_CLIENT, RedisModule } from '@/core/redis'
 
 import { GqlThrottlerGuard } from './gql-throttler.guard'
 import { HttpThrottlerHook } from './http-throttler.hook'
 import { isMutation } from './operation'
+import { RedisThrottlerStorage } from './redis-throttler.storage'
 
-function tiers(
-  config: ConfigType<typeof throttleConfig>
-): ThrottlerModuleOptions {
+function tiers(config: ConfigType<typeof throttleConfig>): ThrottlerOptions[] {
   const { read, write } = config
 
   function byOperation(onRead: number, onWrite: number) {
@@ -26,34 +30,38 @@ function tiers(
       isMutation(context) ? onWrite : onRead
   }
 
-  return {
-    throttlers: [
-      {
-        name: 'burst',
-        ttl: read.burst.ttl,
-        limit: byOperation(read.burst.limit, write.burst.limit),
-        blockDuration: config.blockDuration
-      },
-      {
-        name: 'sustained',
-        ttl: read.sustained.ttl,
-        limit: byOperation(read.sustained.limit, write.sustained.limit)
-      },
-      {
-        name: 'hourly',
-        ttl: read.hourly.ttl,
-        limit: read.hourly.limit
-      }
-    ]
-  }
+  return [
+    {
+      name: 'burst',
+      ttl: read.burst.ttl,
+      limit: byOperation(read.burst.limit, write.burst.limit),
+      blockDuration: config.blockDuration
+    },
+    {
+      name: 'sustained',
+      ttl: read.sustained.ttl,
+      limit: byOperation(read.sustained.limit, write.sustained.limit)
+    },
+    {
+      name: 'hourly',
+      ttl: read.hourly.ttl,
+      limit: read.hourly.limit
+    }
+  ]
 }
 
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
-      imports: [AppConfigModule],
-      inject: [throttleConfig.KEY],
-      useFactory: tiers
+      imports: [AppConfigModule, RedisModule],
+      inject: [throttleConfig.KEY, REDIS_THROTTLER_CLIENT],
+      useFactory: (
+        config: ConfigType<typeof throttleConfig>,
+        redis: Redis
+      ): ThrottlerModuleOptions => ({
+        throttlers: tiers(config),
+        storage: new RedisThrottlerStorage(redis, config.keyPrefix)
+      })
     })
   ],
   providers: [

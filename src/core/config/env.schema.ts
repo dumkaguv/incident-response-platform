@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { QUEUE_DEFAULTS } from '@/core/queue/queue.constants'
 import {
   HTTP_TIER,
+  THROTTLE_KEY_PREFIX,
   THROTTLE_TIERS,
   WRITE_TIERS
 } from '@/core/throttler/throttler.constants'
@@ -55,6 +56,7 @@ export const envSchema = z.preprocess(
     THROTTLE_HOURLY_LIMIT: positive(THROTTLE_TIERS.hourly.limit),
     THROTTLE_WRITE_BURST_LIMIT: positive(WRITE_TIERS.burst.limit),
     THROTTLE_WRITE_SUSTAINED_LIMIT: positive(WRITE_TIERS.sustained.limit),
+    THROTTLE_KEY_PREFIX: z.string().min(1).default(THROTTLE_KEY_PREFIX),
     QUEUE_TICK_MS: positive(QUEUE_DEFAULTS.tickMs),
     QUEUE_BATCH_SIZE: positive(QUEUE_DEFAULTS.batchSize),
     QUEUE_CONCURRENCY: positive(QUEUE_DEFAULTS.concurrency),
