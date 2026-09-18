@@ -1,7 +1,7 @@
 import { msg } from '@lingui/core/macro'
 import { Injectable } from '@nestjs/common'
 
-import { NotFoundError } from '@/common/utils'
+import { BadUserInputError, NotFoundError } from '@/common/utils'
 import { MonitorRepository } from '@/modules/monitor/repositories'
 import type { Connection, QuerySpec } from '@/core/pagination'
 import type {
@@ -9,6 +9,21 @@ import type {
   MonitorUpdateData
 } from '@/modules/monitor/inputs'
 import type { Monitor } from '@/modules/monitor/types'
+
+function assertStatusRange(
+  expectedStatusMin: number | undefined,
+  expectedStatusMax: number | undefined
+): void {
+  if (
+    expectedStatusMin !== undefined &&
+    expectedStatusMax !== undefined &&
+    expectedStatusMin > expectedStatusMax
+  ) {
+    throw new BadUserInputError(
+      msg`expectedStatusMin must not exceed expectedStatusMax`
+    )
+  }
+}
 
 @Injectable()
 export class MonitorService {
@@ -29,8 +44,12 @@ export class MonitorService {
     return this.monitors.findByIds(ids)
   }
 
-  public create(data: MonitorCreateData): Promise<Monitor> {
-    return this.monitors.create(data)
+  public async create(data: MonitorCreateData): Promise<Monitor> {
+    assertStatusRange(data.expectedStatusMin, data.expectedStatusMax)
+
+    const created = await this.monitors.create(data)
+
+    return created
   }
 
   public async update(id: string, data: MonitorUpdateData): Promise<Monitor> {
@@ -40,6 +59,18 @@ export class MonitorService {
 
     if (!Object.keys(patch).length) {
       return this.getById(id)
+    }
+
+    if (
+      patch.expectedStatusMin !== undefined ||
+      patch.expectedStatusMax !== undefined
+    ) {
+      const current = await this.getById(id)
+
+      assertStatusRange(
+        patch.expectedStatusMin ?? current.expectedStatusMin,
+        patch.expectedStatusMax ?? current.expectedStatusMax
+      )
     }
 
     return this.found(await this.monitors.update(id, patch), id)

@@ -13,6 +13,10 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#: src/modules/monitor/services/monitor/monitor.service.ts
+msgid "expectedStatusMin must not exceed expectedStatusMax"
+msgstr "expectedStatusMin nu poate depăși expectedStatusMax"
+
 #: src/modules/monitor/services/monitor-check/monitor-check.service.ts
 msgid "Monitor \"{id}\" is paused"
 msgstr "Monitorul „{id}” este în pauză"

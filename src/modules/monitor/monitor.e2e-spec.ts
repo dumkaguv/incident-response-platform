@@ -138,6 +138,31 @@ describe('monitor module (e2e)', () => {
     expect(code).toBe('BAD_USER_INPUT')
   })
 
+  it('refuses a status range whose floor exceeds its ceiling', async () => {
+    const created = await failure(
+      `mutation ($input: CreateMonitorInput!) {
+        createMonitor(input: $input) { id }
+      }`,
+      {
+        input: {
+          name: 'Backwards',
+          url: `${origin}/ok`,
+          expectedStatusMin: 500,
+          expectedStatusMax: 200
+        }
+      }
+    )
+    const updated = await failure(
+      `mutation ($id: ID!) {
+        updateMonitor(id: $id, input: { expectedStatusMin: 400 }) { id }
+      }`,
+      { id: monitorId }
+    )
+
+    expect(created).toBe('BAD_USER_INPUT')
+    expect(updated).toBe('BAD_USER_INPUT')
+  })
+
   it('reads one monitor back and reports a missing one as NOT_FOUND', async () => {
     const one = await data(
       `query ($id: ID!) { monitor(id: $id) { id name } }`,
