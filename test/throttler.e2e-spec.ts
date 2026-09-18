@@ -1,4 +1,4 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common'
+import { INestApplication } from '@nestjs/common'
 import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
@@ -18,7 +18,6 @@ async function createApp(): Promise<INestApplication> {
     new FastifyAdapter()
   )
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }))
   await app.init()
   await app.getHttpAdapter().getInstance().ready()
 

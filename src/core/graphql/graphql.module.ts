@@ -1,8 +1,8 @@
 import { join } from 'node:path'
 
 import { type ApolloDriverConfig, ApolloDriver } from '@nestjs/apollo'
-import { Module } from '@nestjs/common'
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core'
+import { Module, ValidationPipe } from '@nestjs/common'
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core'
 import { GraphQLModule } from '@nestjs/graphql'
 import type { ConfigType } from '@nestjs/config'
 import type { FastifyReply, FastifyRequest } from 'fastify'
@@ -41,6 +41,7 @@ export function driverConfig(
     })
   ],
   providers: [
+    { provide: APP_PIPE, useValue: new ValidationPipe({ transform: true }) },
     { provide: APP_FILTER, useClass: AppErrorFilter },
     { provide: APP_INTERCEPTOR, useClass: ResetLoadersInterceptor },
     QueryLimitsPlugin

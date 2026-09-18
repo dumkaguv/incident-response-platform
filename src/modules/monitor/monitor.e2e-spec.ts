@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
-import { INestApplication, ValidationPipe } from '@nestjs/common'
+import { INestApplication } from '@nestjs/common'
 import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
@@ -40,7 +40,6 @@ describe('monitor module (e2e)', () => {
     app = fixture.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter()
     )
-    app.useGlobalPipes(new ValidationPipe({ transform: true }))
     await app.init()
     await app.getHttpAdapter().getInstance().ready()
   })
@@ -295,14 +294,17 @@ describe('monitor module (e2e)', () => {
       `query ($id: ID!) {
         monitorChecks(filter: { monitorId: { eq: $id } }, first: 5) {
           totalCount
-          nodes { status checkedAt }
+          nodes { status checkedAt monitor { id name } }
           pageInfo { hasNextPage endCursor }
         }
       }`,
       { id: monitorId }
     )
 
-    expect(history.monitorChecks).toMatchObject({ totalCount: 1 })
+    expect(history.monitorChecks).toMatchObject({
+      totalCount: 1,
+      nodes: [{ monitor: { id: monitorId, name: 'Renamed target' } }]
+    })
   })
 
   it('pages the nested connection per monitor', async () => {

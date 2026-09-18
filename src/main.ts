@@ -2,7 +2,6 @@ import { existsSync } from 'node:fs'
 
 import compress from '@fastify/compress'
 import helmet from '@fastify/helmet'
-import { ValidationPipe } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { FastifyAdapter } from '@nestjs/platform-fastify'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
@@ -54,7 +53,6 @@ async function bootstrap(): Promise<void> {
     zlibOptions: { level: 6 }
   })
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }))
   app.enableShutdownHooks()
 
   await app.listen(PORT, ALL_INTERFACES)
