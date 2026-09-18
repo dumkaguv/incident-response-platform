@@ -99,17 +99,31 @@ export function QueryArgsFor(definition: QueryDefinition): Type<QueryArgs> {
   return GeneratedQueryArgs
 }
 
+const GROUP_MEANING: Record<string, string> = {
+  and: 'Every condition in the list must hold',
+  or: 'At least one condition in the list must hold'
+}
+
+const QUANTIFIER_MEANING: Record<string, string> = {
+  some: 'At least one related row matches',
+  every: 'Every related row matches',
+  none: 'No related row matches'
+}
+
 function buildFilterInput(name: string, fields: QueryFields): Type<unknown> {
   @InputType(`${name}Filter`)
   class FilterInput {}
 
-  for (const operator of ['and', 'or']) {
-    Field(() => [FilterInput], { nullable: true })(
+  for (const [operator, description] of Object.entries(GROUP_MEANING)) {
+    Field(() => [FilterInput], { nullable: true, description })(
       FilterInput.prototype,
       operator
     )
   }
-  Field(() => FilterInput, { nullable: true })(FilterInput.prototype, 'not')
+  Field(() => FilterInput, {
+    nullable: true,
+    description: 'The condition inside must not hold'
+  })(FilterInput.prototype, 'not')
 
   for (const [key, field] of Object.entries(fields)) {
     let input: Type<unknown>
@@ -122,8 +136,10 @@ function buildFilterInput(name: string, fields: QueryFields): Type<unknown> {
         @InputType(`${name}_${key}RelationFilter`)
         class CollectionFilterInput {}
 
-        for (const quantifier of ['some', 'every', 'none']) {
-          Field(() => nested, { nullable: true })(
+        for (const [quantifier, description] of Object.entries(
+          QUANTIFIER_MEANING
+        )) {
+          Field(() => nested, { nullable: true, description })(
             CollectionFilterInput.prototype,
             quantifier
           )

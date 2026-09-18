@@ -3,13 +3,13 @@
 # ------------------------------------------------------
 
 input BooleanFilter {
-  """eq"""
+  """Equal to this value"""
   eq: Boolean
 
-  """is"""
+  """Whether the field holds a value at all"""
   is: FilterIs
 
-  """ne"""
+  """Not equal to this value"""
   ne: Boolean
 }
 
@@ -26,19 +26,19 @@ enum CheckErrorType {
 }
 
 input CheckErrorTypeFilter {
-  """eq"""
+  """Equal to this value"""
   eq: CheckErrorType
 
-  """in"""
+  """Equal to any value in the list"""
   in: [CheckErrorType!]
 
-  """is"""
+  """Whether the field holds a value at all"""
   is: FilterIs
 
-  """ne"""
+  """Not equal to this value"""
   ne: CheckErrorType
 
-  """nin"""
+  """Equal to none of the values in the list"""
   nin: [CheckErrorType!]
 }
 
@@ -74,31 +74,31 @@ An RFC 3339 date-time with an offset, such as 2026-09-18T09:07:20.120265Z; fract
 scalar DateTime
 
 input DateTimeFilter {
-  """eq"""
+  """Equal to this value"""
   eq: DateTime
 
-  """gt"""
+  """Greater than this value"""
   gt: DateTime
 
-  """gte"""
+  """Greater than or equal to this value"""
   gte: DateTime
 
-  """in"""
+  """Equal to any value in the list"""
   in: [DateTime!]
 
-  """is"""
+  """Whether the field holds a value at all"""
   is: FilterIs
 
-  """lt"""
+  """Less than this value"""
   lt: DateTime
 
-  """lte"""
+  """Less than or equal to this value"""
   lte: DateTime
 
-  """ne"""
+  """Not equal to this value"""
   ne: DateTime
 
-  """nin"""
+  """Equal to none of the values in the list"""
   nin: [DateTime!]
 }
 
@@ -109,60 +109,60 @@ enum FilterIs {
 }
 
 input IdFilter {
-  """eq"""
+  """Equal to this value"""
   eq: ID
 
-  """gt"""
+  """Greater than this value"""
   gt: ID
 
-  """gte"""
+  """Greater than or equal to this value"""
   gte: ID
 
-  """in"""
+  """Equal to any value in the list"""
   in: [ID!]
 
-  """is"""
+  """Whether the field holds a value at all"""
   is: FilterIs
 
-  """lt"""
+  """Less than this value"""
   lt: ID
 
-  """lte"""
+  """Less than or equal to this value"""
   lte: ID
 
-  """ne"""
+  """Not equal to this value"""
   ne: ID
 
-  """nin"""
+  """Equal to none of the values in the list"""
   nin: [ID!]
 }
 
 input IntFilter {
-  """eq"""
+  """Equal to this value"""
   eq: Int
 
-  """gt"""
+  """Greater than this value"""
   gt: Int
 
-  """gte"""
+  """Greater than or equal to this value"""
   gte: Int
 
-  """in"""
+  """Equal to any value in the list"""
   in: [Int!]
 
-  """is"""
+  """Whether the field holds a value at all"""
   is: FilterIs
 
-  """lt"""
+  """Less than this value"""
   lt: Int
 
-  """lte"""
+  """Less than or equal to this value"""
   lte: Int
 
-  """ne"""
+  """Not equal to this value"""
   ne: Int
 
-  """nin"""
+  """Equal to none of the values in the list"""
   nin: [Int!]
 }
 
@@ -268,6 +268,7 @@ type MonitorCheckEdge {
 }
 
 input MonitorCheckFilter {
+  """Every condition in the list must hold"""
   and: [MonitorCheckFilter!]
   checkedAt: DateTimeFilter
   errorMessage: StringFilter
@@ -275,7 +276,11 @@ input MonitorCheckFilter {
   id: IdFilter
   monitor: MonitorCheck_monitorFilter
   monitorId: IdFilter
+
+  """The condition inside must not hold"""
   not: MonitorCheckFilter
+
+  """At least one condition in the list must hold"""
   or: [MonitorCheckFilter!]
   responseTimeMs: IntFilter
   status: MonitorStatusFilter
@@ -288,11 +293,16 @@ input MonitorCheckOrderBy {
 }
 
 input MonitorCheck_monitorFilter {
+  """Every condition in the list must hold"""
   and: [MonitorCheck_monitorFilter!]
   id: IdFilter
   isActive: BooleanFilter
   name: StringFilter
+
+  """The condition inside must not hold"""
   not: MonitorCheck_monitorFilter
+
+  """At least one condition in the list must hold"""
   or: [MonitorCheck_monitorFilter!]
   url: StringFilter
 }
@@ -317,6 +327,7 @@ type MonitorEdge {
 }
 
 input MonitorFilter {
+  """Every condition in the list must hold"""
   and: [MonitorFilter!]
   checks: Monitor_checksRelationFilter
   consecutiveFailures: IntFilter
@@ -333,7 +344,11 @@ input MonitorFilter {
   method: MonitorMethodFilter
   name: StringFilter
   nextCheckAt: DateTimeFilter
+
+  """The condition inside must not hold"""
   not: MonitorFilter
+
+  """At least one condition in the list must hold"""
   or: [MonitorFilter!]
   timeoutMs: IntFilter
   updatedAt: DateTimeFilter
@@ -347,19 +362,19 @@ enum MonitorMethod {
 }
 
 input MonitorMethodFilter {
-  """eq"""
+  """Equal to this value"""
   eq: MonitorMethod
 
-  """in"""
+  """Equal to any value in the list"""
   in: [MonitorMethod!]
 
-  """is"""
+  """Whether the field holds a value at all"""
   is: FilterIs
 
-  """ne"""
+  """Not equal to this value"""
   ne: MonitorMethod
 
-  """nin"""
+  """Equal to none of the values in the list"""
   nin: [MonitorMethod!]
 }
 
@@ -376,36 +391,46 @@ enum MonitorStatus {
 }
 
 input MonitorStatusFilter {
-  """eq"""
+  """Equal to this value"""
   eq: MonitorStatus
 
-  """in"""
+  """Equal to any value in the list"""
   in: [MonitorStatus!]
 
-  """is"""
+  """Whether the field holds a value at all"""
   is: FilterIs
 
-  """ne"""
+  """Not equal to this value"""
   ne: MonitorStatus
 
-  """nin"""
+  """Equal to none of the values in the list"""
   nin: [MonitorStatus!]
 }
 
 input Monitor_checksFilter {
+  """Every condition in the list must hold"""
   and: [Monitor_checksFilter!]
   checkedAt: DateTimeFilter
   errorType: CheckErrorTypeFilter
   id: IdFilter
+
+  """The condition inside must not hold"""
   not: Monitor_checksFilter
+
+  """At least one condition in the list must hold"""
   or: [Monitor_checksFilter!]
   status: MonitorStatusFilter
   statusCode: IntFilter
 }
 
 input Monitor_checksRelationFilter {
+  """Every related row matches"""
   every: Monitor_checksFilter
+
+  """No related row matches"""
   none: Monitor_checksFilter
+
+  """At least one related row matches"""
   some: Monitor_checksFilter
 }
 
@@ -526,40 +551,40 @@ type Query {
 }
 
 input StringFilter {
-  """contains (case-insensitive)"""
+  """Holds this text anywhere, ignoring case"""
   contains: String
 
-  """endsWith (case-insensitive)"""
+  """Ends with this text, ignoring case"""
   endsWith: String
 
-  """eq"""
+  """Equal to this value"""
   eq: String
 
-  """gt"""
+  """Greater than this value"""
   gt: String
 
-  """gte"""
+  """Greater than or equal to this value"""
   gte: String
 
-  """in"""
+  """Equal to any value in the list"""
   in: [String!]
 
-  """is"""
+  """Whether the field holds a value at all"""
   is: FilterIs
 
-  """lt"""
+  """Less than this value"""
   lt: String
 
-  """lte"""
+  """Less than or equal to this value"""
   lte: String
 
-  """ne"""
+  """Not equal to this value"""
   ne: String
 
-  """nin"""
+  """Equal to none of the values in the list"""
   nin: [String!]
 
-  """startsWith (case-insensitive)"""
+  """Begins with this text, ignoring case"""
   startsWith: String
 }
 

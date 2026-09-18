@@ -22,6 +22,21 @@ registerEnumType(FilterIs, {
   description: 'Exact SQL null checks'
 })
 
+const OPERATOR_MEANING: Record<string, string> = {
+  eq: 'Equal to this value',
+  ne: 'Not equal to this value',
+  in: 'Equal to any value in the list',
+  nin: 'Equal to none of the values in the list',
+  is: 'Whether the field holds a value at all',
+  gt: 'Greater than this value',
+  gte: 'Greater than or equal to this value',
+  lt: 'Less than this value',
+  lte: 'Less than or equal to this value',
+  contains: 'Holds this text anywhere, ignoring case',
+  startsWith: 'Begins with this text, ignoring case',
+  endsWith: 'Ends with this text, ignoring case'
+}
+
 const inputs = new Map<string, Type<unknown>>()
 
 type ScalarRef =
@@ -87,11 +102,7 @@ export function scalarFilterInputFor(field: ScalarQueryField): Type<unknown> {
   for (const operator of operatorsFor(field)) {
     const list = operator === 'in' || operator === 'nin'
     const ref = operator === 'is' ? FilterIs : valueType
-    const description = ['contains', 'startsWith', 'endsWith'].includes(
-      operator
-    )
-      ? `${operator} (case-insensitive)`
-      : operator
+    const description = OPERATOR_MEANING[operator] ?? operator
 
     if (list) {
       Field(() => [ref], { nullable: true, description })(
