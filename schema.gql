@@ -235,6 +235,9 @@ type MonitorCheck {
   """Set only when the probe failed"""
   errorType: CheckErrorType
   id: ID!
+
+  """The monitor this probe was recorded for"""
+  monitor: Monitor!
   monitorId: ID!
 
   """Round trip in milliseconds, absent when no response arrived"""
