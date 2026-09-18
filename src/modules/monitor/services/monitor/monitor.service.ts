@@ -25,6 +25,10 @@ export class MonitorService {
     return this.found(await this.monitors.findById(id), id)
   }
 
+  public listByIds(ids: readonly string[]): Promise<Monitor[]> {
+    return this.monitors.findByIds(ids)
+  }
+
   public create(data: MonitorCreateData): Promise<Monitor> {
     return this.monitors.create(data)
   }

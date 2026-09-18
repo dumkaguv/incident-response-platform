@@ -40,6 +40,14 @@ export class MonitorRepository {
     return this.table.where((fields) => fields.id.eq(id)).first()
   }
 
+  public async findByIds(ids: readonly string[]): Promise<Monitor[]> {
+    const monitors = await this.table
+      .where((fields) => fields.id.in([...ids]))
+      .all()
+
+    return monitors
+  }
+
   public create(data: MonitorCreateData): Promise<Monitor> {
     return this.table.create(data)
   }
