@@ -56,7 +56,9 @@ export class MonitorService {
       Object.entries(data).filter(([, value]) => value !== undefined)
     ) as MonitorUpdateData
 
-    if (!Object.keys(patch).length) {
+    const nothingToWrite = Object.keys(patch).length === 0
+
+    if (nothingToWrite) {
       return this.getById(id)
     }
 
