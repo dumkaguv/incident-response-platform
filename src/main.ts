@@ -1,59 +1,66 @@
+import { existsSync } from 'node:fs'
+
+import compress from '@fastify/compress'
+import helmet from '@fastify/helmet'
 import { ValidationPipe } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
-import compression from 'compression'
-import helmet from 'helmet'
-import type { ConfigType } from '@nestjs/config'
-import type { Express, NextFunction, Request, Response } from 'express'
+import { FastifyAdapter } from '@nestjs/platform-fastify'
+import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 
-import { appConfig } from '@/core/config'
+import { env } from '@/core/config'
 
 import { AppModule } from './app/app.module'
 
 const GRAPHQL_PATH = '/graphql'
+const ENV_FILE = '.env'
+const ALL_INTERFACES = '0.0.0.0'
+
+function pathOf(url: string): string {
+  const query = url.indexOf('?')
+
+  return query >= 0 ? url.slice(0, query) : url
+}
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule)
-  const { port, trustProxy } = app.get<ConfigType<typeof appConfig>>(
-    appConfig.KEY
-  )
-
-  if (trustProxy) {
-    const express = app.getHttpAdapter().getInstance() as Express
-
-    express.set('trust proxy', trustProxy)
+  if (existsSync(ENV_FILE)) {
+    process.loadEnvFile(ENV_FILE)
   }
 
-  app.use((request: Request, response: Response, next: NextFunction) => {
-    if (request.path === '/') {
-      response.redirect(GRAPHQL_PATH)
+  const { PORT, TRUST_PROXY } = env()
+  const adapter = new FastifyAdapter({ trustProxy: TRUST_PROXY })
+
+  adapter.getInstance().addHook('onRequest', (request, reply, done) => {
+    if (pathOf(request.url) === '/') {
+      void reply.redirect(GRAPHQL_PATH)
 
       return
     }
 
-    next()
+    done()
   })
 
-  app.use(
-    helmet({
-      contentSecurityPolicy: false,
-      crossOriginEmbedderPolicy: false
-    })
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    adapter
   )
 
-  app.use(
-    compression({
-      threshold: 1024,
-      level: 6
-    })
-  )
+  await app.register(helmet, {
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+  })
+
+  await app.register(compress, {
+    threshold: 1024,
+    zlibOptions: { level: 6 }
+  })
 
   app.useGlobalPipes(new ValidationPipe({ transform: true }))
   app.enableShutdownHooks()
 
-  await app.listen(port)
+  await app.listen(PORT, ALL_INTERFACES)
 
   console.warn(
-    `GraphQL endpoint: http://localhost:${String(port)}${GRAPHQL_PATH}`
+    `GraphQL endpoint: http://localhost:${String(PORT)}${GRAPHQL_PATH}`
   )
 }
 

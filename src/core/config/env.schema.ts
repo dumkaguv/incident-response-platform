@@ -23,13 +23,13 @@ function isNumeric(value: string): boolean {
 }
 
 const trustProxy = z.union([
-  z.coerce.number().int().nonnegative(),
   z.stringbool({ truthy: ['true'], falsy: ['false'] }),
   z
     .string()
     .min(1)
     .refine((value) => !isNumeric(value), {
-      message: 'TRUST_PROXY hop count must be a whole non-negative number'
+      message:
+        'TRUST_PROXY takes true, false or an address list; a hop count cannot validate the immediate peer'
     })
 ])
 

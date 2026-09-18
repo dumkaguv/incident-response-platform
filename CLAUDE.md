@@ -155,3 +155,20 @@ for an update that sets nothing.
 database, so a database outage never restarts the process through its liveness
 probe. Unit tests run isolated: the shared module registry let a `vi.mock` hold
 only under one file order.
+
+**The platform is Fastify, and four things follow.** Nest middleware runs
+through middie and is handed the raw `IncomingMessage`, which carries no `ip`
+or `ips` — so anything that identifies a client is a Fastify `onRequest` hook
+instead. `HttpThrottlerHook` is registered from `ThrottlerConfigModule` and
+scoped by `request.routeOptions.url`; as a `NestMiddleware` it would have keyed
+every caller as `ip:unknown` and no type would have said so. `trustProxy`
+refuses a hop count — Fastify fails closed on a number because a hop count
+cannot validate the immediate peer — so `TRUST_PROXY` takes `true`, `false` or
+an address list, and a number is rejected by the env schema rather than
+silently trusting nothing. It is read in `main.ts` before the adapter exists,
+which is why `.env` is loaded there when it is present. `app.listen(port)`
+binds localhost under Fastify where Express bound every interface, so the host
+is passed explicitly. And `fastify` is held by a pnpm override at the exact
+version `@nestjs/platform-fastify` depends on: two copies in the tree break
+plugin registration and make every `FastifyRequest` structurally incompatible
+with itself.

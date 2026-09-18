@@ -1,7 +1,9 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common'
+import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 
 import { AppModule } from '@/app/app.module'
 import { WRITE_TIERS } from '@/core/throttler'
@@ -12,10 +14,13 @@ async function createApp(): Promise<INestApplication> {
   const fixture = await Test.createTestingModule({
     imports: [AppModule]
   }).compile()
-  const app = fixture.createNestApplication()
+  const app = fixture.createNestApplication<NestFastifyApplication>(
+    new FastifyAdapter()
+  )
 
   app.useGlobalPipes(new ValidationPipe({ transform: true }))
   await app.init()
+  await app.getHttpAdapter().getInstance().ready()
 
   return app
 }

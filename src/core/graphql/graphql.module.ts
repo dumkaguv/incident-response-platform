@@ -5,7 +5,7 @@ import { Module } from '@nestjs/common'
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core'
 import { GraphQLModule } from '@nestjs/graphql'
 import type { ConfigType } from '@nestjs/config'
-import type { Request, Response } from 'express'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 
 import { graphqlConfig } from '@/core/config'
 
@@ -27,8 +27,8 @@ export function driverConfig(
     introspection: config.explorer,
     includeStacktraceInErrorResponses: config.debug,
     formatError: createErrorFormatter(config),
-    context: ({ req, res }: { req: Request; res: Response }) =>
-      createGqlContext(req, res)
+    context: (request: FastifyRequest, reply: FastifyReply) =>
+      createGqlContext(request, reply)
   }
 }
 

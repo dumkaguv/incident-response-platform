@@ -12,7 +12,7 @@ reused by every entity.
 
 | Area     | Choice                                                |
 | -------- | ----------------------------------------------------- |
-| Runtime  | Node 24, NestJS 12, Express 5                         |
+| Runtime  | Node 24, NestJS 12, Fastify 5                         |
 | API      | Apollo Server 5, code-first GraphQL schema            |
 | Database | PostgreSQL 17, Prisma Next (`@prisma/orm-postgres` 8) |
 | Build    | SWC (no `tsc` emit), TypeScript 7 for type checking   |

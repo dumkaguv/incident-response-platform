@@ -1,5 +1,5 @@
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common'
-import type { Response } from 'express'
+import type { FastifyReply } from 'fastify'
 
 import { PrismaService } from '@/core/prisma/prisma.service'
 
@@ -15,7 +15,7 @@ export class HealthController {
   }
 
   @Get('ready')
-  public async ready(@Res() response: Response): Promise<void> {
+  public async ready(@Res() response: FastifyReply): Promise<void> {
     const readiness = await this.readiness()
 
     response
@@ -24,7 +24,7 @@ export class HealthController {
           ? HttpStatus.OK
           : HttpStatus.SERVICE_UNAVAILABLE
       )
-      .json(readiness)
+      .send(readiness)
   }
 
   private async readiness(): Promise<Readiness> {

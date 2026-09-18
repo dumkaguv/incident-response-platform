@@ -1,18 +1,19 @@
 import {
   type ExecutionContext,
-  type MiddlewareConsumer,
-  type NestModule,
+  type OnApplicationBootstrap,
   Module
 } from '@nestjs/common'
-import { APP_GUARD } from '@nestjs/core'
+import { APP_GUARD, HttpAdapterHost } from '@nestjs/core'
 import { ThrottlerModule } from '@nestjs/throttler'
 import type { ConfigType } from '@nestjs/config'
 import type { ThrottlerModuleOptions } from '@nestjs/throttler'
+import type { FastifyInstance } from 'fastify'
 
 import { AppConfigModule, throttleConfig } from '@/core/config'
+import { GRAPHQL_PATH } from '@/core/graphql/graphql.constants'
 
 import { GqlThrottlerGuard } from './gql-throttler.guard'
-import { HttpThrottlerMiddleware } from './http-throttler.middleware'
+import { HttpThrottlerHook } from './http-throttler.hook'
 import { isMutation } from './operation'
 
 function tiers(
@@ -55,10 +56,26 @@ function tiers(
       useFactory: tiers
     })
   ],
-  providers: [{ provide: APP_GUARD, useClass: GqlThrottlerGuard }]
+  providers: [
+    { provide: APP_GUARD, useClass: GqlThrottlerGuard },
+    HttpThrottlerHook
+  ]
 })
-export class ThrottlerConfigModule implements NestModule {
-  public configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(HttpThrottlerMiddleware).forRoutes('graphql')
+export class ThrottlerConfigModule implements OnApplicationBootstrap {
+  constructor(
+    private readonly adapterHost: HttpAdapterHost,
+    private readonly throttle: HttpThrottlerHook
+  ) {}
+
+  public onApplicationBootstrap(): void {
+    const instance = this.adapterHost.httpAdapter.getInstance<FastifyInstance>()
+
+    instance.addHook('onRequest', async (request, reply) => {
+      if (request.routeOptions.url !== GRAPHQL_PATH) {
+        return
+      }
+
+      return this.throttle.handle(request, reply)
+    })
   }
 }

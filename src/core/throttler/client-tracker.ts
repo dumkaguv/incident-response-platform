@@ -1,17 +1,15 @@
-export function clientTracker(req: Record<string, unknown>): string {
-  const identified = identify(req.user)
+import type { FastifyRequest } from 'fastify'
+
+export type IdentifiedRequest = FastifyRequest & { user?: unknown }
+
+export function clientTracker(request: IdentifiedRequest): string {
+  const identified = identify(request.user)
 
   if (identified) {
     return `user:${identified}`
   }
 
-  const forwarded = req.ips
-
-  if (Array.isArray(forwarded) && typeof forwarded[0] === 'string') {
-    return `ip:${forwarded[0]}`
-  }
-
-  return typeof req.ip === 'string' ? `ip:${req.ip}` : 'ip:unknown'
+  return `ip:${request.ips?.at(-1) ?? request.ip}`
 }
 
 function identify(user: unknown): string | null {

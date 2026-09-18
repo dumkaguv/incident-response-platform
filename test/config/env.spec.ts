@@ -39,9 +39,7 @@ describe('envSchema', () => {
     expect(parse({ GRAPHIQL: '0' }).GRAPHIQL).toBe(false)
   })
 
-  it('reads TRUST_PROXY as a hop count, a boolean or an address list', () => {
-    expect(parse({ TRUST_PROXY: '1' }).TRUST_PROXY).toBe(1)
-    expect(parse({ TRUST_PROXY: '2' }).TRUST_PROXY).toBe(2)
+  it('reads TRUST_PROXY as a boolean or an address list', () => {
     expect(parse({ TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true)
     expect(parse({ TRUST_PROXY: 'false' }).TRUST_PROXY).toBe(false)
     expect(parse({ TRUST_PROXY: 'loopback' }).TRUST_PROXY).toBe('loopback')
@@ -50,7 +48,9 @@ describe('envSchema', () => {
     )
   })
 
-  it('refuses a TRUST_PROXY hop count that is not a whole number', () => {
+  it('refuses a TRUST_PROXY hop count, which cannot validate the peer', () => {
+    expect(() => parse({ TRUST_PROXY: '1' })).toThrow()
+    expect(() => parse({ TRUST_PROXY: '2' })).toThrow()
     expect(() => parse({ TRUST_PROXY: '-1' })).toThrow()
     expect(() => parse({ TRUST_PROXY: '1.5' })).toThrow()
   })

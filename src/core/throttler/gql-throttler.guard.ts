@@ -6,14 +6,16 @@ import {
   type ThrottlerRequest,
   ThrottlerGuard
 } from '@nestjs/throttler'
+import type { FastifyReply } from 'fastify'
 
 import { TooManyRequestsError } from '@/common/utils'
+import type { GqlContext } from '@/core/graphql/graphql-context'
 
-import { clientTracker } from './client-tracker'
+import { type IdentifiedRequest, clientTracker } from './client-tracker'
 
 const VERDICTS = Symbol('throttler.verdicts')
 
-type JudgedRequest = Record<string, unknown> & {
+type JudgedRequest = IdentifiedRequest & {
   [VERDICTS]?: Map<string, Promise<boolean>>
 }
 
@@ -24,13 +26,11 @@ export class GqlThrottlerGuard extends ThrottlerGuard {
   }
 
   protected getRequestResponse(context: ExecutionContext): {
-    req: Record<string, unknown>
-    res: Record<string, unknown>
+    req: IdentifiedRequest
+    res: FastifyReply
   } {
-    const gqlContext = GqlExecutionContext.create(context).getContext<{
-      req: Record<string, unknown>
-      res: Record<string, unknown>
-    }>()
+    const gqlContext =
+      GqlExecutionContext.create(context).getContext<GqlContext>()
 
     return { req: gqlContext.req, res: gqlContext.res }
   }
@@ -50,7 +50,7 @@ export class GqlThrottlerGuard extends ThrottlerGuard {
     return verdict
   }
 
-  protected getTracker(req: Record<string, unknown>): Promise<string> {
+  protected getTracker(req: IdentifiedRequest): Promise<string> {
     return Promise.resolve(clientTracker(req))
   }
 
@@ -61,22 +61,11 @@ export class GqlThrottlerGuard extends ThrottlerGuard {
     const seconds = Math.max(1, detail.timeToBlockExpire || detail.timeToExpire)
     const { res } = this.getRequestResponse(context)
 
-    setRetryAfter(res, seconds)
+    void res.header('Retry-After', seconds)
+    void res.status(HttpStatus.TOO_MANY_REQUESTS)
 
     throw new TooManyRequestsError(
       msg`Rate limit reached, retry in ${seconds} seconds`
     )
-  }
-}
-
-function setRetryAfter(res: Record<string, unknown>, seconds: number): void {
-  const { header, status } = res
-
-  if (typeof header === 'function') {
-    header.call(res, 'Retry-After', seconds)
-  }
-
-  if (typeof status === 'function') {
-    status.call(res, HttpStatus.TOO_MANY_REQUESTS)
   }
 }

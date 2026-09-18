@@ -1,6 +1,6 @@
 export * from './client-tracker'
 export * from './gql-throttler.guard'
-export * from './http-throttler.middleware'
+export * from './http-throttler.hook'
 export * from './operation'
 export * from './throttler.constants'
 export * from './throttler.module'

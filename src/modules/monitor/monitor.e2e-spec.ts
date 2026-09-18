@@ -3,9 +3,11 @@ import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
 import { INestApplication, ValidationPipe } from '@nestjs/common'
+import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 
 import { AppModule } from '@/app/app.module'
 
@@ -34,9 +36,12 @@ describe('monitor module (e2e)', () => {
       imports: [AppModule]
     }).compile()
 
-    app = fixture.createNestApplication()
+    app = fixture.createNestApplication<NestFastifyApplication>(
+      new FastifyAdapter()
+    )
     app.useGlobalPipes(new ValidationPipe({ transform: true }))
     await app.init()
+    await app.getHttpAdapter().getInstance().ready()
   })
 
   afterAll(async () => {

@@ -1,19 +1,14 @@
-import {
-  type NestMiddleware,
-  HttpStatus,
-  Inject,
-  Injectable
-} from '@nestjs/common'
+import { HttpStatus, Inject, Injectable } from '@nestjs/common'
 import { ThrottlerStorage } from '@nestjs/throttler'
 import type { ConfigType } from '@nestjs/config'
-import type { NextFunction, Request, Response } from 'express'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 
 import { throttleConfig } from '@/core/config'
 
 import { clientTracker } from './client-tracker'
 
 @Injectable()
-export class HttpThrottlerMiddleware implements NestMiddleware {
+export class HttpThrottlerHook {
   private readonly http: ConfigType<typeof throttleConfig>['http']
 
   constructor(
@@ -23,12 +18,11 @@ export class HttpThrottlerMiddleware implements NestMiddleware {
     this.http = config.http
   }
 
-  public async use(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    const tracker = clientTracker(req as unknown as Record<string, unknown>)
+  public async handle(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ): Promise<FastifyReply | undefined> {
+    const tracker = clientTracker(request)
     const record = await this.storage.increment(
       `http:${tracker}`,
       this.http.ttl,
@@ -38,8 +32,6 @@ export class HttpThrottlerMiddleware implements NestMiddleware {
     )
 
     if (!record.isBlocked) {
-      next()
-
       return
     }
 
@@ -48,8 +40,10 @@ export class HttpThrottlerMiddleware implements NestMiddleware {
       record.timeToBlockExpire || record.timeToExpire
     )
 
-    res.setHeader('Retry-After', retryAfter)
-    res.status(HttpStatus.TOO_MANY_REQUESTS).json({
+    void reply.header('Retry-After', retryAfter)
+    void reply.status(HttpStatus.TOO_MANY_REQUESTS)
+
+    return reply.send({
       errors: [
         {
           message: `Too many requests, retry in ${String(retryAfter)} seconds`,
