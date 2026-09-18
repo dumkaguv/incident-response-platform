@@ -69,7 +69,7 @@ input CreateMonitorInput {
 }
 
 """
-A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+An RFC 3339 date-time with an offset, such as 2026-09-18T09:07:20.120265Z; fractional seconds are kept exactly as stored.
 """
 scalar DateTime
 
@@ -167,7 +167,9 @@ input IntFilter {
 }
 
 type Monitor {
-  """Probes recorded for this monitor, newest first"""
+  """
+  Probes recorded for this monitor, newest first; first and last size the page, a later page is read through the root query
+  """
   checks(
     """Rows per parent; defaults to 10, max 100"""
     first: Int

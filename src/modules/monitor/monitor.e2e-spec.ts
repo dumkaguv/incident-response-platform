@@ -240,6 +240,33 @@ describe('monitor module (e2e)', () => {
     })
   })
 
+  it('finds a check again by the exact checkedAt it returned', async () => {
+    const shown = await data(
+      `query ($id: ID!) {
+        monitorChecks(filter: { monitorId: { eq: $id } }, first: 1) {
+          nodes { id checkedAt }
+        }
+      }`,
+      { id: monitorId }
+    )
+    const [check] = (
+      shown.monitorChecks as { nodes: { id: string; checkedAt: string }[] }
+    ).nodes
+    const matched = await data(
+      `query ($id: ID!, $checkedAt: DateTime!) {
+        monitorChecks(filter: { id: { eq: $id }, checkedAt: { eq: $checkedAt } }) {
+          totalCount
+        }
+      }`,
+      { id: check.id, checkedAt: check.checkedAt }
+    )
+
+    expect(check.checkedAt).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?Z$/
+    )
+    expect(matched.monitorChecks).toMatchObject({ totalCount: 1 })
+  })
+
   it('carries the probe outcome onto the monitor itself', async () => {
     const after = await data(
       `query ($id: ID!) {

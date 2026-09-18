@@ -1,3 +1,4 @@
+import { isStoredDateTime } from '@/common/utils/date-time'
 import { BadUserInputError } from '@/common/utils/errors'
 
 import {
@@ -105,10 +106,7 @@ export function validateScalarValue(
         return value.toISOString()
       }
 
-      if (
-        typeof value === 'string' &&
-        Number.isFinite(new Date(value).getTime())
-      ) {
+      if (typeof value === 'string' && isStoredDateTime(value)) {
         return value
       }
 
