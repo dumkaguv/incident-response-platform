@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { Redis } from 'ioredis'
 
 import {
   ConflictError,
@@ -6,7 +7,7 @@ import {
   TooManyRequestsError
 } from '@/common/utils'
 import { MonitorLimit } from '@/modules/monitor/constants'
-import { MonitorCheckService } from '@/modules/monitor/services'
+import { MonitorCheckService, ProbeGate } from '@/modules/monitor/services'
 import { CheckErrorType, MonitorStatus } from '@/modules/monitor/types'
 import type { MonitorCheckRepository } from '@/modules/monitor/repositories'
 import type { MonitorService } from '@/modules/monitor/services'
@@ -24,6 +25,21 @@ const monitor = {
   isActive: true
 } as Monitor
 
+function gate(): ProbeGate {
+  const redis = {
+    defineCommand: () => undefined,
+    probeAcquire: () => Promise.resolve(1),
+    zrem: () => Promise.resolve(1)
+  }
+
+  return new ProbeGate(
+    redis as unknown as Redis,
+    'spec:probes',
+    MonitorLimit.probesInFlight,
+    MonitorLimit.probeLeaseMs
+  )
+}
+
 function serviceWith(
   recorded: MonitorCheckCreateData[],
   found: Monitor = monitor
@@ -39,7 +55,8 @@ function serviceWith(
 
   return new MonitorCheckService(
     monitors as unknown as MonitorService,
-    checks as unknown as MonitorCheckRepository
+    checks as unknown as MonitorCheckRepository,
+    gate()
   )
 }
 
@@ -158,7 +175,8 @@ describe('MonitorCheckService', () => {
     }
     const service = new MonitorCheckService(
       monitors as unknown as MonitorService,
-      {} as unknown as MonitorCheckRepository
+      {} as unknown as MonitorCheckRepository,
+      gate()
     )
 
     await expect(service.run('missing')).rejects.toThrow('NOT_FOUND')
@@ -172,7 +190,8 @@ describe('MonitorCheckService', () => {
       { getById: () => Promise.resolve(monitor) } as unknown as MonitorService,
       {
         recordOutcome: () => Promise.resolve(null)
-      } as unknown as MonitorCheckRepository
+      } as unknown as MonitorCheckRepository,
+      gate()
     )
 
     await expect(service.run('m1')).rejects.toBeInstanceOf(NotFoundError)
@@ -182,7 +201,8 @@ describe('MonitorCheckService', () => {
     const list = vi.fn(() => Promise.resolve({ nodes: [] }))
     const service = new MonitorCheckService(
       {} as unknown as MonitorService,
-      { list } as unknown as MonitorCheckRepository
+      { list } as unknown as MonitorCheckRepository,
+      gate()
     )
     const spec = { fingerprint: 'f' }
 
@@ -210,7 +230,8 @@ function scheduledServiceWith(
 
   return new MonitorCheckService(
     monitors as unknown as MonitorService,
-    checks as unknown as MonitorCheckRepository
+    checks as unknown as MonitorCheckRepository,
+    gate()
   )
 }
 
@@ -262,7 +283,8 @@ describe('MonitorCheckService.runScheduled', () => {
       { findById: () => Promise.resolve(monitor) } as unknown as MonitorService,
       {
         recordOutcome: () => Promise.resolve(null)
-      } as unknown as MonitorCheckRepository
+      } as unknown as MonitorCheckRepository,
+      gate()
     )
 
     await expect(service.runScheduled('m1')).resolves.toBeNull()

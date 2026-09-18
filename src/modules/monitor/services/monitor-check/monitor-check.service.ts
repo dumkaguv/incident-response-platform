@@ -2,7 +2,6 @@ import { msg } from '@lingui/core/macro'
 import { Injectable } from '@nestjs/common'
 
 import { ConflictError, TooManyRequestsError, found } from '@/common/utils'
-import { MonitorLimit } from '@/modules/monitor/constants'
 import { MonitorCheckRepository } from '@/modules/monitor/repositories'
 import { MonitorService } from '@/modules/monitor/services/monitor'
 import { probe } from '@/modules/monitor/utils'
@@ -13,13 +12,14 @@ import type {
 } from '@/core/pagination'
 import type { Monitor, MonitorCheck } from '@/modules/monitor/types'
 
+import { ProbeGate } from './probe-gate'
+
 @Injectable()
 export class MonitorCheckService {
-  private probesInFlight = 0
-
   constructor(
     private readonly monitors: MonitorService,
-    private readonly checks: MonitorCheckRepository
+    private readonly checks: MonitorCheckRepository,
+    private readonly gate: ProbeGate
   ) {}
 
   public list(
@@ -30,13 +30,13 @@ export class MonitorCheckService {
   }
 
   public async run(id: string): Promise<MonitorCheck> {
-    if (this.probesInFlight >= MonitorLimit.probesInFlight) {
+    const lease = await this.gate.acquire()
+
+    if (!lease) {
       throw new TooManyRequestsError(
         msg`Too many probes are running right now, retry in a moment`
       )
     }
-
-    this.probesInFlight += 1
 
     try {
       const monitor = await this.monitors.getById(id)
@@ -50,7 +50,7 @@ export class MonitorCheckService {
         msg`Monitor "${id}" was not found`
       )
     } finally {
-      this.probesInFlight -= 1
+      await lease.release()
     }
   }
 
