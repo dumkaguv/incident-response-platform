@@ -31,7 +31,8 @@ pnpm prisma:seed              # 6 monitors with 40 checks each
 pnpm dev
 ```
 
-GraphiQL is served at `http://localhost:$PORT/graphql` in development.
+GraphiQL is served at `http://localhost:$PORT/graphiql` in development, and
+`/` redirects there; `/graphql` is the endpoint itself.
 `GET /health` answers as soon as the process is up; `GET /health/ready` answers
 `200` only after the database did.
 

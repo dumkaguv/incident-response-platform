@@ -1,11 +1,24 @@
-import { rm } from 'node:fs/promises'
+import { cp, rm } from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { dirname, join } from 'node:path'
 
 import { build } from 'esbuild'
 import type { Plugin } from 'esbuild'
 
-const REQUIRE_SHIM =
+const CJS_SHIM =
   "import { createRequire as nodeCreateRequire } from 'node:module';" +
-  'const require = nodeCreateRequire(import.meta.url);'
+  "import { dirname as nodeDirname } from 'node:path';" +
+  "import { fileURLToPath as nodeFileURLToPath } from 'node:url';" +
+  'const require = nodeCreateRequire(import.meta.url);' +
+  'const __filename = nodeFileURLToPath(import.meta.url);' +
+  'const __dirname = nodeDirname(__filename);'
+
+const BUNDLE_DIR = 'bundle'
+const ENTRY_FILE = join(BUNDLE_DIR, 'lib', 'main.mjs')
+const EXPLORER_ASSETS = join(
+  dirname(createRequire(import.meta.url).resolve('mercurius')),
+  'static'
+)
 
 const BARE_IMPORT = /^[^./]/
 
@@ -39,12 +52,12 @@ function externalizeUnresolved(reported: Set<string>): Plugin {
 }
 
 async function main(): Promise<void> {
-  await rm('bundle', { recursive: true, force: true })
+  await rm(BUNDLE_DIR, { recursive: true, force: true })
 
   const externalized = new Set<string>()
   const result = await build({
     entryPoints: ['dist/main.js'],
-    outfile: 'bundle/main.mjs',
+    outfile: ENTRY_FILE,
     bundle: true,
     platform: 'node',
     target: 'node24',
@@ -54,9 +67,11 @@ async function main(): Promise<void> {
     sourcemap: false,
     legalComments: 'none',
     metafile: true,
-    banner: { js: REQUIRE_SHIM },
+    banner: { js: CJS_SHIM },
     plugins: [externalizeUnresolved(externalized)]
   })
+
+  await cp(EXPLORER_ASSETS, join(BUNDLE_DIR, 'static'), { recursive: true })
 
   for (const [file, meta] of Object.entries(result.metafile.outputs)) {
     console.warn(`${file} — ${(meta.bytes / 1024 / 1024).toFixed(2)} MB`)

@@ -23,6 +23,6 @@ FROM gcr.io/distroless/nodejs24-debian12:nonroot AS runtime
 ENV NODE_ENV=production
 ENV PORT=3000
 WORKDIR /app
-COPY --from=build /app/bundle/main.mjs ./main.mjs
+COPY --from=build /app/bundle/ ./
 EXPOSE 3000
-CMD ["main.mjs"]
+CMD ["lib/main.mjs"]

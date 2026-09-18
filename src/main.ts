@@ -6,12 +6,11 @@ import { NestFactory } from '@nestjs/core'
 import { FastifyAdapter } from '@nestjs/platform-fastify'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 
-import { env } from '@/core/config'
+import { env, graphqlConfig } from '@/core/config'
+import { GRAPHIQL_PATH, GRAPHQL_PATH } from '@/core/graphql/graphql.constants'
 
 import { AppModule } from './app/app.module'
 
-const GRAPHQL_PATH = '/graphql'
-const GRAPHIQL_PATH = '/graphiql'
 const ENV_FILE = '.env'
 const ALL_INTERFACES = '0.0.0.0'
 
@@ -21,23 +20,32 @@ function pathOf(url: string): string {
   return query >= 0 ? url.slice(0, query) : url
 }
 
+function entryPoint(explorer: boolean): { label: string; path: string } {
+  return explorer
+    ? { label: 'GraphiQL explorer', path: GRAPHIQL_PATH }
+    : { label: 'GraphQL endpoint', path: GRAPHQL_PATH }
+}
+
 async function bootstrap(): Promise<void> {
   if (existsSync(ENV_FILE)) {
     process.loadEnvFile(ENV_FILE)
   }
 
   const { PORT, TRUST_PROXY } = env()
+  const { explorer } = graphqlConfig()
   const adapter = new FastifyAdapter({ trustProxy: TRUST_PROXY })
 
-  adapter.getInstance().addHook('onRequest', (request, reply, done) => {
-    if (pathOf(request.url) === '/') {
-      void reply.redirect(GRAPHIQL_PATH)
+  if (explorer) {
+    adapter.getInstance().addHook('onRequest', (request, reply, done) => {
+      if (pathOf(request.url) === '/') {
+        void reply.redirect(GRAPHIQL_PATH)
 
-      return
-    }
+        return
+      }
 
-    done()
-  })
+      done()
+    })
+  }
 
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
@@ -58,9 +66,9 @@ async function bootstrap(): Promise<void> {
 
   await app.listen(PORT, ALL_INTERFACES)
 
-  console.warn(
-    `GraphQL endpoint: http://localhost:${String(PORT)}${GRAPHQL_PATH}`
-  )
+  const { label, path } = entryPoint(explorer)
+
+  console.warn(`${label}: http://localhost:${String(PORT)}${path}`)
 }
 
 void bootstrap()

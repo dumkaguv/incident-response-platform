@@ -181,6 +181,20 @@ version `@nestjs/platform-fastify` depends on: two copies in the tree break
 plugin registration and make every `FastifyRequest` structurally incompatible
 with itself.
 
+**The bundle is ESM, so `__dirname` is a banner, not a global.** `tools/bundle`
+emits one `bundle/lib/main.mjs`, and a bundled CommonJS dependency that reads
+`__dirname` finds nothing there: mercurius registers `@fastify/static` with
+`root: join(__dirname, '../static')` whenever its IDE is on, so the deployed
+image died at boot with `ReferenceError: __dirname is not defined` as soon as
+`GRAPHIQL` was true, where Apollo had needed no file on disk. The banner defines
+`require`, `__filename` and `__dirname` from `import.meta.url`, and the layout
+answers the path: the entry sits in `lib/` with mercurius's `static/` copied
+beside it — the way the package itself is laid out — so `../static` lands on the
+assets and the image copies the whole bundle directory. Shipping the shim alone
+would not have failed loudly, because a missing root is only a warning from
+`@fastify/static` and `/graphiql` would have answered 404. pino's worker paths
+read `__dirname` too and were one transport away from the same crash.
+
 **Fragment walkers memoize by name.** `queryDepth` and `connectionSelection`
 visit each fragment once per document. Without that, 20 levels of doubling
 spreads in an 884-byte valid document cost 3.5 s of synchronous CPU before
@@ -245,9 +259,11 @@ validation error` with no code where the client expects
 `GRAPHQL_VALIDATION_FAILED`. The formatter is per response, not per error, which
 is why it also owns the status — 429 when any error is `TOO_MANY_REQUESTS`, 400
 when no error carries a `path` and so nothing reached a resolver. **The explorer
-lives at `/graphiql`**, not at the GraphQL path the way Apollo served it, so `/`
-redirects there; `introspection` is not an option and is refused by adding
-`NoSchemaIntrospectionCustomRule` to `validationRules`.
+lives at `/graphiql`**, not at the GraphQL path the way Apollo served it, and
+`/` redirects there only while it is enabled, so production answers 404 instead
+of sending a client to a route that is not mounted; `introspection` is not an
+option and is refused by adding `NoSchemaIntrospectionCustomRule` to
+`validationRules`.
 
 **The driver never JIT-compiles, and `jit: 0` is the whole reason it is written
 out.** graphql-jit does not apply `defaultValue` on input object fields, so the
