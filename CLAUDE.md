@@ -193,8 +193,10 @@ guard keyed by resolver class and method, which handed every root field its own
 budget and let a request sidestep an exhausted bucket by leading with a field
 nobody had asked for yet; the per-request verdict cache is keyed by tier, so
 bucket and verdict now cover the same thing. A rate-limited GraphQL response is
-an HTTP 429 through `ThrottleStatusPlugin`, because the Apollo integration
-overwrites any status a guard sets. Write tiers read `THROTTLE_WRITE_*_LIMIT`;
+an HTTP 429 through `createErrorFormatter`, which answers that status whenever
+an error carries `TOO_MANY_REQUESTS`: Mercurius sends the status the formatter
+returns and discards the one the guard set on the reply, while the `Retry-After`
+header the guard set survives. Write tiers read `THROTTLE_WRITE_*_LIMIT`;
 the e2e suites raise the write burst because they create, probe and delete back
 to back.
 
@@ -228,3 +230,21 @@ layer and a target policy exist. Deferred with it: translating the English
 several replicas, and `include` of a second relation hop on the SQL lane, which
 today includes only `path[0]` of a sort path and would break cursor encoding
 for a two-hop relation sort that no module exposes yet.
+
+**A `preExecution` hook that returns errors does not stop the query.** Mercurius
+appends them to the response and executes anyway, so `guardQueryLimits` throws:
+returning a refusal let a query worth 50 101 complexity reach the database while
+still answering `BAD_USER_INPUT`, and no test saw it because the limit and the
+message were both right. The hook is given the schema as its first argument, so
+nothing injects `GraphQLSchemaHost`; it reads `operationName` off the request
+because the signature does not carry one, and `getComplexity` throws on a
+multi-operation document without it. **Errors reach the formatter nested**: a
+validation failure arrives as one `MER_ERR_GQL_VALIDATION` carrying the real
+errors in `originalError.errors`, and formatting the wrapper answers `Graphql
+validation error` with no code where the client expects
+`GRAPHQL_VALIDATION_FAILED`. The formatter is per response, not per error, which
+is why it also owns the status — 429 when any error is `TOO_MANY_REQUESTS`, 400
+when no error carries a `path` and so nothing reached a resolver. **The explorer
+lives at `/graphiql`**, not at the GraphQL path the way Apollo served it, so `/`
+redirects there; `introspection` is not an option and is refused by adding
+`NoSchemaIntrospectionCustomRule` to `validationRules`.
