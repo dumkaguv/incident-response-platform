@@ -13,7 +13,6 @@ import { graphqlConfig } from '@/core/config'
 import { AppErrorFilter } from './errors/app-error.filter'
 import { createErrorFormatter } from './errors/format-graphql-error'
 import { createGqlContext } from './graphql-context'
-import { JIT_COMPILE_AFTER } from './graphql.constants'
 import { guardQueryLimits } from './limits/query-limits.hook'
 import { ResetLoadersInterceptor } from './reset-loaders.interceptor'
 
@@ -24,7 +23,7 @@ export function driverConfig(
     driver: MercuriusDriver,
     autoSchemaFile: config.debug ? join(process.cwd(), 'schema.gql') : true,
     sortSchema: true,
-    jit: JIT_COMPILE_AFTER,
+    jit: 0,
     graphiql: config.explorer,
     validationRules: config.explorer ? [] : [NoSchemaIntrospectionCustomRule],
     errorFormatter: createErrorFormatter(config),

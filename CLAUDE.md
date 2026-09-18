@@ -248,3 +248,15 @@ when no error carries a `path` and so nothing reached a resolver. **The explorer
 lives at `/graphiql`**, not at the GraphQL path the way Apollo served it, so `/`
 redirects there; `introspection` is not an option and is refused by adding
 `NoSchemaIntrospectionCustomRule` to `validationRules`.
+
+**The driver never JIT-compiles, and `jit: 0` is the whole reason it is written
+out.** graphql-jit does not apply `defaultValue` on input object fields, so the
+`Int! = 299` form every `CreateXInput` is built on loses its default and the
+field reads as absent: `createMonitor` answered `Field value.expectedStatusMax
+of required type Int! was not provided` with HTTP 400 for every call after the
+first. Only after the first, because Mercurius runs a query through graphql-js
+until the compile threshold is reached, so one manual probe of a mutation always
+passes and the e2e suite is what catches it. Compilation is what made the driver
+worth swapping — 61 KB of monitors with their checks costs 5.0 ms of CPU under
+Apollo, 1.05 ms compiled and 2.45 ms not — so `jit` is worth revisiting only
+when graphql-jit fills input defaults, never by flipping the option.

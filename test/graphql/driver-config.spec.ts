@@ -25,8 +25,9 @@ describe('driverConfig', () => {
     ])
   })
 
-  it('compiles a query once it has been seen before', () => {
-    expect(driverConfig({ explorer: false, debug: false }).jit).toBe(1)
+  it('never compiles a query, whatever the mode', () => {
+    expect(driverConfig({ explorer: true, debug: true }).jit).toBe(0)
+    expect(driverConfig({ explorer: false, debug: false }).jit).toBe(0)
   })
 
   it('measures depth and complexity before the query executes', () => {
