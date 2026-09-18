@@ -55,8 +55,8 @@ describe('AppErrorFilter', () => {
       hostWithLocale('ru')
     )
 
-    expect(graphqlError.message).toBe('Монитор «INC-42» не найден')
-    expect(graphqlError.extensions.code).toBe('NOT_FOUND')
+    expect(graphqlError?.message).toBe('Монитор «INC-42» не найден')
+    expect(graphqlError?.extensions.code).toBe('NOT_FOUND')
   })
 
   it('falls back to the source locale for an unsupported one', () => {
@@ -66,8 +66,8 @@ describe('AppErrorFilter', () => {
       hostWithLocale('en')
     )
 
-    expect(graphqlError.message).toBe('Incident "INC-7" is already resolved')
-    expect(graphqlError.extensions.code).toBe('CONFLICT')
+    expect(graphqlError?.message).toBe('Incident "INC-7" is already resolved')
+    expect(graphqlError?.extensions.code).toBe('CONFLICT')
   })
 
   it('passes a plain string message through untouched', () => {
@@ -76,6 +76,6 @@ describe('AppErrorFilter', () => {
       hostWithLocale('ru')
     )
 
-    expect(graphqlError.message).toBe('Nothing here')
+    expect(graphqlError?.message).toBe('Nothing here')
   })
 })
