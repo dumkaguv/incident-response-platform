@@ -72,3 +72,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # agent worktrees
 .claude/worktrees
+
+# graphify knowledge graph output
+graphify-out/
