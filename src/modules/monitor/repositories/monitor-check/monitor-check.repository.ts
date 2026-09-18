@@ -76,6 +76,8 @@ export class MonitorCheckRepository {
       ), stamped AS (
         SELECT
           i.*,
+          ${param(data.dueAt ?? null, { codecId: Codec.text })}::timestamptz
+            AS due_at,
           (
             m.${monitor.lastCheckedAt} IS NULL
             OR m.${monitor.lastCheckedAt} <= i.${check.checkedAt}
@@ -109,9 +111,19 @@ export class MonitorCheckRepository {
             ELSE m.${monitor.consecutiveFailures}
           END,
           ${monitor.nextCheckAt} = CASE
-            WHEN s.newest
+            WHEN s.newest AND s.due_at IS NULL
             THEN s.${check.checkedAt}
               + make_interval(secs => m.${monitor.intervalSeconds})
+            WHEN s.newest
+            THEN s.due_at + make_interval(
+              secs => m.${monitor.intervalSeconds} * greatest(
+                1,
+                ceil(
+                  extract(epoch FROM now() - s.due_at)
+                    / m.${monitor.intervalSeconds}
+                )
+              )
+            )
             ELSE m.${monitor.nextCheckAt}
           END,
           ${monitor.updatedAt} = now()

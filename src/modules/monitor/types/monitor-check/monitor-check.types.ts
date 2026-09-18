@@ -12,6 +12,7 @@ export const CheckErrorType = contractEnum('CheckErrorType')
 export type MonitorCheckCreateData = {
   monitorId: string
   checkedAt: string
+  dueAt?: string | null
   status: MonitorStatus
   statusCode?: number | null
   responseTimeMs?: number | null

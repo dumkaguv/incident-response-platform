@@ -31,7 +31,10 @@ export class MonitorCheckProcessor
   }
 
   public async process(job: Job<MonitorCheckJob>): Promise<MonitorCheckResult> {
-    const check = await this.checks.runScheduled(job.data.monitorId)
+    const check = await this.checks.runScheduled(
+      job.data.monitorId,
+      job.data.dueAt
+    )
 
     return { checkId: check?.id ?? null, status: check?.status ?? null }
   }

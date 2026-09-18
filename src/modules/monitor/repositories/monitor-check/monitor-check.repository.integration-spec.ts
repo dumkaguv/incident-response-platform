@@ -159,6 +159,40 @@ describe('MonitorCheckRepository.recordOutcome', () => {
     expect(Date.parse(stored?.lastCheckedAt ?? '')).toBe(Date.parse(FOURTH))
   })
 
+  it('schedules from the slot it was given, so the grid does not drift', async () => {
+    const slot = new Date(Date.now() - 4000).toISOString()
+    const probed = new Date().toISOString()
+
+    await checks.recordOutcome({
+      monitorId: monitor.id,
+      dueAt: slot,
+      ...failure(probed)
+    })
+
+    const stored = await monitors.findById(monitor.id)
+
+    expect(Date.parse(stored?.nextCheckAt ?? '')).toBe(
+      Date.parse(slot) + 120_000
+    )
+  })
+
+  it('skips whole intervals rather than firing a backlog at once', async () => {
+    const stale = '2020-01-01T00:00:00.000Z'
+    const probed = new Date(Date.now() + 1000).toISOString()
+
+    await checks.recordOutcome({
+      monitorId: monitor.id,
+      dueAt: stale,
+      ...failure(probed)
+    })
+
+    const stored = await monitors.findById(monitor.id)
+    const next = Date.parse(stored?.nextCheckAt ?? '')
+
+    expect(next).toBeGreaterThanOrEqual(Date.now())
+    expect((next - Date.parse(stale)) % 120_000).toBe(0)
+  })
+
   it('answers null and records nothing for a monitor that does not exist', async () => {
     const missing = randomUUID()
 

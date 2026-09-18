@@ -54,23 +54,30 @@ export class MonitorCheckService {
     }
   }
 
-  public async runScheduled(id: string): Promise<MonitorCheck | null> {
+  public async runScheduled(
+    id: string,
+    dueAt?: string
+  ): Promise<MonitorCheck | null> {
     const monitor = await this.monitors.findById(id)
 
     if (!monitor?.isActive) {
       return null
     }
 
-    return this.record(monitor)
+    return this.record(monitor, dueAt)
   }
 
-  private async record(monitor: Monitor): Promise<MonitorCheck | null> {
+  private async record(
+    monitor: Monitor,
+    dueAt?: string
+  ): Promise<MonitorCheck | null> {
     const checkedAt = new Date().toISOString()
     const outcome = await probe(monitor)
 
     return this.checks.recordOutcome({
       monitorId: monitor.id,
       checkedAt,
+      dueAt,
       ...outcome
     })
   }

@@ -15,7 +15,9 @@ function job(data: MonitorCheckJob): Job<MonitorCheckJob> {
 }
 
 function processorWith(check: MonitorCheck | null) {
-  const runScheduled = vi.fn(() => Promise.resolve(check))
+  const runScheduled = vi.fn((_id: string, _dueAt?: string) =>
+    Promise.resolve(check)
+  )
   const processor = new MonitorCheckProcessor(
     { runScheduled } as unknown as MonitorCheckService,
     config
@@ -35,8 +37,21 @@ describe('MonitorCheckProcessor', () => {
       job({ monitorId: 'm1', dueAt: '2026-09-18 15:38:42.715296+00' })
     )
 
-    expect(runScheduled).toHaveBeenCalledWith('m1')
+    expect(runScheduled).toHaveBeenCalledWith(
+      'm1',
+      '2026-09-18 15:38:42.715296+00'
+    )
     expect(result).toEqual({ checkId: 'c1', status: MonitorStatus.UP })
+  })
+
+  it('hands the claimed slot on, so the schedule is measured from it', async () => {
+    const { processor, runScheduled } = processorWith(null)
+
+    await processor.process(
+      job({ monitorId: 'm1', dueAt: '2026-09-18 15:38:42.715296+00' })
+    )
+
+    expect(runScheduled.mock.calls[0][1]).toBe('2026-09-18 15:38:42.715296+00')
   })
 
   it('completes rather than fails when the monitor was paused or removed', async () => {

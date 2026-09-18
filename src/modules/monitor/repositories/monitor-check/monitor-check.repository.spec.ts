@@ -119,7 +119,7 @@ describe('MonitorCheckRepository', () => {
     )
     expect(executed[0].values[0]).toBe(MonitorStatus.DOWN)
     expect(executed[0].values[6]).toBe('m1')
-    expect(executed[0].values[7]).toBe(MonitorStatus.DOWN)
+    expect(executed[0].values.at(-1)).toBe(MonitorStatus.DOWN)
     expect(lookedUp).toEqual([])
     expect(recorded).toEqual({ id: 'c1' })
   })
