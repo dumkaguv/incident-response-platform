@@ -57,6 +57,27 @@ export class MonitorRepository {
     return this.table.where((fields) => fields.id.eq(id)).delete()
   }
 
+  public async releaseClaim(due: readonly MonitorDue[]): Promise<void> {
+    if (!due.length) {
+      return
+    }
+
+    await sqlRows(this.prisma.db, { id: Codec.text })`
+      UPDATE ${monitors} m SET
+        ${field.nextCheckAt} = d."dueAt",
+        ${field.updatedAt} = now()
+      FROM jsonb_to_recordset(
+        ${param(JSON.stringify(due), { codecId: Codec.text })}::jsonb
+      ) AS d(id text, "dueAt" timestamptz)
+      WHERE m.${field.id} = d.id
+        AND (
+          m.${field.lastCheckedAt} IS NULL
+          OR m.${field.lastCheckedAt} < d."dueAt"
+        )
+      RETURNING m.${field.id} AS id
+    `
+  }
+
   public async claimDue(limit: number): Promise<MonitorDue[]> {
     const rows = await sqlRows(this.prisma.db, {
       id: Codec.text,

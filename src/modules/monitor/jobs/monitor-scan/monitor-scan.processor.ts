@@ -38,13 +38,19 @@ export class MonitorScanProcessor
       return { claimed: 0 }
     }
 
-    await this.checks.addBulk(
-      due.map(({ id, dueAt }) => ({
-        name: MonitorJob.check,
-        data: { monitorId: id, dueAt },
-        opts: { jobId: checkJobId(id, dueAt) }
-      }))
-    )
+    try {
+      await this.checks.addBulk(
+        due.map(({ id, dueAt }) => ({
+          name: MonitorJob.check,
+          data: { monitorId: id, dueAt },
+          opts: { jobId: checkJobId(id, dueAt) }
+        }))
+      )
+    } catch (error) {
+      await this.monitors.releaseClaim(due)
+
+      throw error
+    }
 
     return { claimed: due.length }
   }

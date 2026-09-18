@@ -11,6 +11,7 @@ import { MonitorRepository } from './monitor.repository'
 
 const LONG_AGO = '1970-01-01T00:00:00.000Z'
 const FAR_AHEAD = '2999-01-01T00:00:00.000Z'
+const LATER = '2200-01-01T00:00:00.000Z'
 const BATCH = 4
 
 describe('MonitorRepository.claimDue', () => {
@@ -128,6 +129,31 @@ describe('MonitorRepository.claimDue', () => {
     const claimed = await monitors.claimDue(BATCH)
 
     expect(claimed.map(({ id }) => id)).not.toContain(ahead.id)
+  })
+
+  it('puts a slot back when the claim could not be handed on', async () => {
+    const claimed = await monitors.claimDue(BATCH)
+
+    await monitors.releaseClaim(claimed)
+
+    for (const { id, dueAt } of claimed) {
+      const stored = await monitors.findById(id)
+
+      expect(Date.parse(stored?.nextCheckAt ?? '')).toBe(Date.parse(dueAt))
+    }
+  })
+
+  it('refuses to put back a slot whose probe already landed', async () => {
+    const [first] = await monitors.claimDue(1)
+    const leased = (await monitors.findById(first.id))?.nextCheckAt
+
+    await db.orm.public.Monitor.where((fields) =>
+      fields.id.eq(first.id)
+    ).update({ lastCheckedAt: LATER })
+
+    await monitors.releaseClaim([first])
+
+    expect((await monitors.findById(first.id))?.nextCheckAt).toBe(leased)
   })
 
   it('reads no further than the batch it was asked for', async () => {

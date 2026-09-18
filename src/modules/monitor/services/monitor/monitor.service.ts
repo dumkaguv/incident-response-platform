@@ -41,6 +41,10 @@ export class MonitorService {
     return this.monitors.claimDue(limit)
   }
 
+  public releaseClaim(due: readonly MonitorDue[]): Promise<void> {
+    return this.monitors.releaseClaim(due)
+  }
+
   public listByIds(ids: readonly string[]): Promise<Monitor[]> {
     return this.monitors.findByIds(ids)
   }
