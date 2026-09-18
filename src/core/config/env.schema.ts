@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
-import { HTTP_TIER, THROTTLE_TIERS } from '@/core/throttler/throttler.constants'
+import {
+  HTTP_TIER,
+  THROTTLE_TIERS,
+  WRITE_TIERS
+} from '@/core/throttler/throttler.constants'
 
 function withoutBlanks(raw: unknown): unknown {
   if (typeof raw !== 'object' || raw === null) {
@@ -46,7 +50,9 @@ export const envSchema = z.preprocess(
     THROTTLE_HTTP_LIMIT: positive(HTTP_TIER.limit),
     THROTTLE_BURST_LIMIT: positive(THROTTLE_TIERS.burst.limit),
     THROTTLE_SUSTAINED_LIMIT: positive(THROTTLE_TIERS.sustained.limit),
-    THROTTLE_HOURLY_LIMIT: positive(THROTTLE_TIERS.hourly.limit)
+    THROTTLE_HOURLY_LIMIT: positive(THROTTLE_TIERS.hourly.limit),
+    THROTTLE_WRITE_BURST_LIMIT: positive(WRITE_TIERS.burst.limit),
+    THROTTLE_WRITE_SUSTAINED_LIMIT: positive(WRITE_TIERS.sustained.limit)
   })
 )
 

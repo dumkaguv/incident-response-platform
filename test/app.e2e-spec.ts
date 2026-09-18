@@ -15,6 +15,8 @@ describe('the application surface', () => {
   let app: INestApplication
 
   beforeAll(async () => {
+    process.env.THROTTLE_WRITE_BURST_LIMIT = '10000'
+
     const fixture = await Test.createTestingModule({
       imports: [AppModule]
     }).compile()
@@ -28,6 +30,7 @@ describe('the application surface', () => {
   })
 
   afterAll(async () => {
+    delete process.env.THROTTLE_WRITE_BURST_LIMIT
     await app.close()
   })
 

@@ -15,7 +15,9 @@ export const throttleConfig = registerAs('throttle', () => {
     THROTTLE_HTTP_LIMIT,
     THROTTLE_BURST_LIMIT,
     THROTTLE_SUSTAINED_LIMIT,
-    THROTTLE_HOURLY_LIMIT
+    THROTTLE_HOURLY_LIMIT,
+    THROTTLE_WRITE_BURST_LIMIT,
+    THROTTLE_WRITE_SUSTAINED_LIMIT
   } = env()
 
   return {
@@ -32,7 +34,13 @@ export const throttleConfig = registerAs('throttle', () => {
       },
       hourly: { limit: THROTTLE_HOURLY_LIMIT, ttl: THROTTLE_TIERS.hourly.ttl }
     },
-    write: WRITE_TIERS,
+    write: {
+      burst: { limit: THROTTLE_WRITE_BURST_LIMIT, ttl: WRITE_TIERS.burst.ttl },
+      sustained: {
+        limit: THROTTLE_WRITE_SUSTAINED_LIMIT,
+        ttl: WRITE_TIERS.sustained.ttl
+      }
+    },
     blockDuration: BLOCK_DURATION
   }
 })

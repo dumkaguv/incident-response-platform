@@ -20,6 +20,7 @@ describe('monitor module (e2e)', () => {
   let monitorId: string
 
   beforeAll(async () => {
+    process.env.THROTTLE_WRITE_BURST_LIMIT = '10000'
     target = createServer((incoming, response) => {
       response.statusCode = incoming.url === '/bad' ? 503 : 200
       response.end('probe body')
@@ -45,6 +46,7 @@ describe('monitor module (e2e)', () => {
   })
 
   afterAll(async () => {
+    delete process.env.THROTTLE_WRITE_BURST_LIMIT
     await app.close()
     await new Promise<void>((resolve) => {
       target.close(() => {

@@ -10,10 +10,15 @@ function parse(overrides: Record<string, string> = {}) {
 
 describe('envSchema', () => {
   it('coerces numeric strings into numbers', () => {
-    const env = parse({ PORT: '3001', THROTTLE_BURST_LIMIT: '42' })
+    const env = parse({
+      PORT: '3001',
+      THROTTLE_BURST_LIMIT: '42',
+      THROTTLE_WRITE_BURST_LIMIT: '7'
+    })
 
     expect(env.PORT).toBe(3001)
     expect(env.THROTTLE_BURST_LIMIT).toBe(42)
+    expect(env.THROTTLE_WRITE_BURST_LIMIT).toBe(7)
   })
 
   it('falls back to defaults when a variable is absent', () => {
@@ -22,6 +27,8 @@ describe('envSchema', () => {
     expect(env.PORT).toBe(3000)
     expect(env.NODE_ENV).toBe('development')
     expect(env.THROTTLE_HTTP_LIMIT).toBe(600)
+    expect(env.THROTTLE_WRITE_BURST_LIMIT).toBe(5)
+    expect(env.THROTTLE_WRITE_SUSTAINED_LIMIT).toBe(60)
   })
 
   it('treats a present-but-empty variable as absent', () => {
