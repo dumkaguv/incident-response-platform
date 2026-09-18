@@ -7,15 +7,17 @@ import type {
 
 type Fragments = Record<string, FragmentDefinitionNode>
 
+type DepthWalk = { fragments: Fragments; fragmentDepths: Map<string, number> }
+
 export function queryDepth(
   document: DocumentNode,
   operationName?: string | null
 ): number {
-  const fragments: Fragments = {}
+  const walk: DepthWalk = { fragments: {}, fragmentDepths: new Map() }
 
   for (const definition of document.definitions) {
     if (definition.kind === Kind.FRAGMENT_DEFINITION) {
-      fragments[definition.name.value] = definition
+      walk.fragments[definition.name.value] = definition
     }
   }
 
@@ -32,7 +34,7 @@ export function queryDepth(
 
     deepest = Math.max(
       deepest,
-      depthOf(definition.selectionSet, fragments, new Set())
+      depthOf(definition.selectionSet, walk, new Set())
     )
   }
 
@@ -41,8 +43,8 @@ export function queryDepth(
 
 function depthOf(
   selectionSet: SelectionSetNode,
-  fragments: Fragments,
-  visited: ReadonlySet<string>
+  walk: DepthWalk,
+  expanding: ReadonlySet<string>
 ): number {
   let deepest = 0
 
@@ -53,7 +55,7 @@ function depthOf(
       }
 
       const child = selection.selectionSet
-        ? depthOf(selection.selectionSet, fragments, visited)
+        ? depthOf(selection.selectionSet, walk, expanding)
         : 0
 
       deepest = Math.max(deepest, child + 1)
@@ -63,23 +65,44 @@ function depthOf(
     if (selection.kind === Kind.INLINE_FRAGMENT) {
       deepest = Math.max(
         deepest,
-        depthOf(selection.selectionSet, fragments, visited)
+        depthOf(selection.selectionSet, walk, expanding)
       )
-      continue
-    }
-
-    const name = selection.name.value
-    const fragment = fragments[name]
-
-    if (!fragment || visited.has(name)) {
       continue
     }
 
     deepest = Math.max(
       deepest,
-      depthOf(fragment.selectionSet, fragments, new Set([...visited, name]))
+      fragmentDepth(selection.name.value, walk, expanding)
     )
   }
 
   return deepest
+}
+
+function fragmentDepth(
+  name: string,
+  walk: DepthWalk,
+  expanding: ReadonlySet<string>
+): number {
+  const known = walk.fragmentDepths.get(name)
+
+  if (known !== undefined) {
+    return known
+  }
+
+  const fragment = walk.fragments[name]
+
+  if (!fragment || expanding.has(name)) {
+    return 0
+  }
+
+  const depth = depthOf(
+    fragment.selectionSet,
+    walk,
+    new Set([...expanding, name])
+  )
+
+  walk.fragmentDepths.set(name, depth)
+
+  return depth
 }

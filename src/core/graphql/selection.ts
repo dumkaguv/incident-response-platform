@@ -9,9 +9,24 @@ type Fragments = Record<string, FragmentDefinitionNode>
 
 type SelectionSets = (SelectionSetNode | undefined)[]
 
+type SelectionWalk = { fragments: Fragments; expanded: Set<string> }
+
+function spreadSelectionSet(
+  name: string,
+  walk: SelectionWalk
+): SelectionSetNode | undefined {
+  if (walk.expanded.has(name)) {
+    return undefined
+  }
+
+  walk.expanded.add(name)
+
+  return walk.fragments[name]?.selectionSet
+}
+
 function fieldNames(
   selectionSet: SelectionSetNode | undefined,
-  fragments: Fragments,
+  walk: SelectionWalk,
   names: Set<string>
 ): void {
   if (!selectionSet) {
@@ -25,11 +40,11 @@ function fieldNames(
     }
 
     if (selection.kind === Kind.INLINE_FRAGMENT) {
-      fieldNames(selection.selectionSet, fragments, names)
+      fieldNames(selection.selectionSet, walk, names)
       continue
     }
 
-    fieldNames(fragments[selection.name.value]?.selectionSet, fragments, names)
+    fieldNames(spreadSelectionSet(selection.name.value, walk), walk, names)
   }
 }
 
@@ -39,6 +54,7 @@ function childSelectionSets(
   field: string
 ): SelectionSets {
   const found: SelectionSets = []
+  const walk: SelectionWalk = { fragments, expanded: new Set() }
 
   function visit(selectionSet: SelectionSetNode | undefined): void {
     if (!selectionSet) {
@@ -59,7 +75,7 @@ function childSelectionSets(
         continue
       }
 
-      visit(fragments[selection.name.value]?.selectionSet)
+      visit(spreadSelectionSet(selection.name.value, walk))
     }
   }
 
@@ -75,12 +91,13 @@ export function connectionSelection(info: GraphQLResolveInfo): string[] {
   const roots = info.fieldNodes.map((node) => node.selectionSet)
   const names = new Set<string>()
   const edges = childSelectionSets(roots, fragments, 'edges')
+  const walk: SelectionWalk = { fragments, expanded: new Set() }
 
   for (const nodes of [
     ...childSelectionSets(roots, fragments, 'nodes'),
     ...childSelectionSets(edges, fragments, 'node')
   ]) {
-    fieldNames(nodes, fragments, names)
+    fieldNames(nodes, walk, names)
   }
 
   return [...names]

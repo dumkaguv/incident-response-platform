@@ -59,3 +59,25 @@ describe('queryDepth', () => {
     ).toBe(4)
   })
 })
+
+describe('queryDepth on repeated fragment spreads', () => {
+  it('expands each fragment once, so doubling spreads stay linear', () => {
+    const levels = 24
+    const fragments = ['fragment F0 on Incident { id }']
+
+    for (let level = 1; level <= levels; level += 1) {
+      fragments.push(
+        `fragment F${level} on Incident { ...F${level - 1} ...F${level - 1} }`
+      )
+    }
+
+    const started = performance.now()
+
+    expect(
+      depth(
+        `{ incidents { nodes { ...F${levels} } } }\n${fragments.join('\n')}`
+      )
+    ).toBe(3)
+    expect(performance.now() - started).toBeLessThan(1000)
+  })
+})
