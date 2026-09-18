@@ -25,7 +25,11 @@ export class CreateMonitorInput {
   @Field(() => String, {
     description: 'Absolute http(s) address to probe'
   })
-  @IsUrl({ protocols: ['http', 'https'], require_protocol: true })
+  @IsUrl({
+    protocols: ['http', 'https'],
+    require_protocol: true,
+    require_tld: false
+  })
   @MaxLength(MonitorLimit.urlMax)
   url: string
 

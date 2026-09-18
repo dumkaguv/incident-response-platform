@@ -79,6 +79,27 @@ describe('CreateMonitorInput', () => {
   })
 
   it.each([
+    'http://localhost:3001',
+    'https://localhost:8443/health',
+    'http://127.0.0.1:3001',
+    'http://10.0.0.5/health',
+    'https://example.com/health?deep=1'
+  ])('accepts %s, a host a probe can actually reach', async (url) => {
+    await expect(validate({ ...full, url })).resolves.toMatchObject({ url })
+  })
+
+  it.each([
+    'ftp://example.com',
+    'example.com',
+    'javascript:alert(1)',
+    'not a url'
+  ])('refuses %s, which no probe could send', async (url) => {
+    await expect(validate({ ...full, url })).rejects.toBeInstanceOf(
+      BadRequestException
+    )
+  })
+
+  it.each([
     'method',
     'intervalSeconds',
     'timeoutMs',
