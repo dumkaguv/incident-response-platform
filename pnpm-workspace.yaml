@@ -1,7 +1,6 @@
 overrides:
   fastify: 5.12.4
 allowBuilds:
-  '@apollo/protobufjs': false
   '@parcel/watcher': true
   '@prisma/engines': true
   '@scarf/scarf': false

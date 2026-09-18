@@ -1,66 +1,115 @@
-import { ApolloServerErrorCode } from '@apollo/server/errors'
 import { HttpException, HttpStatus } from '@nestjs/common'
-import { type GraphQLFormattedError, GraphQLError } from 'graphql'
+import { GraphQLError } from 'graphql'
+import type {
+  ExecutionResult,
+  FormattedExecutionResult,
+  GraphQLFormattedError
+} from 'graphql'
 
-import { AppError } from '@/common/utils'
+import { AppError, TooManyRequestsError } from '@/common/utils'
 
 export type ErrorFormatterOptions = { debug: boolean }
 
-export type ErrorFormatter = (
-  formattedError: GraphQLFormattedError,
-  error: unknown
-) => GraphQLFormattedError
+export type FailedExecution = ExecutionResult &
+  Required<Pick<ExecutionResult, 'errors'>>
+
+export type FormattedFailure = {
+  statusCode: number
+  response: FormattedExecutionResult
+}
+
+export type ErrorFormatter = (execution: FailedExecution) => FormattedFailure
+
+type NestedErrors = { errors?: readonly Error[] }
+
+const INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR'
+
+const BAD_USER_INPUT = 'BAD_USER_INPUT'
+
+const GRAPHQL_VALIDATION_FAILED = 'GRAPHQL_VALIDATION_FAILED'
 
 const HTTP_CODE_MAP: Record<number, string> = {
-  [HttpStatus.BAD_REQUEST]: ApolloServerErrorCode.BAD_USER_INPUT,
+  [HttpStatus.BAD_REQUEST]: BAD_USER_INPUT,
   [HttpStatus.UNAUTHORIZED]: 'UNAUTHENTICATED',
   [HttpStatus.FORBIDDEN]: 'FORBIDDEN',
   [HttpStatus.NOT_FOUND]: 'NOT_FOUND',
   [HttpStatus.CONFLICT]: 'CONFLICT',
-  [HttpStatus.TOO_MANY_REQUESTS]: 'TOO_MANY_REQUESTS'
+  [HttpStatus.TOO_MANY_REQUESTS]: TooManyRequestsError.code
 }
 
 export function createErrorFormatter({
   debug
 }: ErrorFormatterOptions): ErrorFormatter {
-  return (formattedError, error) => {
-    const original = unwrapOriginalError(error)
+  return (execution) => {
+    const errors = execution.errors
+      .flatMap(carriedErrors)
+      .map((error) => formatOne(error, debug))
 
-    if (original instanceof AppError) {
-      return {
-        message: original.message,
-        path: formattedError.path,
-        extensions: { code: original.code }
-      }
+    return {
+      statusCode: statusFor(errors),
+      response: { data: execution.data, errors }
     }
-
-    if (original instanceof HttpException) {
-      return formatHttpException(original, formattedError)
-    }
-
-    if (!debug && isInternalError(formattedError)) {
-      return {
-        message: 'Internal server error',
-        path: formattedError.path,
-        extensions: { code: ApolloServerErrorCode.INTERNAL_SERVER_ERROR }
-      }
-    }
-
-    return formattedError
   }
 }
 
-function unwrapOriginalError(error: unknown): unknown {
-  if (error instanceof GraphQLError && error.originalError) {
-    return error.originalError
+function carriedErrors(error: GraphQLError): GraphQLError[] {
+  const nested = (error.originalError as NestedErrors | undefined)?.errors
+
+  if (!nested) {
+    return [error]
   }
 
-  return error
+  return nested.map((each) =>
+    each instanceof GraphQLError
+      ? each
+      : new GraphQLError(each.message, { originalError: each })
+  )
+}
+
+function formatOne(error: GraphQLError, debug: boolean): GraphQLFormattedError {
+  const original = error.originalError
+
+  if (original instanceof AppError) {
+    return {
+      message: original.message,
+      path: error.path,
+      extensions: { code: original.code }
+    }
+  }
+
+  if (original instanceof HttpException) {
+    return formatHttpException(original, error)
+  }
+
+  const formatted = error.toJSON()
+  const code = formatted.extensions?.code
+
+  if (typeof code === 'string' && code !== INTERNAL_SERVER_ERROR) {
+    return formatted
+  }
+
+  if (!original) {
+    return {
+      message: formatted.message,
+      locations: formatted.locations,
+      extensions: { code: GRAPHQL_VALIDATION_FAILED }
+    }
+  }
+
+  if (debug) {
+    return formatted
+  }
+
+  return {
+    message: 'Internal server error',
+    path: formatted.path,
+    extensions: { code: INTERNAL_SERVER_ERROR }
+  }
 }
 
 function formatHttpException(
   exception: HttpException,
-  formattedError: GraphQLFormattedError
+  error: GraphQLError
 ): GraphQLFormattedError {
   const response = exception.getResponse()
   const messages = validationMessages(response)
@@ -68,17 +117,14 @@ function formatHttpException(
   if (messages) {
     return {
       message: 'Validation failed',
-      path: formattedError.path,
-      extensions: {
-        code: ApolloServerErrorCode.BAD_USER_INPUT,
-        errors: messages
-      }
+      path: error.path,
+      extensions: { code: BAD_USER_INPUT, errors: messages }
     }
   }
 
   return {
     message: exception.message,
-    path: formattedError.path,
+    path: error.path,
     extensions: {
       code: HTTP_CODE_MAP[exception.getStatus()] ?? 'HTTP_EXCEPTION'
     }
@@ -98,8 +144,16 @@ function validationMessages(response: unknown): string[] | null {
   return null
 }
 
-function isInternalError(formattedError: GraphQLFormattedError): boolean {
-  const code = formattedError.extensions?.code
+function statusFor(errors: readonly GraphQLFormattedError[]): number {
+  if (
+    errors.some((error) => error.extensions?.code === TooManyRequestsError.code)
+  ) {
+    return HttpStatus.TOO_MANY_REQUESTS
+  }
 
-  return !code || code === ApolloServerErrorCode.INTERNAL_SERVER_ERROR
+  if (errors.every((error) => !error.path)) {
+    return HttpStatus.BAD_REQUEST
+  }
+
+  return HttpStatus.OK
 }

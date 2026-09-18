@@ -11,6 +11,7 @@ import { env } from '@/core/config'
 import { AppModule } from './app/app.module'
 
 const GRAPHQL_PATH = '/graphql'
+const GRAPHIQL_PATH = '/graphiql'
 const ENV_FILE = '.env'
 const ALL_INTERFACES = '0.0.0.0'
 
@@ -30,7 +31,7 @@ async function bootstrap(): Promise<void> {
 
   adapter.getInstance().addHook('onRequest', (request, reply, done) => {
     if (pathOf(request.url) === '/') {
-      void reply.redirect(GRAPHQL_PATH)
+      void reply.redirect(GRAPHIQL_PATH)
 
       return
     }
